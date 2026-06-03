@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { Upload, Button, Image, Space, App } from "antd";
 import { UploadOutlined, DeleteOutlined } from "@ant-design/icons";
-import type { UploadRequestOption } from "rc-upload/lib/interface";
+import type { UploadProps } from "antd";
+
+type UploadRequestOption = NonNullable<Parameters<NonNullable<UploadProps["customRequest"]>>[0]>;
 import { upload } from "@vercel/blob/client";
 
 interface CoverImageUploadProps {
