@@ -13,6 +13,7 @@ import {
   Space,
   Typography,
   message,
+  theme,
 } from "antd";
 import { MessageOutlined, PlusOutlined, SendOutlined, UserOutlined } from "@ant-design/icons";
 
@@ -42,6 +43,7 @@ export function DiscussionsPanel({ courseId }: Props) {
   const [threadForm] = Form.useForm<{ subject: string }>();
   const [replyText, setReplyText] = useState("");
   const utils = api.useUtils();
+  const { token } = theme.useToken();
 
   const { data: threads = [] } = api.message.listByCourse.useQuery({ courseId });
 
@@ -85,7 +87,7 @@ export function DiscussionsPanel({ courseId }: Props) {
           styles={{ body: { padding: 0 } }}
         >
           {threads.length === 0 ? (
-            <div style={{ padding: 16, color: "#bfbfbf", textAlign: "center" }}>
+            <div style={{ padding: 16, color: token.colorTextDisabled, textAlign: "center" }}>
               <MessageOutlined style={{ fontSize: 24, marginBottom: 8 }} />
               <div>No threads yet</div>
             </div>
@@ -98,8 +100,8 @@ export function DiscussionsPanel({ courseId }: Props) {
                   style={{
                     padding: "8px 16px",
                     cursor: "pointer",
-                    background: activeThread?.id === thread.id ? "#f0f5ff" : undefined,
-                    borderLeft: activeThread?.id === thread.id ? "3px solid #4F46E5" : "3px solid transparent",
+                    background: activeThread?.id === thread.id ? token.colorPrimaryBg : undefined,
+                    borderLeft: activeThread?.id === thread.id ? `3px solid ${token.colorPrimary}` : "3px solid transparent",
                   }}
                 >
                   <div>
@@ -122,7 +124,7 @@ export function DiscussionsPanel({ courseId }: Props) {
           styles={{ body: { display: "flex", flexDirection: "column", height: 400 } }}
         >
           {!activeThread ? (
-            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#bfbfbf" }}>
+            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: token.colorTextDisabled }}>
               Select a thread to view messages
             </div>
           ) : (
@@ -135,7 +137,7 @@ export function DiscussionsPanel({ courseId }: Props) {
                     {threadMessages.map((msg: Message) => (
                       <div key={msg.id} style={{ display: "flex", gap: 8 }}>
                         <Avatar size="small" icon={<UserOutlined />} />
-                        <div style={{ flex: 1, background: "#f5f5f5", borderRadius: 8, padding: "6px 10px" }}>
+                        <div style={{ flex: 1, background: token.colorFillAlter, borderRadius: 8, padding: "6px 10px" }}>
                           <Typography.Text style={{ fontSize: 12 }}>{msg.content}</Typography.Text>
                           <div>
                             <Typography.Text type="secondary" style={{ fontSize: 10 }}>

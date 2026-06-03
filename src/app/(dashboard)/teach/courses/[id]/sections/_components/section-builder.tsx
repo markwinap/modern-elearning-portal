@@ -3,7 +3,6 @@
 import { useState } from "react";
 import {
   Button,
-  Card,
   Collapse,
   Empty,
   Form,
@@ -14,6 +13,7 @@ import {
   Tag,
   Typography,
   message,
+  theme,
 } from "antd";
 import {
   PlusOutlined,
@@ -57,6 +57,7 @@ function ActivityList({ sectionId, courseId }: { sectionId: number; courseId: nu
   const [addModal, setAddModal] = useState(false);
   const [form] = Form.useForm<{ title: string; type: string }>();
   const utils = api.useUtils();
+  const { token } = theme.useToken();
 
   const { data: activities = [] } = api.activity.listBySection.useQuery({ sectionId });
 
@@ -94,8 +95,8 @@ function ActivityList({ sectionId, courseId }: { sectionId: number; courseId: nu
                   gap: 8,
                   padding: "6px 8px",
                   borderRadius: 6,
-                  background: "#fafafa",
-                  border: "1px solid #f0f0f0",
+                  background: token.colorFillAlter,
+                  border: `1px solid ${token.colorBorderSecondary}`,
                 }}
               >
                 <FileOutlined />
