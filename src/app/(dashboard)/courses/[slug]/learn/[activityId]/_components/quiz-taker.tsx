@@ -218,20 +218,20 @@ export function QuizTaker({ activityId, quiz, questions, initialProgress: _initi
             Quiz Overview
           </Typography.Title>
 
-          <Descriptions column={2} size="small">
-            <Descriptions.Item label="Questions">{questions.length}</Descriptions.Item>
-            <Descriptions.Item label="Total Points">
-              {questions.reduce((s, q) => s + q.points, 0)}
-            </Descriptions.Item>
-            {quiz?.timeLimitSecs && (
-              <Descriptions.Item label={<><ClockCircleOutlined /> Time Limit</>}>
-                {formatTime(quiz.timeLimitSecs)}
-              </Descriptions.Item>
-            )}
-            {quiz?.maxAttempts && (
-              <Descriptions.Item label="Max Attempts">{quiz.maxAttempts}</Descriptions.Item>
-            )}
-          </Descriptions>
+          <Descriptions
+            column={2}
+            size="small"
+            styles={{
+              label: { color: token.colorTextSecondary },
+              content: { color: token.colorText },
+            }}
+            items={[
+              { key: "questions", label: "Questions", children: questions.length },
+              { key: "points", label: "Total Points", children: questions.reduce((s, q) => s + q.points, 0) },
+              ...(quiz?.timeLimitSecs ? [{ key: "time", label: <><ClockCircleOutlined /> Time Limit</>, children: formatTime(quiz.timeLimitSecs) }] : []),
+              ...(quiz?.maxAttempts ? [{ key: "attempts", label: "Max Attempts", children: quiz.maxAttempts }] : []),
+            ]}
+          />
 
           {questions.length === 0 ? (
             <Alert type="warning" title="No questions have been added to this quiz yet." showIcon />
