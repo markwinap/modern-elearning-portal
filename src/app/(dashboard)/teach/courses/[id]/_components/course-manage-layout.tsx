@@ -14,6 +14,8 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { useTheme } from "~/components/theme/theme-context";
+
 interface Course {
   id: number;
   title: string;
@@ -44,6 +46,7 @@ const NAV_ITEMS = (id: number) => [
 
 export function CourseManageLayout({ course, courseId, children }: Props) {
   const pathname = usePathname();
+  const { isDark } = useTheme();
   const activeKey = NAV_ITEMS(courseId).find((item) =>
     pathname.includes(`/${item.key}`)
   )?.key ?? "edit";
@@ -71,6 +74,7 @@ export function CourseManageLayout({ course, courseId, children }: Props) {
       </div>
 
       <Menu
+        theme={isDark ? "dark" : "light"}
         mode="horizontal"
         selectedKeys={[activeKey]}
         items={NAV_ITEMS(courseId)}

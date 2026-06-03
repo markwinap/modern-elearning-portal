@@ -8,8 +8,10 @@ import {
   ReadOutlined,
   ToolOutlined,
 } from "@ant-design/icons";
-import { Menu, Typography } from "antd";
+import { Menu, Typography, theme } from "antd";
 import { usePathname, useRouter } from "next/navigation";
+
+import { useTheme } from "~/components/theme/theme-context";
 
 interface ActivityItem {
   id: number;
@@ -53,6 +55,8 @@ function activityIcon(type: string) {
 export function LearnSidebar({ slug, courseTitle, sectionsWithActivities }: Props) {
   const pathname = usePathname();
   const router = useRouter();
+  const { isDark } = useTheme();
+  const { token } = theme.useToken();
 
   const selectedKey =
     sectionsWithActivities
@@ -75,18 +79,18 @@ export function LearnSidebar({ slug, courseTitle, sectionsWithActivities }: Prop
       style={{
         width: 280,
         minWidth: 280,
-        borderRight: "1px solid #e5e7eb",
+        borderRight: `1px solid ${token.colorBorderSecondary}`,
         display: "flex",
         flexDirection: "column",
-        background: "#fff",
+        background: token.colorBgContainer,
         overflowY: "auto",
       }}
     >
       <div
         style={{
           padding: "16px 20px",
-          borderBottom: "1px solid #e5e7eb",
-          background: "#f9fafb",
+          borderBottom: `1px solid ${token.colorBorderSecondary}`,
+          background: token.colorBgLayout,
         }}
       >
         <Typography.Text strong style={{ fontSize: 13, display: "block" }}>
@@ -94,6 +98,7 @@ export function LearnSidebar({ slug, courseTitle, sectionsWithActivities }: Prop
         </Typography.Text>
       </div>
       <Menu
+        theme={isDark ? "dark" : "light"}
         mode="inline"
         selectedKeys={[selectedKey]}
         defaultOpenKeys={sectionsWithActivities.map((s) => `section-${s.id}`)}

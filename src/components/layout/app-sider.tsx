@@ -143,6 +143,7 @@ export function AppSider({ role }: AppSiderProps) {
         </Typography.Text>
       </div>
       <Menu
+        theme={isDark ? "dark" : "light"}
         mode="inline"
         selectedKeys={[selectedKey]}
         items={getMenuItems(role)}
