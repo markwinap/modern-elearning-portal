@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Popconfirm, Space, Table, Tag, Typography, message } from "antd";
+import { Button, Popconfirm, Space, Table, Tag, Typography, message, theme } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { CheckOutlined, EditOutlined, InboxOutlined } from "@ant-design/icons";
 import Link from "next/link";
@@ -28,6 +28,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export function AdminCoursesTable({ courses: initialCourses }: Props) {
   const [messageApi, contextHolder] = message.useMessage();
+  const { token } = theme.useToken();
   const utils = api.useUtils();
 
   const { data: courses = initialCourses } = api.course.listAll.useQuery({ page: 1, limit: 50 });
@@ -55,7 +56,7 @@ export function AdminCoursesTable({ courses: initialCourses }: Props) {
       render: (_: unknown, c: Course) => (
         <div>
           <Link href={`/teach/courses/${c.id}/edit`}>
-            <Typography.Text strong style={{ color: "#4F46E5" }}>{c.title}</Typography.Text>
+            <Typography.Text strong style={{ color: token.colorPrimary }}>{c.title}</Typography.Text>
           </Link>
           <br />
           <Typography.Text type="secondary" style={{ fontSize: 11 }}>/{c.slug}</Typography.Text>

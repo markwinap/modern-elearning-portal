@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Space, Table, Tag, Typography } from "antd";
+import { Button, Space, Table, Tag, Typography, theme } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
   BookOutlined,
@@ -32,6 +32,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export function TeacherDashboard({ courses }: Props) {
+  const { token } = theme.useToken();
   const columns: ColumnsType<Course> = [
     {
       title: "Title",
@@ -39,7 +40,7 @@ export function TeacherDashboard({ courses }: Props) {
       key: "title",
       render: (title: string, course) => (
         <Space>
-          <BookOutlined style={{ color: "#4F46E5" }} />
+          <BookOutlined style={{ color: token.colorPrimary }} />
           <Typography.Text strong>{title}</Typography.Text>
           <Tag color={STATUS_COLORS[course.status] ?? "default"}>{course.status}</Tag>
         </Space>
@@ -84,7 +85,7 @@ export function TeacherDashboard({ courses }: Props) {
   if (courses.length === 0) {
     return (
       <div style={{ textAlign: "center", padding: "64px 0" }}>
-        <BookOutlined style={{ fontSize: 48, color: "#d9d9d9", marginBottom: 16 }} />
+        <BookOutlined style={{ fontSize: 48, color: token.colorTextDisabled, marginBottom: 16 }} />
         <Typography.Title level={4} type="secondary">No courses yet</Typography.Title>
         <Typography.Text type="secondary">Create your first course to get started.</Typography.Text>
       </div>

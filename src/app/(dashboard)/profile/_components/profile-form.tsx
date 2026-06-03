@@ -1,6 +1,6 @@
 "use client";
 
-import { Avatar, Button, Card, Col, Divider, Form, Input, Row, Space, Tag, Typography, message } from "antd";
+import { Avatar, Button, Card, Col, Divider, Form, Input, Row, Space, Tag, Typography, message, theme } from "antd";
 import { LockOutlined, MailOutlined, UserOutlined } from "@ant-design/icons";
 
 import { authClient } from "~/server/better-auth/client";
@@ -37,6 +37,7 @@ export function ProfileForm({ user }: Props) {
   const [messageApi, contextHolder] = message.useMessage();
   const [profileForm] = Form.useForm<ProfileFormValues>();
   const [passwordForm] = Form.useForm<PasswordFormValues>();
+  const { token } = theme.useToken();
 
   async function handleProfileSave(values: ProfileFormValues) {
     try {
@@ -77,7 +78,7 @@ export function ProfileForm({ user }: Props) {
                 size={96}
                 src={user.image}
                 icon={<UserOutlined />}
-                style={{ background: "#4F46E5" }}
+                style={{ background: token.colorPrimary }}
               />
               <Typography.Title level={4} style={{ margin: 0 }}>
                 {user.name}
@@ -112,7 +113,7 @@ export function ProfileForm({ user }: Props) {
                   prefix={<MailOutlined />}
                   value={user.email}
                   disabled
-                  style={{ color: "#6b7280" }}
+                  style={{ color: token.colorTextSecondary }}
                 />
               </Form.Item>
 

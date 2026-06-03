@@ -31,6 +31,7 @@ function formatBytes(bytes: number): string {
 }
 
 export function FileViewer({ file, activityTitle }: Props) {
+  const { token } = theme.useToken();
   if (!file) {
     return (
       <Card>
@@ -43,7 +44,7 @@ export function FileViewer({ file, activityTitle }: Props) {
     <Card>
       <Space orientation="vertical" style={{ width: "100%" }} size="middle">
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <FileOutlined style={{ fontSize: 48, color: "#4F46E5" }} />
+          <FileOutlined style={{ fontSize: 48, color: token.colorPrimary }} />
           <div>
             <Typography.Title level={4} style={{ margin: 0 }}>
               {file.originalName}

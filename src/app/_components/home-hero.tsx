@@ -1,11 +1,12 @@
 "use client";
 
-import { Button, Space, Typography } from "antd";
+import { Button, Space, Typography, theme } from "antd";
 import Link from "next/link";
 
 const { Title, Paragraph } = Typography;
 
 export function HomeHero() {
+  const { token } = theme.useToken();
   return (
     <div
       style={{
@@ -14,16 +15,16 @@ export function HomeHero() {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        background: "linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)",
+        background: token.colorBgLayout,
         padding: 24,
         textAlign: "center",
       }}
     >
-      <Title style={{ color: "#4F46E5", marginBottom: 8, fontSize: 48 }}>
+      <Title style={{ color: token.colorPrimary, marginBottom: 8, fontSize: 48 }}>
         EduCore
       </Title>
       <Paragraph
-        style={{ fontSize: 18, color: "#6b7280", maxWidth: 520, marginBottom: 40 }}
+        style={{ fontSize: 18, color: token.colorTextSecondary, maxWidth: 520, marginBottom: 40 }}
       >
         A modern learning management system for students, teachers, and
         administrators.

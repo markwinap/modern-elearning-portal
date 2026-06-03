@@ -13,6 +13,7 @@ import {
   Space,
   Tag,
   Typography,
+  theme,
 } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import Link from "next/link";
@@ -46,6 +47,7 @@ export function CourseCatalog({ initialCourses, categories }: Props) {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
   const [page, setPage] = useState(1);
+  const { token } = theme.useToken();
   const limit = 12;
 
   useEffect(() => {
@@ -138,7 +140,7 @@ export function CourseCatalog({ initialCourses, categories }: Props) {
                   {course.description && (
                     <Typography.Paragraph
                       ellipsis={{ rows: 2 }}
-                      style={{ marginTop: 8, marginBottom: 12, fontSize: 13, color: "#4b5563" }}
+                      style={{ marginTop: 8, marginBottom: 12, fontSize: 13, color: token.colorTextSecondary }}
                     >
                       {course.description}
                     </Typography.Paragraph>

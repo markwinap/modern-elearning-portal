@@ -6,13 +6,14 @@ import {
   ClockCircleOutlined,
   TrophyOutlined,
 } from "@ant-design/icons";
-import { Card, Col, Row, Statistic, Typography } from "antd";
+import { Card, Col, Row, Statistic, Typography, theme } from "antd";
 
 interface Props {
   userName: string | null | undefined;
 }
 
 export function DashboardContent({ userName }: Props) {
+  const { token } = theme.useToken();
   return (
     <div>
       <Typography.Title level={3} style={{ marginBottom: 24 }}>
@@ -25,7 +26,7 @@ export function DashboardContent({ userName }: Props) {
             <Statistic
               title="Enrolled Courses"
               value={0}
-              prefix={<BookOutlined style={{ color: "#4F46E5" }} />}
+              prefix={<BookOutlined style={{ color: token.colorPrimary }} />}
             />
           </Card>
         </Col>
@@ -34,7 +35,7 @@ export function DashboardContent({ userName }: Props) {
             <Statistic
               title="Completed Activities"
               value={0}
-              prefix={<CheckCircleOutlined style={{ color: "#10b981" }} />}
+              prefix={<CheckCircleOutlined style={{ color: token.colorSuccess }} />}
             />
           </Card>
         </Col>
@@ -44,7 +45,7 @@ export function DashboardContent({ userName }: Props) {
               title="Hours Learned"
               value={0}
               suffix="h"
-              prefix={<ClockCircleOutlined style={{ color: "#f59e0b" }} />}
+              prefix={<ClockCircleOutlined style={{ color: token.colorWarning }} />}
             />
           </Card>
         </Col>
@@ -53,7 +54,7 @@ export function DashboardContent({ userName }: Props) {
             <Statistic
               title="Average Grade"
               value="—"
-              prefix={<TrophyOutlined style={{ color: "#ef4444" }} />}
+              prefix={<TrophyOutlined style={{ color: token.colorError }} />}
             />
           </Card>
         </Col>

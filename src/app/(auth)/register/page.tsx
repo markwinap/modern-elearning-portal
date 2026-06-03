@@ -17,7 +17,7 @@ export default async function RegisterPage() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "#f9fafb",
+        background: "var(--ant-color-bg-layout)",
       }}
     >
       <RegisterForm />

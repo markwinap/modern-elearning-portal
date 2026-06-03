@@ -13,6 +13,7 @@ import {
   Tag,
   Typography,
   message,
+  theme,
 } from "antd";
 import { CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined } from "@ant-design/icons";
 
@@ -60,6 +61,7 @@ interface QuizResult {
 
 export function QuizTaker({ activityId, quiz, questions, initialProgress: _initialProgress, onComplete }: Props) {
   const [messageApi, contextHolder] = message.useMessage();
+  const { token } = theme.useToken();
   const [attemptId, setAttemptId] = useState<number | null>(null);
   const [answers, setAnswers] = useState<AnswerMap>({});
   const [result, setResult] = useState<QuizResult | null>(null);
@@ -169,9 +171,9 @@ export function QuizTaker({ activityId, quiz, questions, initialProgress: _initi
                     <Space>
                       <Tag color="blue">Q{index + 1}</Tag>
                       {fb.isCorrect ? (
-                        <CheckCircleOutlined style={{ color: "#52c41a" }} />
+                        <CheckCircleOutlined style={{ color: token.colorSuccess }} />
                       ) : (
-                        <CloseCircleOutlined style={{ color: "#ff4d4f" }} />
+                        <CloseCircleOutlined style={{ color: token.colorError }} />
                       )}
                       <Tag color={fb.isCorrect ? "success" : "error"}>
                         {fb.pointsAwarded} / {q.points} pt{q.points !== 1 ? "s" : ""}

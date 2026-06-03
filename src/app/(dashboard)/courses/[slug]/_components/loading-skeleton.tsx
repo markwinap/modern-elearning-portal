@@ -1,14 +1,15 @@
 "use client";
 
-import { Card, Skeleton } from "antd";
+import { Card, Skeleton, theme } from "antd";
 
 export function LoadingSkeleton() {
+  const { token } = theme.useToken();
   return (
     <div>
       <div
         style={{
           height: 280,
-          background: "#e5e7eb",
+          background: token.colorFillSecondary,
           borderRadius: 8,
           marginBottom: 24,
         }}

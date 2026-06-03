@@ -14,6 +14,7 @@ import {
   Tag,
   Typography,
   message,
+  theme,
 } from "antd";
 import {
   CalendarOutlined,
@@ -47,6 +48,7 @@ interface Props {
 export function CourseDetailClient({ course, enrollment }: Props) {
   const router = useRouter();
   const [messageApi, contextHolder] = message.useMessage();
+  const { token } = theme.useToken();
   const [accessKeyModalOpen, setAccessKeyModalOpen] = useState(false);
   const [accessKeyInput, setAccessKeyInput] = useState("");
 
@@ -84,7 +86,7 @@ export function CourseDetailClient({ course, enrollment }: Props) {
           height: 280,
           background: course.coverImageUrl
             ? `url(${course.coverImageUrl}) center/cover`
-            : "linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)",
+            : `linear-gradient(135deg, ${token.colorPrimary} 0%, ${token.colorPrimaryActive} 100%)`,
           borderRadius: 8,
           marginBottom: 24,
           display: "flex",

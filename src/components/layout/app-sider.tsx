@@ -138,7 +138,7 @@ export function AppSider({ role }: AppSiderProps) {
           borderBottom: `1px solid ${token.colorBorderSecondary}`,
         }}
       >
-        <Typography.Text strong style={{ fontSize: 18, color: "#4F46E5" }}>
+        <Typography.Text strong style={{ fontSize: 18, color: token.colorPrimary }}>
           EduCore
         </Typography.Text>
       </div>

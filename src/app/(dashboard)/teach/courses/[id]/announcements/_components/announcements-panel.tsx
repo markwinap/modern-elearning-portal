@@ -10,6 +10,7 @@ import {
   Space,
   Typography,
   message,
+  theme,
 } from "antd";
 import { PlusOutlined, DeleteOutlined, NotificationOutlined } from "@ant-design/icons";
 
@@ -37,6 +38,7 @@ export function AnnouncementsPanel({ courseId, initialAnnouncements }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [form] = Form.useForm<FormValues>();
   const utils = api.useUtils();
+  const { token } = theme.useToken();
 
   const { data: announcements = initialAnnouncements } = api.announcement.listByCourse.useQuery(
     { courseId },
@@ -97,7 +99,7 @@ export function AnnouncementsPanel({ courseId, initialAnnouncements }: Props) {
       <Space orientation="vertical" style={{ width: "100%" }} size="middle">
         {announcements.length === 0 ? (
           <Card>
-            <div style={{ textAlign: "center", padding: "24px 0", color: "#bfbfbf" }}>
+            <div style={{ textAlign: "center", padding: "24px 0", color: token.colorTextDisabled }}>
               <NotificationOutlined style={{ fontSize: 32, marginBottom: 8 }} />
               <div>No announcements yet.</div>
             </div>

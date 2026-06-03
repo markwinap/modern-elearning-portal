@@ -90,7 +90,7 @@ export function AppHeader({ userName, userImage, unreadNotifications = 0 }: AppH
               src={userImage ?? undefined}
               icon={!userImage ? <UserOutlined /> : undefined}
               size={32}
-              style={{ backgroundColor: "#4F46E5" }}
+              style={{ backgroundColor: token.colorPrimary }}
             />
             <Typography.Text>{session?.user?.name ?? userName}</Typography.Text>
           </Space>

@@ -1,7 +1,7 @@
 "use client";
 
 import { BookOutlined, SolutionOutlined, TeamOutlined } from "@ant-design/icons";
-import { Card, Col, Row, Statistic } from "antd";
+import { Card, Col, Row, Statistic, theme } from "antd";
 
 interface Props {
   stats: {
@@ -12,6 +12,7 @@ interface Props {
 }
 
 export function AdminStatsGrid({ stats }: Props) {
+  const { token } = theme.useToken();
   return (
     <Row gutter={[24, 24]}>
       <Col xs={24} sm={8}>
@@ -20,7 +21,7 @@ export function AdminStatsGrid({ stats }: Props) {
             title="Total Users"
             value={stats.users}
             prefix={<TeamOutlined />}
-            styles={{ content: { color: "#4F46E5" } }}
+            styles={{ content: { color: token.colorPrimary } }}
           />
         </Card>
       </Col>
@@ -30,7 +31,7 @@ export function AdminStatsGrid({ stats }: Props) {
             title="Total Courses"
             value={stats.courses}
             prefix={<BookOutlined />}
-            styles={{ content: { color: "#059669" } }}
+            styles={{ content: { color: token.colorSuccess } }}
           />
         </Card>
       </Col>
@@ -40,7 +41,7 @@ export function AdminStatsGrid({ stats }: Props) {
             title="Total Enrollments"
             value={stats.enrollments}
             prefix={<SolutionOutlined />}
-            styles={{ content: { color: "#D97706" } }}
+            styles={{ content: { color: token.colorWarning } }}
           />
         </Card>
       </Col>
