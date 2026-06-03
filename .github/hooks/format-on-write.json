@@ -1,0 +1,12 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "type": "command",
+        "command": "case \"$TOOL_INPUT_FILE_PATH\" in *.ts|*.tsx|*.js|*.jsx|*.mdx) npx prettier --write \"$TOOL_INPUT_FILE_PATH\" 2>&1;; esac",
+        "windows": "if ($env:TOOL_INPUT_FILE_PATH -match '\\.(ts|tsx|js|jsx|mdx)$') { npx prettier --write $env:TOOL_INPUT_FILE_PATH 2>&1 }",
+        "timeout": 30
+      }
+    ]
+  }
+}

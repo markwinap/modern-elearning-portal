@@ -1,0 +1,12 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "type": "command",
+        "command": "if [[ \"$TOOL_INPUT_FILE_PATH\" == *\"schema.ts\"* ]]; then echo '{\"systemMessage\": \"\u26a0\ufe0f Modifying schema.ts \u2014 run: pnpm run db:generate && pnpm run db:push after changes\"}'; fi",
+        "windows": "if ($env:TOOL_INPUT_FILE_PATH -like '*schema.ts') { Write-Output '{\"systemMessage\": \"\u26a0\ufe0f Modifying schema.ts \u2014 run: pnpm run db:generate && pnpm run db:push after changes\"}' }",
+        "timeout": 5
+      }
+    ]
+  }
+}

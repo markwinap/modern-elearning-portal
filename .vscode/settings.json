@@ -1,0 +1,52 @@
+{
+  // ── Copilot Core Features ─────────────────────────────────────────────────
+  "chat.agent.enabled": true,
+  "chat.promptFiles": true,
+  "chat.useCustomizationsInParentRepositories": true,
+  "chat.useAgentsMdFile": true,
+  "chat.includeApplyingInstructions": true,
+  "chat.includeReferencedInstructions": true,
+  "chat.useCustomAgentHooks": true,
+  "github.copilot.chat.skillTool.enabled": true,
+
+  // ── Copilot Model Preferences ────────────────────────────────────────────
+  "github.copilot.chat.agent.model": "claude-sonnet-4-5",
+
+  // ── Code Actions ─────────────────────────────────────────────────────────
+  "github.copilot.nextEditSuggestions.enabled": true,
+  "github.copilot.editor.enableCodeActions": true,
+
+  // ── TypeScript ────────────────────────────────────────────────────────────
+  "js/ts.preferences.importModuleSpecifier": "non-relative",
+  "js/ts.suggest.autoImports": true,
+  "js/ts.updateImportsOnFileMove.enabled": "always",
+  "js/ts.preferences.quoteStyle": "double",
+  "js/ts.inlayHints.parameterNames.enabled": "all",
+  "js/ts.inlayHints.variableTypes.enabled": true,
+
+  // ── Editor ────────────────────────────────────────────────────────────────
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "never"
+  },
+  "editor.tabSize": 2,
+  "editor.linkedEditing": true,
+
+  // ── Files ─────────────────────────────────────────────────────────────────
+  "files.exclude": {
+    "**/.git": true,
+    "**/node_modules": true,
+    "**/.next": true
+  },
+
+  // ── ESLint ────────────────────────────────────────────────────────────────
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ],
+  "eslint.workingDirectories": [{ "mode": "auto" }]
+}
