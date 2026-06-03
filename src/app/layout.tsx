@@ -1,10 +1,10 @@
 import "~/styles/globals.css";
 
 import { AntdRegistry } from "@ant-design/nextjs-registry";
-import { App, ConfigProvider, theme } from "antd";
 import { type Metadata } from "next";
 import { Geist } from "next/font/google";
 
+import { ThemeProvider } from "~/components/theme/theme-provider";
 import { TRPCReactProvider } from "~/trpc/react";
 
 export const metadata: Metadata = {
@@ -17,29 +17,23 @@ const geist = Geist({
   subsets: ["latin"],
 });
 
+// Inline script to set data-theme before React hydrates — prevents flash of wrong theme
+const themeScript = `try{var p=localStorage.getItem('theme-preference')||'system';var d=p==='dark'||(p==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){}`;
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className={geist.className}>
         <TRPCReactProvider>
           <AntdRegistry>
-            <ConfigProvider
-              theme={{
-                token: {
-                  colorPrimary: "#4F46E5",
-                  colorLink: "#4F46E5",
-                  borderRadius: 8,
-                  fontFamily: geist.style.fontFamily,
-                },
-                algorithm: theme.defaultAlgorithm,
-              }}
-            >
-              <App>
-                {children}
-              </App>
-            </ConfigProvider>
+            <ThemeProvider fontFamily={geist.style.fontFamily}>
+              {children}
+            </ThemeProvider>
           </AntdRegistry>
         </TRPCReactProvider>
       </body>

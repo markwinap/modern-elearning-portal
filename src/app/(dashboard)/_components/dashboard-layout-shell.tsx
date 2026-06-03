@@ -1,6 +1,6 @@
 "use client";
 
-import { Layout } from "antd";
+import { Layout, theme } from "antd";
 
 import { AppHeader } from "~/components/layout/app-header";
 import { AppSider } from "~/components/layout/app-sider";
@@ -13,6 +13,7 @@ interface Props {
 }
 
 export function DashboardLayoutShell({ children, role, userName, userImage }: Props) {
+  const { token } = theme.useToken();
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <AppSider role={role} />
@@ -21,7 +22,7 @@ export function DashboardLayoutShell({ children, role, userName, userImage }: Pr
         <Layout.Content
           style={{
             padding: 24,
-            background: "#f9fafb",
+            background: token.colorBgLayout,
             minHeight: "calc(100vh - 56px)",
           }}
         >

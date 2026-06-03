@@ -9,10 +9,12 @@ import {
   TeamOutlined,
   TrophyOutlined,
 } from "@ant-design/icons";
-import { Layout, Menu, Typography } from "antd";
+import { Layout, Menu, Typography, theme } from "antd";
 import type { MenuProps } from "antd";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+
+import { useTheme } from "~/components/theme/theme-context";
 
 type UserRole = "student" | "teacher" | "admin";
 
@@ -102,6 +104,8 @@ function getMenuItems(role: UserRole): MenuProps["items"] {
 
 export function AppSider({ role }: AppSiderProps) {
   const pathname = usePathname();
+  const { isDark } = useTheme();
+  const { token } = theme.useToken();
 
   const allKeys =
     getMenuItems(role)
@@ -115,10 +119,10 @@ export function AppSider({ role }: AppSiderProps) {
 
   return (
     <Layout.Sider
-      theme="light"
+      theme={isDark ? "dark" : "light"}
       width={220}
       style={{
-        borderRight: "1px solid #f0f0f0",
+        borderRight: `1px solid ${token.colorBorderSecondary}`,
         minHeight: "100vh",
         position: "sticky",
         top: 0,
@@ -131,7 +135,7 @@ export function AppSider({ role }: AppSiderProps) {
           display: "flex",
           alignItems: "center",
           paddingLeft: 24,
-          borderBottom: "1px solid #f0f0f0",
+          borderBottom: `1px solid ${token.colorBorderSecondary}`,
         }}
       >
         <Typography.Text strong style={{ fontSize: 18, color: "#4F46E5" }}>

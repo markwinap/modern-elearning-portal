@@ -6,11 +6,12 @@ import {
   SettingOutlined,
   UserOutlined,
 } from "@ant-design/icons";
-import { Avatar, Badge, Button, Dropdown, Layout, Space, Typography } from "antd";
+import { Avatar, Badge, Button, Dropdown, Layout, Space, Typography, theme } from "antd";
 import type { MenuProps } from "antd";
 import { useRouter } from "next/navigation";
 
 import { authClient } from "~/server/better-auth/client";
+import { ThemeToggle } from "~/components/theme/theme-toggle";
 
 interface AppHeaderProps {
   userName: string;
@@ -21,6 +22,7 @@ interface AppHeaderProps {
 export function AppHeader({ userName, userImage, unreadNotifications = 0 }: AppHeaderProps) {
   const router = useRouter();
   const { data: session } = authClient.useSession();
+  const { token } = theme.useToken();
 
   const userMenuItems: MenuProps["items"] = [
     {
@@ -57,8 +59,8 @@ export function AppHeader({ userName, userImage, unreadNotifications = 0 }: AppH
   return (
     <Layout.Header
       style={{
-        background: "#fff",
-        borderBottom: "1px solid #f0f0f0",
+        background: token.colorBgContainer,
+        borderBottom: `1px solid ${token.colorBorderSecondary}`,
         padding: "0 24px",
         display: "flex",
         alignItems: "center",
@@ -73,6 +75,7 @@ export function AppHeader({ userName, userImage, unreadNotifications = 0 }: AppH
       <div />
 
       <Space size={8}>
+        <ThemeToggle />
         <Badge count={unreadNotifications} size="small">
           <Button
             type="text"
