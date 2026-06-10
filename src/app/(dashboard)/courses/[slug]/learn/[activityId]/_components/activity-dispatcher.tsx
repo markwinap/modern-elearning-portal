@@ -88,7 +88,15 @@ export function ActivityDispatcher({
       {contextHolder}
       <Space orientation="vertical" style={{ width: "100%" }} size="large">
         {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: 8,
+          }}
+        >
           <Typography.Title level={3} style={{ margin: 0 }}>
             {activity.title}
           </Typography.Title>
@@ -127,7 +135,12 @@ export function ActivityDispatcher({
             quiz={quizContent.quiz}
             questions={quizContent.questions}
             initialProgress={initialProgress}
-            onComplete={() => markActivity.mutate({ activityId: activity.id, status: "completed" })}
+            onComplete={() =>
+              markActivity.mutate({
+                activityId: activity.id,
+                status: "completed",
+              })
+            }
           />
         )}
 
@@ -148,19 +161,25 @@ export function ActivityDispatcher({
 
         {activity.type === "url" && (
           <Card>
-            <Typography.Text type="secondary">URL resource — no URL configured.</Typography.Text>
+            <Typography.Text type="secondary">
+              URL resource — no URL configured.
+            </Typography.Text>
           </Card>
         )}
 
         {activity.type === "wiki" && (
           <Card>
-            <Typography.Text type="secondary">Wiki activity viewer coming in Phase 5.</Typography.Text>
+            <Typography.Text type="secondary">
+              Wiki activity viewer coming in Phase 5.
+            </Typography.Text>
           </Card>
         )}
 
         {activity.type === "workshop" && (
           <Card>
-            <Typography.Text type="secondary">Workshop activity viewer coming in Phase 5.</Typography.Text>
+            <Typography.Text type="secondary">
+              Workshop activity viewer coming in Phase 5.
+            </Typography.Text>
           </Card>
         )}
       </Space>

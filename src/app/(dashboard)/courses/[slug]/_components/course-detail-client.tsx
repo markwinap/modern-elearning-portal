@@ -16,10 +16,7 @@ import {
   message,
   theme,
 } from "antd";
-import {
-  CalendarOutlined,
-  TeamOutlined,
-} from "@ant-design/icons";
+import { CalendarOutlined, TeamOutlined } from "@ant-design/icons";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -94,7 +91,14 @@ export function CourseDetailClient({ course, enrollment }: Props) {
           padding: 32,
         }}
       >
-        <Typography.Title level={1} style={{ color: "#fff", margin: 0, textShadow: "0 2px 4px rgba(0,0,0,0.4)" }}>
+        <Typography.Title
+          level={1}
+          style={{
+            color: "#fff",
+            margin: 0,
+            textShadow: "0 2px 4px rgba(0,0,0,0.4)",
+          }}
+        >
           {course.title}
         </Typography.Title>
       </div>
@@ -108,16 +112,26 @@ export function CourseDetailClient({ course, enrollment }: Props) {
                 {course.description}
               </Typography.Paragraph>
             ) : (
-              <Typography.Text type="secondary">No description provided.</Typography.Text>
+              <Typography.Text type="secondary">
+                No description provided.
+              </Typography.Text>
             )}
           </Card>
         </Col>
 
         <Col xs={24} lg={8}>
           <Card>
-            <Space orientation="vertical" style={{ width: "100%" }} size="middle">
+            <Space
+              orientation="vertical"
+              style={{ width: "100%" }}
+              size="middle"
+            >
               {isCompleted && (
-                <Alert title="You have completed this course!" type="success" showIcon />
+                <Alert
+                  title="You have completed this course!"
+                  type="success"
+                  showIcon
+                />
               )}
               {isEnrolled ? (
                 <Link href={`/courses/${course.slug}/learn`}>
@@ -140,24 +154,44 @@ export function CourseDetailClient({ course, enrollment }: Props) {
 
               <Descriptions column={1} size="small">
                 {course.startsAt && (
-                  <Descriptions.Item label={<><CalendarOutlined /> Starts</>}>
+                  <Descriptions.Item
+                    label={
+                      <>
+                        <CalendarOutlined /> Starts
+                      </>
+                    }
+                  >
                     {new Date(course.startsAt).toLocaleDateString()}
                   </Descriptions.Item>
                 )}
                 {course.endsAt && (
-                  <Descriptions.Item label={<><CalendarOutlined /> Ends</>}>
+                  <Descriptions.Item
+                    label={
+                      <>
+                        <CalendarOutlined /> Ends
+                      </>
+                    }
+                  >
                     {new Date(course.endsAt).toLocaleDateString()}
                   </Descriptions.Item>
                 )}
                 {course.maxEnrollments && (
-                  <Descriptions.Item label={<><TeamOutlined /> Capacity</>}>
+                  <Descriptions.Item
+                    label={
+                      <>
+                        <TeamOutlined /> Capacity
+                      </>
+                    }
+                  >
                     {course.maxEnrollments} students
                   </Descriptions.Item>
                 )}
               </Descriptions>
 
               <div>
-                <Tag color={course.status === "published" ? "green" : "default"}>
+                <Tag
+                  color={course.status === "published" ? "green" : "default"}
+                >
                   {course.status}
                 </Tag>
               </div>

@@ -4,8 +4,18 @@ html,
 body {
   padding: 0;
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
-    Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    Segoe UI,
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    Fira Sans,
+    Droid Sans,
+    Helvetica Neue,
+    sans-serif;
 }
 
 [data-theme="dark"] {
@@ -20,4 +30,14 @@ a {
 
 * {
   box-sizing: border-box;
+}
+
+/* LearnSidebar responsive breakpoint (992px = Ant Design 'lg') */
+@media (max-width: 991px) {
+  .learn-sidebar-desktop {
+    display: none !important;
+  }
+  .learn-sidebar-toggle {
+    display: flex !important;
+  }
 }

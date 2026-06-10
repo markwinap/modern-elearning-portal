@@ -1,6 +1,16 @@
 "use client";
 
-import { Button, Card, Col, Empty, Row, Space, Tabs, Tag, Typography } from "antd";
+import {
+  Button,
+  Card,
+  Col,
+  Empty,
+  Row,
+  Space,
+  Tabs,
+  Tag,
+  Typography,
+} from "antd";
 import { BookOutlined } from "@ant-design/icons";
 import Link from "next/link";
 
@@ -27,7 +37,11 @@ const STATUS_COLORS: Record<string, string> = {
 
 export function MyCourseList({ enrollments }: Props) {
   const tabs = [
-    { key: "all", label: `All (${enrollments.length})`, statuses: ["active", "completed", "waitlisted", "suspended"] },
+    {
+      key: "all",
+      label: `All (${enrollments.length})`,
+      statuses: ["active", "completed", "waitlisted", "suspended"],
+    },
     { key: "active", label: "Active", statuses: ["active"] },
     { key: "completed", label: "Completed", statuses: ["completed"] },
   ];
@@ -67,13 +81,16 @@ export function MyCourseList({ enrollments }: Props) {
                   <div
                     style={{
                       height: 140,
-                      background: "linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)",
+                      background:
+                        "linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                     }}
                   >
-                    <span style={{ color: "#fff", fontSize: 28, fontWeight: 700 }}>
+                    <span
+                      style={{ color: "#fff", fontSize: 28, fontWeight: 700 }}
+                    >
                       {enrollment.courseTitle.charAt(0)}
                     </span>
                   </div>
@@ -81,7 +98,14 @@ export function MyCourseList({ enrollments }: Props) {
               }
             >
               <Space orientation="vertical" style={{ width: "100%" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    gap: 8,
+                  }}
+                >
                   <Typography.Text strong style={{ fontSize: 15 }}>
                     {enrollment.courseTitle}
                   </Typography.Text>
@@ -91,12 +115,20 @@ export function MyCourseList({ enrollments }: Props) {
                 </div>
 
                 <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                  Enrolled {new Date(enrollment.enrolledAt).toLocaleDateString()}
+                  Enrolled{" "}
+                  {new Date(enrollment.enrolledAt).toLocaleDateString()}
                 </Typography.Text>
 
                 <Link href={`/courses/${enrollment.courseSlug}/learn`}>
-                  <Button type={enrollment.status === "completed" ? "default" : "primary"} block>
-                    {enrollment.status === "completed" ? "Review Course" : "Continue Learning"}
+                  <Button
+                    type={
+                      enrollment.status === "completed" ? "default" : "primary"
+                    }
+                    block
+                  >
+                    {enrollment.status === "completed"
+                      ? "Review Course"
+                      : "Continue Learning"}
                   </Button>
                 </Link>
               </Space>

@@ -15,7 +15,11 @@ import {
   message,
   theme,
 } from "antd";
-import { CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined } from "@ant-design/icons";
+import {
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  CloseCircleOutlined,
+} from "@ant-design/icons";
 
 import { api } from "~/trpc/react";
 
@@ -59,7 +63,13 @@ interface QuizResult {
   feedback: FeedbackItem[] | null;
 }
 
-export function QuizTaker({ activityId, quiz, questions, initialProgress: _initialProgress, onComplete }: Props) {
+export function QuizTaker({
+  activityId,
+  quiz,
+  questions,
+  initialProgress: _initialProgress,
+  onComplete,
+}: Props) {
   const [messageApi, contextHolder] = message.useMessage();
   const { token } = theme.useToken();
   const [attemptId, setAttemptId] = useState<number | null>(null);
@@ -70,7 +80,9 @@ export function QuizTaker({ activityId, quiz, questions, initialProgress: _initi
   answersRef.current = answers;
 
   const startAttempt = api.quiz.startAttempt.useMutation({
-    onSuccess: (attempt) => { if (attempt) setAttemptId(attempt.id); },
+    onSuccess: (attempt) => {
+      if (attempt) setAttemptId(attempt.id);
+    },
     onError: (err) => messageApi.error(err.message),
   });
 
@@ -118,7 +130,8 @@ export function QuizTaker({ activityId, quiz, questions, initialProgress: _initi
 
   // Auto-submit when time runs out
   useEffect(() => {
-    if (timeLeft !== 0 || !attemptId || result || submitAttempt.isPending) return;
+    if (timeLeft !== 0 || !attemptId || result || submitAttempt.isPending)
+      return;
     messageApi.warning("Time's up! Submitting your quiz…");
     submitAttempt.mutate({
       attemptId,
@@ -131,15 +144,26 @@ export function QuizTaker({ activityId, quiz, questions, initialProgress: _initi
   }, [timeLeft]);
 
   if (result) {
-    const pct = result.maxScore > 0 ? Math.round((result.score / result.maxScore) * 100) : 0;
+    const pct =
+      result.maxScore > 0
+        ? Math.round((result.score / result.maxScore) * 100)
+        : 0;
     const passed = pct >= 70;
     return (
       <Space orientation="vertical" style={{ width: "100%" }} size="middle">
         {contextHolder}
         <Card>
-          <Space orientation="vertical" style={{ width: "100%", textAlign: "center" }} size="large">
-            <CheckCircleOutlined style={{ fontSize: 64, color: passed ? "#52c41a" : "#ff4d4f" }} />
-            <Typography.Title level={3} style={{ margin: 0 }}>Quiz Complete!</Typography.Title>
+          <Space
+            orientation="vertical"
+            style={{ width: "100%", textAlign: "center" }}
+            size="large"
+          >
+            <CheckCircleOutlined
+              style={{ fontSize: 64, color: passed ? "#52c41a" : "#ff4d4f" }}
+            />
+            <Typography.Title level={3} style={{ margin: 0 }}>
+              Quiz Complete!
+            </Typography.Title>
             <Progress
               type="circle"
               percent={pct}
@@ -149,7 +173,10 @@ export function QuizTaker({ activityId, quiz, questions, initialProgress: _initi
             <Typography.Text>
               Score: <strong>{result.score}</strong> / {result.maxScore} points
             </Typography.Text>
-            <Tag color={passed ? "success" : "error"} style={{ fontSize: 14, padding: "4px 16px" }}>
+            <Tag
+              color={passed ? "success" : "error"}
+              style={{ fontSize: 14, padding: "4px 16px" }}
+            >
               {passed ? "Passed" : "Not Passed"}
             </Tag>
           </Space>
@@ -171,17 +198,25 @@ export function QuizTaker({ activityId, quiz, questions, initialProgress: _initi
                     <Space>
                       <Tag color="blue">Q{index + 1}</Tag>
                       {fb.isCorrect ? (
-                        <CheckCircleOutlined style={{ color: token.colorSuccess }} />
+                        <CheckCircleOutlined
+                          style={{ color: token.colorSuccess }}
+                        />
                       ) : (
-                        <CloseCircleOutlined style={{ color: token.colorError }} />
+                        <CloseCircleOutlined
+                          style={{ color: token.colorError }}
+                        />
                       )}
                       <Tag color={fb.isCorrect ? "success" : "error"}>
-                        {fb.pointsAwarded} / {q.points} pt{q.points !== 1 ? "s" : ""}
+                        {fb.pointsAwarded} / {q.points} pt
+                        {q.points !== 1 ? "s" : ""}
                       </Tag>
                     </Space>
                   }
                 >
-                  <Typography.Text strong style={{ display: "block", marginBottom: 8 }}>
+                  <Typography.Text
+                    strong
+                    style={{ display: "block", marginBottom: 8 }}
+                  >
                     {q.prompt}
                   </Typography.Text>
                   {!fb.isCorrect && fb.correctAnswer != null && (
@@ -226,15 +261,47 @@ export function QuizTaker({ activityId, quiz, questions, initialProgress: _initi
               content: { color: token.colorText },
             }}
             items={[
-              { key: "questions", label: "Questions", children: questions.length },
-              { key: "points", label: "Total Points", children: questions.reduce((s, q) => s + q.points, 0) },
-              ...(quiz?.timeLimitSecs ? [{ key: "time", label: <><ClockCircleOutlined /> Time Limit</>, children: formatTime(quiz.timeLimitSecs) }] : []),
-              ...(quiz?.maxAttempts ? [{ key: "attempts", label: "Max Attempts", children: quiz.maxAttempts }] : []),
+              {
+                key: "questions",
+                label: "Questions",
+                children: questions.length,
+              },
+              {
+                key: "points",
+                label: "Total Points",
+                children: questions.reduce((s, q) => s + q.points, 0),
+              },
+              ...(quiz?.timeLimitSecs
+                ? [
+                    {
+                      key: "time",
+                      label: (
+                        <>
+                          <ClockCircleOutlined /> Time Limit
+                        </>
+                      ),
+                      children: formatTime(quiz.timeLimitSecs),
+                    },
+                  ]
+                : []),
+              ...(quiz?.maxAttempts
+                ? [
+                    {
+                      key: "attempts",
+                      label: "Max Attempts",
+                      children: quiz.maxAttempts,
+                    },
+                  ]
+                : []),
             ]}
           />
 
           {questions.length === 0 ? (
-            <Alert type="warning" title="No questions have been added to this quiz yet." showIcon />
+            <Alert
+              type="warning"
+              title="No questions have been added to this quiz yet."
+              showIcon
+            />
           ) : (
             <Button
               type="primary"
@@ -273,31 +340,45 @@ export function QuizTaker({ activityId, quiz, questions, initialProgress: _initi
             title={
               <Space>
                 <Tag color="blue">Q{index + 1}</Tag>
-                <span>{q.points} pt{q.points !== 1 ? "s" : ""}</span>
+                <span>
+                  {q.points} pt{q.points !== 1 ? "s" : ""}
+                </span>
               </Space>
             }
           >
-            <Typography.Text strong style={{ display: "block", marginBottom: 12, fontSize: 15 }}>
+            <Typography.Text
+              strong
+              style={{ display: "block", marginBottom: 12, fontSize: 15 }}
+            >
               {q.prompt}
             </Typography.Text>
 
             {(q.type === "multiple_choice" || q.type === "true_false") && (
               <Radio.Group
                 value={answers[q.id]}
-                onChange={(e) => setAnswers((prev) => ({ ...prev, [q.id]: e.target.value as string }))}
+                onChange={(e) =>
+                  setAnswers((prev) => ({
+                    ...prev,
+                    [q.id]: e.target.value as string,
+                  }))
+                }
               >
                 <Space orientation="vertical">
                   {q.type === "true_false"
                     ? [
-                      <Radio key="true" value="true">True</Radio>,
-                      <Radio key="false" value="false">False</Radio>,
-                    ]
+                        <Radio key="true" value="true">
+                          True
+                        </Radio>,
+                        <Radio key="false" value="false">
+                          False
+                        </Radio>,
+                      ]
                     : Array.isArray(q.options)
                       ? (q.options as string[]).map((opt, i) => (
-                        <Radio key={i} value={opt}>
-                          {opt}
-                        </Radio>
-                      ))
+                          <Radio key={i} value={opt}>
+                            {opt}
+                          </Radio>
+                        ))
                       : null}
                 </Space>
               </Radio.Group>
@@ -307,19 +388,23 @@ export function QuizTaker({ activityId, quiz, questions, initialProgress: _initi
               q.type === "fill_blank" ||
               q.type === "matching" ||
               q.type === "ordering") && (
-                <Input
-                  placeholder="Your answer…"
-                  value={(answers[q.id] as string) ?? ""}
-                  onChange={(e) => setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
-                />
-              )}
+              <Input
+                placeholder="Your answer…"
+                value={(answers[q.id] as string) ?? ""}
+                onChange={(e) =>
+                  setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))
+                }
+              />
+            )}
 
             {q.type === "essay" && (
               <Input.TextArea
                 rows={4}
                 placeholder="Write your answer…"
                 value={(answers[q.id] as string) ?? ""}
-                onChange={(e) => setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
+                onChange={(e) =>
+                  setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))
+                }
               />
             )}
           </Card>

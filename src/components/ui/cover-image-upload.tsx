@@ -5,7 +5,9 @@ import { Upload, Button, Image, Space, App } from "antd";
 import { UploadOutlined, DeleteOutlined } from "@ant-design/icons";
 import type { UploadProps } from "antd";
 
-type UploadRequestOption = NonNullable<Parameters<NonNullable<UploadProps["customRequest"]>>[0]>;
+type UploadRequestOption = NonNullable<
+  Parameters<NonNullable<UploadProps["customRequest"]>>[0]
+>;
 import { upload } from "@vercel/blob/client";
 
 interface CoverImageUploadProps {

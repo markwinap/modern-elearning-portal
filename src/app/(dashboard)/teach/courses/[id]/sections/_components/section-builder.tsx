@@ -15,6 +15,7 @@ import {
   Typography,
   message,
   theme,
+  App,
 } from "antd";
 import {
   PlusOutlined,
@@ -61,6 +62,7 @@ function ActivityList({
   courseId: number;
 }) {
   const [messageApi, contextHolder] = message.useMessage();
+  const { modal } = App.useApp();
   const [addModal, setAddModal] = useState(false);
   const [form] = Form.useForm<{ title: string; type: string }>();
   const utils = api.useUtils();
@@ -150,7 +152,15 @@ function ActivityList({
                   size="small"
                   icon={<DeleteOutlined />}
                   loading={deleteActivity.isPending}
-                  onClick={() => deleteActivity.mutate({ id: act.id })}
+                  onClick={() =>
+                    modal.confirm({
+                      title: "Delete activity?",
+                      content: `"${act.title}" will be permanently removed.`,
+                      okText: "Delete",
+                      okButtonProps: { danger: true },
+                      onOk: () => deleteActivity.mutate({ id: act.id }),
+                    })
+                  }
                 />
               </div>
             ))}
@@ -211,6 +221,7 @@ function ActivityList({
 
 export function SectionBuilder({ courseId }: Props) {
   const [messageApi, contextHolder] = message.useMessage();
+  const { modal } = App.useApp();
   const [addSectionOpen, setAddSectionOpen] = useState(false);
   const [editSection, setEditSection] = useState<{
     id: number;
@@ -274,7 +285,13 @@ export function SectionBuilder({ courseId }: Props) {
           loading={deleteSection.isPending}
           onClick={(e) => {
             e.stopPropagation();
-            deleteSection.mutate({ id: sec.id });
+            modal.confirm({
+              title: "Delete section?",
+              content: `"${sec.title}" and all its activities will be permanently removed.`,
+              okText: "Delete",
+              okButtonProps: { danger: true },
+              onOk: () => deleteSection.mutate({ id: sec.id }),
+            });
           }}
         />
       </Space>

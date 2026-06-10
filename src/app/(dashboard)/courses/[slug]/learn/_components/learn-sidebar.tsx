@@ -1,14 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import {
   FileOutlined,
   LinkOutlined,
+  MenuOutlined,
   PlayCircleOutlined,
   QuestionCircleOutlined,
   ReadOutlined,
   ToolOutlined,
 } from "@ant-design/icons";
-import { Menu, Typography, theme } from "antd";
+import { Button, Drawer, Menu, Typography, theme } from "antd";
 import { usePathname, useRouter } from "next/navigation";
 
 import { useTheme } from "~/components/theme/theme-context";
@@ -52,11 +54,16 @@ function activityIcon(type: string) {
   }
 }
 
-export function LearnSidebar({ slug, courseTitle, sectionsWithActivities }: Props) {
+export function LearnSidebar({
+  slug,
+  courseTitle,
+  sectionsWithActivities,
+}: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const { isDark } = useTheme();
   const { token } = theme.useToken();
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const selectedKey =
     sectionsWithActivities
@@ -74,18 +81,15 @@ export function LearnSidebar({ slug, courseTitle, sectionsWithActivities }: Prop
     })),
   }));
 
-  return (
-    <div
-      style={{
-        width: 280,
-        minWidth: 280,
-        borderRight: `1px solid ${token.colorBorderSecondary}`,
-        display: "flex",
-        flexDirection: "column",
-        background: token.colorBgContainer,
-        overflowY: "auto",
-      }}
-    >
+  function handleMenuClick({ key }: { key: string }) {
+    if (!key.startsWith("section-")) {
+      router.push(`/courses/${slug}/learn/${key}`);
+      setDrawerOpen(false);
+    }
+  }
+
+  const menuContent = (
+    <>
       <div
         style={{
           padding: "16px 20px",
@@ -103,14 +107,57 @@ export function LearnSidebar({ slug, courseTitle, sectionsWithActivities }: Prop
         selectedKeys={[selectedKey]}
         defaultOpenKeys={sectionsWithActivities.map((s) => `section-${s.id}`)}
         items={items}
-        onClick={({ key }) => {
-          // Only navigate for activity items (not section keys)
-          if (!key.startsWith("section-")) {
-            router.push(`/courses/${slug}/learn/${key}`);
-          }
-        }}
+        onClick={handleMenuClick}
         style={{ border: "none", flex: 1 }}
       />
-    </div>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile toggle button — only visible below lg breakpoint via inline media query */}
+      <Button
+        type="default"
+        icon={<MenuOutlined />}
+        onClick={() => setDrawerOpen(true)}
+        style={{
+          position: "fixed",
+          bottom: 20,
+          left: 20,
+          zIndex: 200,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+          display: "none",
+        }}
+        className="learn-sidebar-toggle"
+      />
+
+      {/* Desktop: fixed side panel */}
+      <div
+        className="learn-sidebar-desktop"
+        style={{
+          width: 280,
+          minWidth: 280,
+          borderRight: `1px solid ${token.colorBorderSecondary}`,
+          display: "flex",
+          flexDirection: "column",
+          background: token.colorBgContainer,
+          overflowY: "auto",
+        }}
+      >
+        {menuContent}
+      </div>
+
+      {/* Mobile: Drawer */}
+      <Drawer
+        title={courseTitle}
+        placement="left"
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        width={280}
+        styles={{ body: { padding: 0 } }}
+      >
+        {menuContent}
+      </Drawer>
+    </>
   );
 }
