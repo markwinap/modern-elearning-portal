@@ -1,6 +1,15 @@
 "use client";
 
-import { Button, Popconfirm, Space, Table, Tag, Typography, message, theme } from "antd";
+import {
+  Button,
+  Popconfirm,
+  Space,
+  Table,
+  Tag,
+  Typography,
+  message,
+  theme,
+} from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { CheckOutlined, EditOutlined, InboxOutlined } from "@ant-design/icons";
 import Link from "next/link";
@@ -31,7 +40,8 @@ export function AdminCoursesTable({ courses: initialCourses }: Props) {
   const { token } = theme.useToken();
   const utils = api.useUtils();
 
-  const { data: courses = initialCourses } = api.course.listAll.useQuery({ page: 1, limit: 50 });
+  const { data: courses = initialCourses, isLoading } =
+    api.course.listAll.useQuery({ page: 1, limit: 50 });
 
   const publishCourse = api.course.publish.useMutation({
     onSuccess: () => {
@@ -56,10 +66,14 @@ export function AdminCoursesTable({ courses: initialCourses }: Props) {
       render: (_: unknown, c: Course) => (
         <div>
           <Link href={`/teach/courses/${c.id}/edit`}>
-            <Typography.Text strong style={{ color: token.colorPrimary }}>{c.title}</Typography.Text>
+            <Typography.Text strong style={{ color: token.colorPrimary }}>
+              {c.title}
+            </Typography.Text>
           </Link>
           <br />
-          <Typography.Text type="secondary" style={{ fontSize: 11 }}>/{c.slug}</Typography.Text>
+          <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+            /{c.slug}
+          </Typography.Text>
         </div>
       ),
     },
@@ -68,14 +82,17 @@ export function AdminCoursesTable({ courses: initialCourses }: Props) {
       dataIndex: "teacherName",
       key: "teacherName",
       width: 160,
-      render: (name: string | null) => name ?? <Typography.Text type="secondary">—</Typography.Text>,
+      render: (name: string | null) =>
+        name ?? <Typography.Text type="secondary">—</Typography.Text>,
     },
     {
       title: "Status",
       dataIndex: "status",
       key: "status",
       width: 110,
-      render: (s: string) => <Tag color={STATUS_COLORS[s] ?? "default"}>{s}</Tag>,
+      render: (s: string) => (
+        <Tag color={STATUS_COLORS[s] ?? "default"}>{s}</Tag>
+      ),
     },
     {
       title: "Created",
@@ -91,18 +108,34 @@ export function AdminCoursesTable({ courses: initialCourses }: Props) {
       render: (_: unknown, c: Course) => (
         <Space>
           <Link href={`/teach/courses/${c.id}/edit`}>
-            <Button size="small" icon={<EditOutlined />}>Edit</Button>
+            <Button size="small" icon={<EditOutlined />}>
+              Edit
+            </Button>
           </Link>
           {c.status === "draft" && (
-            <Popconfirm title="Publish this course?" onConfirm={() => publishCourse.mutate({ id: c.id })}>
-              <Button size="small" icon={<CheckOutlined />} loading={publishCourse.isPending}>
+            <Popconfirm
+              title="Publish this course?"
+              onConfirm={() => publishCourse.mutate({ id: c.id })}
+            >
+              <Button
+                size="small"
+                icon={<CheckOutlined />}
+                loading={publishCourse.isPending}
+              >
                 Publish
               </Button>
             </Popconfirm>
           )}
           {c.status !== "archived" && (
-            <Popconfirm title="Archive this course?" onConfirm={() => archiveCourse.mutate({ id: c.id })}>
-              <Button size="small" icon={<InboxOutlined />} loading={archiveCourse.isPending}>
+            <Popconfirm
+              title="Archive this course?"
+              onConfirm={() => archiveCourse.mutate({ id: c.id })}
+            >
+              <Button
+                size="small"
+                icon={<InboxOutlined />}
+                loading={archiveCourse.isPending}
+              >
                 Archive
               </Button>
             </Popconfirm>
@@ -119,6 +152,7 @@ export function AdminCoursesTable({ courses: initialCourses }: Props) {
         dataSource={courses}
         columns={columns}
         rowKey="id"
+        loading={isLoading}
         pagination={{ pageSize: 20, hideOnSinglePage: true }}
         locale={{ emptyText: "No courses found." }}
       />

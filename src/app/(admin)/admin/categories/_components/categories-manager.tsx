@@ -46,7 +46,8 @@ export function CategoriesManager({ categories: initialCategories }: Props) {
   const [editForm] = Form.useForm<EditFormValues>();
   const utils = api.useUtils();
 
-  const { data: categories = initialCategories } = api.category.list.useQuery();
+  const { data: categories = initialCategories, isLoading } =
+    api.category.list.useQuery();
 
   const createCategory = api.category.create.useMutation({
     onSuccess: () => {
@@ -77,7 +78,10 @@ export function CategoriesManager({ categories: initialCategories }: Props) {
 
   function openEdit(cat: Category) {
     setEditTarget(cat);
-    editForm.setFieldsValue({ name: cat.name, description: cat.description ?? "" });
+    editForm.setFieldsValue({
+      name: cat.name,
+      description: cat.description ?? "",
+    });
   }
 
   const columns: ColumnsType<Category> = [
@@ -88,7 +92,9 @@ export function CategoriesManager({ categories: initialCategories }: Props) {
         <div>
           <Typography.Text strong>{cat.name}</Typography.Text>
           <br />
-          <Typography.Text type="secondary" style={{ fontSize: 11 }}>/{cat.slug}</Typography.Text>
+          <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+            /{cat.slug}
+          </Typography.Text>
         </div>
       ),
     },
@@ -96,7 +102,8 @@ export function CategoriesManager({ categories: initialCategories }: Props) {
       title: "Description",
       dataIndex: "description",
       key: "description",
-      render: (d: string | null) => d ?? <Typography.Text type="secondary">—</Typography.Text>,
+      render: (d: string | null) =>
+        d ?? <Typography.Text type="secondary">—</Typography.Text>,
     },
     {
       title: "Actions",
@@ -130,8 +137,18 @@ export function CategoriesManager({ categories: initialCategories }: Props) {
   return (
     <>
       {contextHolder}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          marginBottom: 16,
+        }}
+      >
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={() => setCreateOpen(true)}
+        >
           New Category
         </Button>
       </div>
@@ -140,6 +157,7 @@ export function CategoriesManager({ categories: initialCategories }: Props) {
         dataSource={categories}
         columns={columns}
         rowKey="id"
+        loading={isLoading}
         pagination={{ pageSize: 20, hideOnSinglePage: true }}
         locale={{ emptyText: "No categories yet." }}
       />
@@ -148,16 +166,28 @@ export function CategoriesManager({ categories: initialCategories }: Props) {
       <Modal
         title="New Category"
         open={createOpen}
-        onCancel={() => { setCreateOpen(false); createForm.resetFields(); }}
+        onCancel={() => {
+          setCreateOpen(false);
+          createForm.resetFields();
+        }}
         onOk={() => createForm.submit()}
         confirmLoading={createCategory.isPending}
       >
         <Form
           form={createForm}
           layout="vertical"
-          onFinish={(v) => createCategory.mutate({ name: v.name, description: v.description || undefined })}
+          onFinish={(v) =>
+            createCategory.mutate({
+              name: v.name,
+              description: v.description || undefined,
+            })
+          }
         >
-          <Form.Item name="name" label="Name" rules={[{ required: true, min: 1 }]}>
+          <Form.Item
+            name="name"
+            label="Name"
+            rules={[{ required: true, min: 1 }]}
+          >
             <Input />
           </Form.Item>
           <Form.Item name="description" label="Description">
@@ -179,11 +209,19 @@ export function CategoriesManager({ categories: initialCategories }: Props) {
           layout="vertical"
           onFinish={(v) => {
             if (editTarget) {
-              updateCategory.mutate({ id: editTarget.id, name: v.name, description: v.description || undefined });
+              updateCategory.mutate({
+                id: editTarget.id,
+                name: v.name,
+                description: v.description || undefined,
+              });
             }
           }}
         >
-          <Form.Item name="name" label="Name" rules={[{ required: true, min: 1 }]}>
+          <Form.Item
+            name="name"
+            label="Name"
+            rules={[{ required: true, min: 1 }]}
+          >
             <Input />
           </Form.Item>
           <Form.Item name="description" label="Description">

@@ -7,12 +7,17 @@ import {
   Form,
   Input,
   Popconfirm,
+  Skeleton,
   Space,
   Typography,
   message,
   theme,
 } from "antd";
-import { PlusOutlined, DeleteOutlined, NotificationOutlined } from "@ant-design/icons";
+import {
+  PlusOutlined,
+  DeleteOutlined,
+  NotificationOutlined,
+} from "@ant-design/icons";
 
 import { api } from "~/trpc/react";
 
@@ -40,9 +45,8 @@ export function AnnouncementsPanel({ courseId, initialAnnouncements }: Props) {
   const utils = api.useUtils();
   const { token } = theme.useToken();
 
-  const { data: announcements = initialAnnouncements } = api.announcement.listByCourse.useQuery(
-    { courseId },
-  );
+  const { data: announcements = initialAnnouncements, isLoading } =
+    api.announcement.listByCourse.useQuery({ courseId });
 
   const create = api.announcement.create.useMutation({
     onSuccess: () => {
@@ -65,7 +69,13 @@ export function AnnouncementsPanel({ courseId, initialAnnouncements }: Props) {
   return (
     <>
       {contextHolder}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          marginBottom: 16,
+        }}
+      >
         <Button
           type="primary"
           icon={<PlusOutlined />}
@@ -77,16 +87,28 @@ export function AnnouncementsPanel({ courseId, initialAnnouncements }: Props) {
 
       {showForm && (
         <Card style={{ marginBottom: 24 }}>
-          <Form form={form} layout="vertical" onFinish={(v) => create.mutate({ courseId, ...v })}>
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={(v) => create.mutate({ courseId, ...v })}
+          >
             <Form.Item name="title" label="Title" rules={[{ required: true }]}>
               <Input />
             </Form.Item>
-            <Form.Item name="content" label="Content" rules={[{ required: true }]}>
+            <Form.Item
+              name="content"
+              label="Content"
+              rules={[{ required: true }]}
+            >
               <Input.TextArea rows={4} />
             </Form.Item>
             <Form.Item style={{ marginBottom: 0 }}>
               <Space>
-                <Button type="primary" htmlType="submit" loading={create.isPending}>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={create.isPending}
+                >
                   Post
                 </Button>
                 <Button onClick={() => setShowForm(false)}>Cancel</Button>
@@ -97,9 +119,21 @@ export function AnnouncementsPanel({ courseId, initialAnnouncements }: Props) {
       )}
 
       <Space orientation="vertical" style={{ width: "100%" }} size="middle">
-        {announcements.length === 0 ? (
+        {isLoading ? (
+          [1, 2, 3].map((i) => (
+            <Card key={i}>
+              <Skeleton active title paragraph={{ rows: 3 }} />
+            </Card>
+          ))
+        ) : announcements.length === 0 ? (
           <Card>
-            <div style={{ textAlign: "center", padding: "24px 0", color: token.colorTextDisabled }}>
+            <div
+              style={{
+                textAlign: "center",
+                padding: "24px 0",
+                color: token.colorTextDisabled,
+              }}
+            >
               <NotificationOutlined style={{ fontSize: 32, marginBottom: 8 }} />
               <div>No announcements yet.</div>
             </div>
@@ -116,11 +150,18 @@ export function AnnouncementsPanel({ courseId, initialAnnouncements }: Props) {
                   okText="Delete"
                   okButtonProps={{ danger: true }}
                 >
-                  <Button type="text" danger size="small" icon={<DeleteOutlined />} />
+                  <Button
+                    type="text"
+                    danger
+                    size="small"
+                    icon={<DeleteOutlined />}
+                  />
                 </Popconfirm>
               }
             >
-              <Typography.Paragraph style={{ whiteSpace: "pre-wrap", marginBottom: 4 }}>
+              <Typography.Paragraph
+                style={{ whiteSpace: "pre-wrap", marginBottom: 4 }}
+              >
                 {ann.content}
               </Typography.Paragraph>
               <Typography.Text type="secondary" style={{ fontSize: 12 }}>

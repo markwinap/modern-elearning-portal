@@ -10,12 +10,18 @@ import {
   Input,
   List,
   Modal,
+  Skeleton,
   Space,
   Typography,
   message,
   theme,
 } from "antd";
-import { MessageOutlined, PlusOutlined, SendOutlined, UserOutlined } from "@ant-design/icons";
+import {
+  MessageOutlined,
+  PlusOutlined,
+  SendOutlined,
+  UserOutlined,
+} from "@ant-design/icons";
 
 import { api } from "~/trpc/react";
 
@@ -45,7 +51,8 @@ export function DiscussionsPanel({ courseId }: Props) {
   const utils = api.useUtils();
   const { token } = theme.useToken();
 
-  const { data: threads = [] } = api.message.listByCourse.useQuery({ courseId });
+  const { data: threads = [], isLoading: threadsLoading } =
+    api.message.listByCourse.useQuery({ courseId });
 
   const { data: threadMessages = [] } = api.message.getMessages.useQuery(
     { threadId: activeThread?.id ?? 0 },
@@ -74,20 +81,56 @@ export function DiscussionsPanel({ courseId }: Props) {
   return (
     <>
       {contextHolder}
-      <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 16, minHeight: 400 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "280px 1fr",
+          gap: 16,
+          minHeight: 400,
+        }}
+      >
         {/* Thread list */}
         <Card
           title="Threads"
           size="small"
           extra={
-            <Button size="small" icon={<PlusOutlined />} onClick={() => setNewThreadOpen(true)}>
+            <Button
+              size="small"
+              icon={<PlusOutlined />}
+              onClick={() => setNewThreadOpen(true)}
+            >
               New
             </Button>
           }
           styles={{ body: { padding: 0 } }}
         >
-          {threads.length === 0 ? (
-            <div style={{ padding: 16, color: token.colorTextDisabled, textAlign: "center" }}>
+          {threadsLoading ? (
+            <Space orientation="vertical" style={{ width: "100%", padding: 8 }}>
+              {[1, 2].map((i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "8px 16px",
+                    borderRadius: 6,
+                    background: token.colorFillAlter,
+                    border: `1px solid ${token.colorBorderSecondary}`,
+                  }}
+                >
+                  <Skeleton.Input active size="small" style={{ flex: 1 }} />
+                </div>
+              ))}
+            </Space>
+          ) : threads.length === 0 ? (
+            <div
+              style={{
+                padding: 16,
+                color: token.colorTextDisabled,
+                textAlign: "center",
+              }}
+            >
               <MessageOutlined style={{ fontSize: 24, marginBottom: 8 }} />
               <div>No threads yet</div>
             </div>
@@ -100,8 +143,14 @@ export function DiscussionsPanel({ courseId }: Props) {
                   style={{
                     padding: "8px 16px",
                     cursor: "pointer",
-                    background: activeThread?.id === thread.id ? token.colorPrimaryBg : undefined,
-                    borderLeft: activeThread?.id === thread.id ? `3px solid ${token.colorPrimary}` : "3px solid transparent",
+                    background:
+                      activeThread?.id === thread.id
+                        ? token.colorPrimaryBg
+                        : undefined,
+                    borderLeft:
+                      activeThread?.id === thread.id
+                        ? `3px solid ${token.colorPrimary}`
+                        : "3px solid transparent",
                   }}
                 >
                   <div>
@@ -121,26 +170,50 @@ export function DiscussionsPanel({ courseId }: Props) {
         <Card
           title={activeThread ? activeThread.subject : "Select a thread"}
           size="small"
-          styles={{ body: { display: "flex", flexDirection: "column", height: 400 } }}
+          styles={{
+            body: { display: "flex", flexDirection: "column", height: 400 },
+          }}
         >
           {!activeThread ? (
-            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: token.colorTextDisabled }}>
+            <div
+              style={{
+                flex: 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: token.colorTextDisabled,
+              }}
+            >
               Select a thread to view messages
             </div>
           ) : (
             <>
               <div style={{ flex: 1, overflowY: "auto", marginBottom: 12 }}>
                 {threadMessages.length === 0 ? (
-                  <Typography.Text type="secondary">No messages yet. Start the conversation!</Typography.Text>
+                  <Typography.Text type="secondary">
+                    No messages yet. Start the conversation!
+                  </Typography.Text>
                 ) : (
                   <Space orientation="vertical" style={{ width: "100%" }}>
                     {threadMessages.map((msg: Message) => (
                       <div key={msg.id} style={{ display: "flex", gap: 8 }}>
                         <Avatar size="small" icon={<UserOutlined />} />
-                        <div style={{ flex: 1, background: token.colorFillAlter, borderRadius: 8, padding: "6px 10px" }}>
-                          <Typography.Text style={{ fontSize: 12 }}>{msg.content}</Typography.Text>
+                        <div
+                          style={{
+                            flex: 1,
+                            background: token.colorFillAlter,
+                            borderRadius: 8,
+                            padding: "6px 10px",
+                          }}
+                        >
+                          <Typography.Text style={{ fontSize: 12 }}>
+                            {msg.content}
+                          </Typography.Text>
                           <div>
-                            <Typography.Text type="secondary" style={{ fontSize: 10 }}>
+                            <Typography.Text
+                              type="secondary"
+                              style={{ fontSize: 10 }}
+                            >
                               {new Date(msg.sentAt).toLocaleTimeString()}
                             </Typography.Text>
                           </div>
@@ -158,7 +231,10 @@ export function DiscussionsPanel({ courseId }: Props) {
                   onChange={(e) => setReplyText(e.target.value)}
                   onPressEnter={() => {
                     if (replyText.trim() && activeThread) {
-                      sendMessage.mutate({ threadId: activeThread.id, content: replyText.trim() });
+                      sendMessage.mutate({
+                        threadId: activeThread.id,
+                        content: replyText.trim(),
+                      });
                     }
                   }}
                 />
@@ -168,7 +244,10 @@ export function DiscussionsPanel({ courseId }: Props) {
                   loading={sendMessage.isPending}
                   onClick={() => {
                     if (replyText.trim() && activeThread) {
-                      sendMessage.mutate({ threadId: activeThread.id, content: replyText.trim() });
+                      sendMessage.mutate({
+                        threadId: activeThread.id,
+                        content: replyText.trim(),
+                      });
                     }
                   }}
                 />
@@ -181,16 +260,25 @@ export function DiscussionsPanel({ courseId }: Props) {
       <Modal
         title="New Thread"
         open={newThreadOpen}
-        onCancel={() => { setNewThreadOpen(false); threadForm.resetFields(); }}
+        onCancel={() => {
+          setNewThreadOpen(false);
+          threadForm.resetFields();
+        }}
         onOk={() => threadForm.submit()}
         confirmLoading={createThread.isPending}
       >
         <Form
           form={threadForm}
           layout="vertical"
-          onFinish={(v) => createThread.mutate({ courseId, subject: v.subject })}
+          onFinish={(v) =>
+            createThread.mutate({ courseId, subject: v.subject })
+          }
         >
-          <Form.Item name="subject" label="Subject" rules={[{ required: true }]}>
+          <Form.Item
+            name="subject"
+            label="Subject"
+            rules={[{ required: true }]}
+          >
             <Input />
           </Form.Item>
         </Form>

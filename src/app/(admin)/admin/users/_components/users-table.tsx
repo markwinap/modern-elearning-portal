@@ -38,7 +38,7 @@ export function UsersTable({ users: initialUsers }: Props) {
   const [banForm] = Form.useForm<{ reason: string }>();
   const utils = api.useUtils();
 
-  const { data: users = initialUsers } = api.user.listUsers.useQuery(
+  const { data: users = initialUsers, isLoading } = api.user.listUsers.useQuery(
     { page: 1, limit: 50 },
   );
 
@@ -77,7 +77,9 @@ export function UsersTable({ users: initialUsers }: Props) {
           <Typography.Text strong>{u.name}</Typography.Text>
           {u.banned && <Badge status="error" style={{ marginLeft: 6 }} />}
           <br />
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>{u.email}</Typography.Text>
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            {u.email}
+          </Typography.Text>
         </div>
       ),
     },
@@ -92,7 +94,10 @@ export function UsersTable({ users: initialUsers }: Props) {
           style={{ width: 120 }}
           loading={setRole.isPending}
           onChange={(val) =>
-            setRole.mutate({ userId: u.id, role: val as "student" | "teacher" | "admin" })
+            setRole.mutate({
+              userId: u.id,
+              role: val as "student" | "teacher" | "admin",
+            })
           }
           options={[
             { value: "student", label: <Tag color="green">student</Tag> },
@@ -119,7 +124,11 @@ export function UsersTable({ users: initialUsers }: Props) {
             title="Unban this user?"
             onConfirm={() => unbanUser.mutate({ userId: u.id })}
           >
-            <Button size="small" icon={<CheckCircleOutlined />} loading={unbanUser.isPending}>
+            <Button
+              size="small"
+              icon={<CheckCircleOutlined />}
+              loading={unbanUser.isPending}
+            >
               Unban
             </Button>
           </Popconfirm>
@@ -143,13 +152,17 @@ export function UsersTable({ users: initialUsers }: Props) {
         dataSource={users}
         columns={columns}
         rowKey="id"
+        loading={isLoading}
         pagination={{ pageSize: 20, hideOnSinglePage: true }}
       />
 
       <Modal
         title={`Ban ${banTarget?.name}`}
         open={!!banTarget}
-        onCancel={() => { setBanTarget(null); banForm.resetFields(); }}
+        onCancel={() => {
+          setBanTarget(null);
+          banForm.resetFields();
+        }}
         onOk={() => banForm.submit()}
         confirmLoading={banUser.isPending}
         okButtonProps={{ danger: true }}
@@ -159,7 +172,8 @@ export function UsersTable({ users: initialUsers }: Props) {
           form={banForm}
           layout="vertical"
           onFinish={(v) => {
-            if (banTarget) banUser.mutate({ userId: banTarget.id, reason: v.reason });
+            if (banTarget)
+              banUser.mutate({ userId: banTarget.id, reason: v.reason });
           }}
         >
           <Form.Item name="reason" label="Reason" rules={[{ required: true }]}>

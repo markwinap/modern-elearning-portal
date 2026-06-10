@@ -9,6 +9,7 @@ import {
   Input,
   Modal,
   Select,
+  Skeleton,
   Space,
   Tag,
   Typography,
@@ -52,14 +53,21 @@ const TYPE_COLORS: Record<string, string> = {
   workshop: "magenta",
 };
 
-function ActivityList({ sectionId, courseId }: { sectionId: number; courseId: number }) {
+function ActivityList({
+  sectionId,
+  courseId,
+}: {
+  sectionId: number;
+  courseId: number;
+}) {
   const [messageApi, contextHolder] = message.useMessage();
   const [addModal, setAddModal] = useState(false);
   const [form] = Form.useForm<{ title: string; type: string }>();
   const utils = api.useUtils();
   const { token } = theme.useToken();
 
-  const { data: activities = [] } = api.activity.listBySection.useQuery({ sectionId });
+  const { data: activities = [], isLoading } =
+    api.activity.listBySection.useQuery({ sectionId });
 
   const createActivity = api.activity.create.useMutation({
     onSuccess: () => {
@@ -72,7 +80,8 @@ function ActivityList({ sectionId, courseId }: { sectionId: number; courseId: nu
   });
 
   const deleteActivity = api.activity.delete.useMutation({
-    onSuccess: () => void utils.activity.listBySection.invalidate({ sectionId }),
+    onSuccess: () =>
+      void utils.activity.listBySection.invalidate({ sectionId }),
     onError: (err) => messageApi.error(err.message),
   });
 
@@ -80,8 +89,31 @@ function ActivityList({ sectionId, courseId }: { sectionId: number; courseId: nu
     <>
       {contextHolder}
       <div style={{ padding: "0 0 8px" }}>
-        {activities.length === 0 ? (
-          <Typography.Text type="secondary" style={{ display: "block", marginBottom: 8 }}>
+        {isLoading ? (
+          <Space orientation="vertical" style={{ width: "100%" }}>
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "6px 8px",
+                  borderRadius: 6,
+                  background: token.colorFillAlter,
+                  border: `1px solid ${token.colorBorderSecondary}`,
+                }}
+              >
+                <Skeleton.Avatar active size="small" shape="square" />
+                <Skeleton.Input active size="small" style={{ flex: 1 }} />
+              </div>
+            ))}
+          </Space>
+        ) : activities.length === 0 ? (
+          <Typography.Text
+            type="secondary"
+            style={{ display: "block", marginBottom: 8 }}
+          >
             No activities yet.
           </Typography.Text>
         ) : (
@@ -100,10 +132,17 @@ function ActivityList({ sectionId, courseId }: { sectionId: number; courseId: nu
                 }}
               >
                 <FileOutlined />
-                <Typography.Text style={{ flex: 1 }}>{act.title}</Typography.Text>
+                <Typography.Text style={{ flex: 1 }}>
+                  {act.title}
+                </Typography.Text>
                 <Tag color={TYPE_COLORS[act.type] ?? "default"}>{act.type}</Tag>
                 <Link href={`/teach/courses/${courseId}/activities/${act.id}`}>
-                  <Button type="text" size="small" icon={<EditOutlined />} title="Edit content" />
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<EditOutlined />}
+                    title="Edit content"
+                  />
                 </Link>
                 <Button
                   type="text"
@@ -131,7 +170,10 @@ function ActivityList({ sectionId, courseId }: { sectionId: number; courseId: nu
       <Modal
         title="Add Activity"
         open={addModal}
-        onCancel={() => { setAddModal(false); form.resetFields(); }}
+        onCancel={() => {
+          setAddModal(false);
+          form.resetFields();
+        }}
         onOk={() => form.submit()}
         confirmLoading={createActivity.isPending}
       >
@@ -142,7 +184,15 @@ function ActivityList({ sectionId, courseId }: { sectionId: number; courseId: nu
             createActivity.mutate({
               sectionId,
               title: v.title,
-              type: v.type as "lesson" | "quiz" | "page" | "file" | "url" | "text_media" | "wiki" | "workshop",
+              type: v.type as
+                | "lesson"
+                | "quiz"
+                | "page"
+                | "file"
+                | "url"
+                | "text_media"
+                | "wiki"
+                | "workshop",
               order: 0,
             })
           }
@@ -162,11 +212,17 @@ function ActivityList({ sectionId, courseId }: { sectionId: number; courseId: nu
 export function SectionBuilder({ courseId }: Props) {
   const [messageApi, contextHolder] = message.useMessage();
   const [addSectionOpen, setAddSectionOpen] = useState(false);
-  const [editSection, setEditSection] = useState<{ id: number; title: string } | null>(null);
+  const [editSection, setEditSection] = useState<{
+    id: number;
+    title: string;
+  } | null>(null);
   const [form] = Form.useForm<{ title: string }>();
   const utils = api.useUtils();
+  const { token } = theme.useToken();
 
-  const { data: sections = [], isLoading } = api.section.listByCourse.useQuery({ courseId });
+  const { data: sections = [], isLoading } = api.section.listByCourse.useQuery({
+    courseId,
+  });
 
   const createSection = api.section.create.useMutation({
     onSuccess: () => {
@@ -205,7 +261,10 @@ export function SectionBuilder({ courseId }: Props) {
           type="text"
           size="small"
           icon={<EditOutlined />}
-          onClick={(e) => { e.stopPropagation(); setEditSection({ id: sec.id, title: sec.title }); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            setEditSection({ id: sec.id, title: sec.title });
+          }}
         />
         <Button
           type="text"
@@ -213,7 +272,10 @@ export function SectionBuilder({ courseId }: Props) {
           size="small"
           icon={<DeleteOutlined />}
           loading={deleteSection.isPending}
-          onClick={(e) => { e.stopPropagation(); deleteSection.mutate({ id: sec.id }); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            deleteSection.mutate({ id: sec.id });
+          }}
         />
       </Space>
     ),
@@ -224,15 +286,43 @@ export function SectionBuilder({ courseId }: Props) {
     <>
       {contextHolder}
 
-      {sections.length === 0 && !isLoading ? (
+      {isLoading ? (
+        <Space orientation="vertical" style={{ width: "100%" }}>
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "10px 16px",
+                borderRadius: 6,
+                background: token.colorFillAlter,
+                border: `1px solid ${token.colorBorderSecondary}`,
+              }}
+            >
+              <Skeleton.Input active size="small" style={{ flex: 1 }} />
+              <Skeleton.Button active size="small" />
+              <Skeleton.Button active size="small" />
+            </div>
+          ))}
+        </Space>
+      ) : sections.length === 0 ? (
         <Empty description="No sections yet" style={{ marginBottom: 16 }}>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setAddSectionOpen(true)}>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => setAddSectionOpen(true)}
+          >
             Add First Section
           </Button>
         </Empty>
       ) : (
         <>
-          <Collapse items={collapseItems} defaultActiveKey={sections[0] ? [String(sections[0].id)] : []} />
+          <Collapse
+            items={collapseItems}
+            defaultActiveKey={sections[0] ? [String(sections[0].id)] : []}
+          />
           <Button
             type="dashed"
             block
@@ -249,16 +339,29 @@ export function SectionBuilder({ courseId }: Props) {
       <Modal
         title="Add Section"
         open={addSectionOpen}
-        onCancel={() => { setAddSectionOpen(false); form.resetFields(); }}
+        onCancel={() => {
+          setAddSectionOpen(false);
+          form.resetFields();
+        }}
         onOk={() => form.submit()}
         confirmLoading={createSection.isPending}
       >
         <Form
           form={form}
           layout="vertical"
-          onFinish={(v) => createSection.mutate({ courseId, title: v.title, order: sections.length })}
+          onFinish={(v) =>
+            createSection.mutate({
+              courseId,
+              title: v.title,
+              order: sections.length,
+            })
+          }
         >
-          <Form.Item name="title" label="Section Title" rules={[{ required: true }]}>
+          <Form.Item
+            name="title"
+            label="Section Title"
+            rules={[{ required: true }]}
+          >
             <Input />
           </Form.Item>
         </Form>
@@ -270,13 +373,19 @@ export function SectionBuilder({ courseId }: Props) {
         open={!!editSection}
         onCancel={() => setEditSection(null)}
         onOk={() => {
-          if (editSection) updateSection.mutate({ id: editSection.id, title: editSection.title });
+          if (editSection)
+            updateSection.mutate({
+              id: editSection.id,
+              title: editSection.title,
+            });
         }}
         confirmLoading={updateSection.isPending}
       >
         <Input
           value={editSection?.title ?? ""}
-          onChange={(e) => setEditSection((s) => s ? { ...s, title: e.target.value } : null)}
+          onChange={(e) =>
+            setEditSection((s) => (s ? { ...s, title: e.target.value } : null))
+          }
         />
       </Modal>
     </>
