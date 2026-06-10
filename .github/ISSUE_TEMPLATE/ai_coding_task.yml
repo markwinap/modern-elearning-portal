@@ -1,0 +1,85 @@
+name: AI Coding Task
+description: Create a task specifically for Windsurf AI or other AI coding assistants
+title: '[AI Task]: '
+labels: ['ai-task', 'triage']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template to create tasks for AI coding assistants. Be specific about requirements and constraints.
+
+  - type: textarea
+    id: task-description
+    attributes:
+      label: Task Description
+      description: Clear description of what needs to be implemented
+      placeholder: |
+        Example: "Create a new tRPC router for managing course enrollments with
+        Drizzle ORM schema, including list, create, update, and delete procedures."
+    validations:
+      required: true
+
+  - type: textarea
+    id: requirements
+    attributes:
+      label: Requirements & Constraints
+      description: Specific requirements and technical constraints
+      placeholder: |
+        - Must use `protectedProcedure` for mutations
+        - Use Zod for input validation
+        - Follow existing patterns in `src/server/api/routers/`
+        - Include proper error handling
+        - Add TypeScript types, no `any`
+    validations:
+      required: true
+
+  - type: textarea
+    id: files-to-modify
+    attributes:
+      label: Files to Create/Modify
+      description: List the expected files that will be created or modified
+      placeholder: |
+        - `src/server/db/schema.ts` - Add enrollment table
+        - `src/server/api/routers/enrollment.ts` - New router
+        - `src/server/api/root.ts` - Register router
+        - `src/app/enrollments/page.tsx` - List page
+    validations:
+      required: false
+
+  - type: textarea
+    id: reference
+    attributes:
+      label: Reference Implementation
+      description: Link to similar existing code or examples
+      placeholder: |
+        Similar pattern in: `src/server/api/routers/post.ts`
+        UI reference: `src/app/posts/page.tsx`
+    validations:
+      required: false
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How urgent is this task?
+      options:
+        - 'Low - Nice to have'
+        - 'Medium - Should have soon'
+        - 'High - Blocking other work'
+        - 'Critical - Immediate attention needed'
+    validations:
+      required: false
+
+  - type: dropdown
+    id: agent
+    attributes:
+      label: Suggested AI Agent
+      description: Which agent should handle this task?
+      options:
+        - '@t3-developer (full-stack implementation)'
+        - '@db-architect (database/schema design)'
+        - '@planner (architecture planning)'
+        - '@implementer (focused implementation)'
+        - '@reviewer (code review)'
+    validations:
+      required: false

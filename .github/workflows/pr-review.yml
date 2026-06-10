@@ -1,0 +1,81 @@
+name: PR Review Helper
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  review-checks:
+    name: AI-Friendly PR Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check PR title format
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+            revert
+          requireScope: false
+
+      - name: PR size check
+        run: |
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | wc -l)
+          if [ $CHANGED_FILES -gt 50 ]; then
+            echo "⚠️ Warning: PR changes $CHANGED_FILES files. Consider breaking it down for easier AI review."
+          fi
+          echo "Changed files: $CHANGED_FILES"
+
+      - name: Comment with Windsurf tips
+        if: github.event.action == 'opened'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = `## 🤖 Windsurf AI Review Tips
+
+            This PR can be reviewed with Windsurf AI using:
+
+            **For implementers:**
+            \`\`\`
+            /review the changes in this PR for t3 stack conventions and type safety
+            \`\`\`
+
+            **For reviewers:**
+            \`\`\`
+            @reviewer analyze this PR for:
+            1. Type safety violations
+            2. tRPC procedure patterns
+            3. Drizzle ORM best practices
+            4. Ant Design component usage
+            5. Security issues
+            \`\`\`
+
+            **Checklist for AI-generated code:**
+            - [ ] No \`any\` types used
+            - [ ] Server Components preferred over Client Components
+            - [ ] Ant Design components wrapped properly
+            - [ ] tRPC procedures use correct input validation
+            - [ ] Database operations use Drizzle ORM
+            - [ ] Auth checks use \`protectedProcedure\`
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });

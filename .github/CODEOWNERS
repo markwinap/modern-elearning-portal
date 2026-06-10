@@ -1,0 +1,18 @@
+# Global code owners
+* @markwinap
+
+# Database schema changes
+/src/server/db/schema.ts @markwinap
+/drizzle/ @markwinap
+
+# tRPC API routers
+/src/server/api/routers/ @markwinap
+
+# Authentication configuration
+/src/server/better-auth/ @markwinap
+
+# Environment configuration
+/src/env.js @markwinap
+
+# CI/CD workflows
+/.github/workflows/ @markwinap
