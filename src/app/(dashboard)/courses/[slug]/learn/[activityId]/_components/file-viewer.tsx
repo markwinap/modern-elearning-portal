@@ -8,6 +8,7 @@ import {
   Space,
   Tag,
   Typography,
+  theme,
 } from "antd";
 import { DownloadOutlined, FileOutlined } from "@ant-design/icons";
 
@@ -54,7 +55,9 @@ export function FileViewer({ file, activityTitle }: Props) {
         </div>
 
         <Descriptions column={2} size="small">
-          <Descriptions.Item label="Size">{formatBytes(file.sizeBytes)}</Descriptions.Item>
+          <Descriptions.Item label="Size">
+            {formatBytes(file.sizeBytes)}
+          </Descriptions.Item>
           <Descriptions.Item label="Type">
             <Tag>{file.mimeType.split("/").pop()?.toUpperCase() ?? "FILE"}</Tag>
           </Descriptions.Item>
