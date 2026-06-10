@@ -23,7 +23,7 @@ export default function Loading() {
           <Skeleton.Button active size="small" style={{ width: 60 }} />
         </div>
       ))}
-      <Skeleton.Button active size="default" block style={{ marginTop: 16 }} />
+      <Skeleton.Button active size="medium" block style={{ marginTop: 16 }} />
     </div>
   );
 }

@@ -5,17 +5,36 @@ import { Card, Skeleton, Table } from "antd";
 export default function Loading() {
   return (
     <>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 16,
+        }}
+      >
         <Skeleton.Input active size="large" style={{ width: 120 }} />
-        <Skeleton.Button active size="default" style={{ width: 140 }} />
+        <Skeleton.Button active size="medium" style={{ width: 140 }} />
       </div>
       <Card>
         <Table
           dataSource={Array.from({ length: 6 }, (_, i) => ({ key: i }))}
           columns={[
-            { render: () => <Skeleton.Input active size="small" style={{ width: 140 }} /> },
-            { render: () => <Skeleton.Input active size="small" style={{ width: 100 }} /> },
-            { render: () => <Skeleton.Button active size="small" style={{ width: 60 }} /> },
+            {
+              render: () => (
+                <Skeleton.Input active size="small" style={{ width: 140 }} />
+              ),
+            },
+            {
+              render: () => (
+                <Skeleton.Input active size="small" style={{ width: 100 }} />
+              ),
+            },
+            {
+              render: () => (
+                <Skeleton.Button active size="small" style={{ width: 60 }} />
+              ),
+            },
           ]}
           pagination={false}
         />
