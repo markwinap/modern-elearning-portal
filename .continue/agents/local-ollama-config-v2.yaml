@@ -46,12 +46,13 @@ models:
     roles:
       - chat
       - edit
+      - apply
     capabilities:
       - tool_use
     defaultCompletionOptions:
       contextLength: 32768
       maxTokens: 4096
-      temperature: 0.1
+      temperature: 0
       keepAlive: 3600
 
   # ── TIER 3: LOCAL PROXY (apply role — fast deterministic edits) ──────────
@@ -180,29 +181,26 @@ mcpServers:
 # RULES (injected into every agent system message)
 # ─────────────────────────────────────────────
 rules:
-  - uses: file://./AGENTS.md
-  - uses: file://./.github/instructions/antd.instructions.md
-  - uses: file://./.github/instructions/auth.instructions.md
-  - uses: file://./.github/instructions/drizzle.instructions.md
-  - uses: file://./.github/instructions/nextjs.instructions.md
-  - uses: file://./.github/instructions/tests.instructions.md
-  - uses: file://./.github/instructions/trpc.instructions.md
-  # Add these new files — see guide for content
-  - uses: file://./.continue/rules/project-architecture.md
-  - uses: file://./.continue/rules/current-work.md
+  - uses: file://../../AGENTS.md
+  - uses: file://../../.github/instructions/antd.instructions.md
+  - uses: file://../../.github/instructions/auth.instructions.md
+  - uses: file://../../.github/instructions/drizzle.instructions.md
+  - uses: file://../../.github/instructions/nextjs.instructions.md
+  - uses: file://../../.github/instructions/tests.instructions.md
+  - uses: file://../../.github/instructions/trpc.instructions.md
 
 # ─────────────────────────────────────────────
 # PROMPTS (slash commands)
 # ─────────────────────────────────────────────
 prompts:
-  - uses: file://./.github/prompts/add-antd-form.prompt.md
-  - uses: file://./.github/prompts/add-auth-flow.prompt.md
-  - uses: file://./.github/prompts/add-page.prompt.md
-  - uses: file://./.github/prompts/add-skeleton-loading.prompt.md
-  - uses: file://./.github/prompts/add-trpc-router.prompt.md
-  - uses: file://./.github/prompts/code-review.prompt.md
-  - uses: file://./.github/prompts/db-migration.prompt.md
-  - uses: file://./.github/prompts/add-theme-color.prompt.md
+  - uses: file://../../.github/prompts/add-antd-form.prompt.md
+  - uses: file://../../.github/prompts/add-auth-flow.prompt.md
+  - uses: file://../../.github/prompts/add-page.prompt.md
+  - uses: file://../../.github/prompts/add-skeleton-loading.prompt.md
+  - uses: file://../../.github/prompts/add-trpc-router.prompt.md
+  - uses: file://../../.github/prompts/code-review.prompt.md
+  - uses: file://../../.github/prompts/db-migration.prompt.md
+  - uses: file://../../.github/prompts/add-theme-color.prompt.md
 
 # ─────────────────────────────────────────────
 # CONTEXT PROVIDERS
