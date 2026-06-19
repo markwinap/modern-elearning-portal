@@ -1,0 +1,24 @@
+name: MCPServers
+version: 0.0.1
+schema: v1
+mcpServers:
+  - name: travily
+    command: npx
+    args:
+      - -y
+      - tavily-mcp@0.1.4
+    env:
+      TAVILY_API_KEY: ${TAVILY_API_KEY}
+  - name: filesystem
+    command: npx
+    args:
+      - -y
+      - "@modelcontextprotocol/server-filesystem"
+      - /path/to/projects
+  - name: github
+    command: npx
+    args:
+      - -y
+      - "@modelcontextprotocol/server-github"
+    env:
+      GITHUB_PERSONAL_ACCESS_TOKEN: ${GITHUB_TOKEN}

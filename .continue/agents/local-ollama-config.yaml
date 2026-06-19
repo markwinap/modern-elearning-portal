@@ -15,10 +15,9 @@ models:
     roles:
       - autocomplete
   - name: Daily Assistant
-    provider: openai
+    provider: ollama
     model: qwen3:14b
-    apiBase: http://localhost:3000/api
-    apiKey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQzZTk1ZTY3LTk4YWQtNGFjYy1iZDZhLWNhNzUyOGM4MWI5ZCIsImV4cCI6MTc4Mjk2MDc2NywianRpIjoiODIzYmE2NTYtNDUxZi00OThmLTg5MmEtYzk2YTU3YjQwMzFmIiwiaWF0IjoxNzgwNTQxNTY3fQ.SkogCfrrtkisjreJizNJSsam1PRHYLb6oRIXKytzGfs
+    apiBase: http://192.168.1.226:11434
     roles:
       - chat
   - name: Nomic
@@ -27,9 +26,9 @@ models:
     apiBase: http://192.168.1.226:11434
     roles: [embed]
   - name: Coding
-    provider: openai
+    provider: ollama
     model: qwen2.5-Coder:14b
-    apiBase: http://localhost:3000/api
+    apiBase: http://192.168.1.226:11434
     apiKey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQzZTk1ZTY3LTk4YWQtNGFjYy1iZDZhLWNhNzUyOGM4MWI5ZCIsImV4cCI6MTc4Mjk2MDc2NywianRpIjoiODIzYmE2NTYtNDUxZi00OThmLTg5MmEtYzk2YTU3YjQwMzFmIiwiaWF0IjoxNzgwNTQxNTY3fQ.SkogCfrrtkisjreJizNJSsam1PRHYLb6oRIXKytzGfs
     roles:
       - chat
@@ -37,9 +36,9 @@ models:
       - apply
 
   - name: Reasoning
-    provider: openai
+    provider: ollama
     model: deepseek-r1:14b
-    apiBase: http://localhost:3000/api
+    apiBase: http://192.168.1.226:11434
     apiKey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQzZTk1ZTY3LTk4YWQtNGFjYy1iZDZhLWNhNzUyOGM4MWI5ZCIsImV4cCI6MTc4Mjk2MDc2NywianRpIjoiODIzYmE2NTYtNDUxZi00OThmLTg5MmEtYzk2YTU3YjQwMzFmIiwiaWF0IjoxNzgwNTQxNTY3fQ.SkogCfrrtkisjreJizNJSsam1PRHYLb6oRIXKytzGfs
     roles:
       - chat
@@ -47,9 +46,9 @@ models:
       reasoning: true
 
   - name: Writing and General Chat
-    provider: openai
+    provider: ollama
     model: gemma3:12b
-    apiBase: http://localhost:3000/api
+    apiBase: http://192.168.1.226:11434
     apiKey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQzZTk1ZTY3LTk4YWQtNGFjYy1iZDZhLWNhNzUyOGM4MWI5ZCIsImV4cCI6MTc4Mjk2MDc2NywianRpIjoiODIzYmE2NTYtNDUxZi00OThmLTg5MmEtYzk2YTU3YjQwMzFmIiwiaWF0IjoxNzgwNTQxNTY3fQ.SkogCfrrtkisjreJizNJSsam1PRHYLb6oRIXKytzGfs
     roles:
       - chat
@@ -84,3 +83,4 @@ context:
   - provider: terminal
   - provider: diff
   - provider: repo-map
+  - provider: mcp
