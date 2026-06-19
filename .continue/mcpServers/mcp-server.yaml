@@ -38,3 +38,9 @@ mcpServers:
     args:
       - -y
       - "@modelcontextprotocol/server-memory"
+  - name: antd
+    command: npx
+    args:
+      - -y
+      - "@ant-design/cli"
+      - mcp

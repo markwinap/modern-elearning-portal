@@ -26,9 +26,9 @@ models:
     apiBase: http://192.168.1.226:11434
     roles: [embed]
   - name: Coding
-    provider: ollama
+    provider: openai
     model: qwen2.5-Coder:14b
-    apiBase: http://192.168.1.226:11434
+    apiBase: http://localhost:3000/api
     apiKey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQzZTk1ZTY3LTk4YWQtNGFjYy1iZDZhLWNhNzUyOGM4MWI5ZCIsImV4cCI6MTc4Mjk2MDc2NywianRpIjoiODIzYmE2NTYtNDUxZi00OThmLTg5MmEtYzk2YTU3YjQwMzFmIiwiaWF0IjoxNzgwNTQxNTY3fQ.SkogCfrrtkisjreJizNJSsam1PRHYLb6oRIXKytzGfs
     roles:
       - chat
@@ -74,6 +74,7 @@ prompts:
   - uses: file://../../.github/prompts/add-trpc-router.prompt.md
   - uses: file://../../.github/prompts/code-review.prompt.md
   - uses: file://../../.github/prompts/db-migration.prompt.md
+  - uses: file://../../.github/prompts/add-theme-color.prompt.md
 
 # Context providers
 # https://docs.continue.dev/customize/deep-dives/context
