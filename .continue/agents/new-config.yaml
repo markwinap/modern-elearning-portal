@@ -1,0 +1,30 @@
+# This is an example configuration file
+# To learn more, see the full config.yaml reference: https://docs.continue.dev/reference
+
+name: Local Assistant
+version: 1.0.0
+schema: v1
+
+# Define which models can be used
+# https://docs.continue.dev/customization/models
+models:
+  - name: qwen2.5-coder
+    provider: openai
+    model: qwen2.5-Coder:14b
+    apiBase: http://localhost:3000/api
+    apiKey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQzZTk1ZTY3LTk4YWQtNGFjYy1iZDZhLWNhNzUyOGM4MWI5ZCIsImV4cCI6MTc4Mjk2MDc2NywianRpIjoiODIzYmE2NTYtNDUxZi00OThmLTg5MmEtYzk2YTU3YjQwMzFmIiwiaWF0IjoxNzgwNTQxNTY3fQ.SkogCfrrtkisjreJizNJSsam1PRHYLb6oRIXKytzGfs
+    roles:
+      - chat
+      - edit
+      - apply
+context:
+  - provider: code
+  - provider: terminal
+  - provider: diff
+  - provider: folder
+  - provider: codebase
+
+# MCP Servers that Continue can access
+# https://docs.continue.dev/customization/mcp-tools
+mcpServers:
+  - uses: anthropic/memory-mcp
