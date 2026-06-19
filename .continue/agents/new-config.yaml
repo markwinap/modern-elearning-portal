@@ -1,14 +1,14 @@
-# This is an example configuration file
-# To learn more, see the full config.yaml reference: https://docs.continue.dev/reference
+# Continue config.yaml — Trinity eLearning Portal
+# Reference: https://docs.continue.dev/reference
 
-name: Local Assistant
+name: Trinity Assistant
 version: 1.0.0
 schema: v1
 
-# Define which models can be used
+# Models
 # https://docs.continue.dev/customization/models
 models:
-  - name: qwen2.5-coder
+  - name: Qwen 2.5 Coder 14B
     provider: openai
     model: qwen2.5-Coder:14b
     apiBase: http://localhost:3000/api
@@ -17,14 +17,35 @@ models:
       - chat
       - edit
       - apply
+
+# Rules — always-on project conventions
+# https://docs.continue.dev/customize/deep-dives/rules
+rules:
+  - uses: file://AGENTS.md
+  - uses: file://.github/instructions/antd.instructions.md
+  - uses: file://.github/instructions/auth.instructions.md
+  - uses: file://.github/instructions/drizzle.instructions.md
+  - uses: file://.github/instructions/nextjs.instructions.md
+  - uses: file://.github/instructions/tests.instructions.md
+  - uses: file://.github/instructions/trpc.instructions.md
+
+# Prompts — slash commands available in chat
+# https://docs.continue.dev/customize/deep-dives/prompts
+prompts:
+  - uses: file://.github/prompts/add-antd-form.prompt.md
+  - uses: file://.github/prompts/add-auth-flow.prompt.md
+  - uses: file://.github/prompts/add-page.prompt.md
+  - uses: file://.github/prompts/add-skeleton-loading.prompt.md
+  - uses: file://.github/prompts/add-trpc-router.prompt.md
+  - uses: file://.github/prompts/code-review.prompt.md
+  - uses: file://.github/prompts/db-migration.prompt.md
+
+# Context providers
+# https://docs.continue.dev/customize/deep-dives/context
 context:
+  - provider: file
   - provider: code
   - provider: terminal
   - provider: diff
   - provider: folder
   - provider: codebase
-
-# MCP Servers that Continue can access
-# https://docs.continue.dev/customization/mcp-tools
-mcpServers:
-  - uses: anthropic/memory-mcp
