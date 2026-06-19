@@ -1,14 +1,32 @@
 # Continue config.yaml — Trinity eLearning Portal
 # Reference: https://docs.continue.dev/reference
 
-name: Trinity Assistant
+name: Local Assistant
 version: 1.0.0
 schema: v1
 
 # Models
 # https://docs.continue.dev/customization/models
 models:
-  - name: Qwen 2.5 Coder 14B
+  - name: Autocomplete
+    provider: ollama
+    model: qwen2.5-coder:1.5b
+    apiBase: http://192.168.1.226:11434
+    roles:
+      - autocomplete
+  - name: Daily Assistant
+    provider: openai
+    model: qwen3:14b
+    apiBase: http://localhost:3000/api
+    apiKey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQzZTk1ZTY3LTk4YWQtNGFjYy1iZDZhLWNhNzUyOGM4MWI5ZCIsImV4cCI6MTc4Mjk2MDc2NywianRpIjoiODIzYmE2NTYtNDUxZi00OThmLTg5MmEtYzk2YTU3YjQwMzFmIiwiaWF0IjoxNzgwNTQxNTY3fQ.SkogCfrrtkisjreJizNJSsam1PRHYLb6oRIXKytzGfs
+    roles:
+      - chat
+  - name: Nomic
+    provider: ollama
+    model: nomic-embed-text
+    apiBase: http://192.168.1.226:11434
+    roles: [embed]
+  - name: Coding
     provider: openai
     model: qwen2.5-Coder:14b
     apiBase: http://localhost:3000/api
@@ -18,27 +36,45 @@ models:
       - edit
       - apply
 
+  - name: Reasoning
+    provider: openai
+    model: deepseek-r1:14b
+    apiBase: http://localhost:3000/api
+    apiKey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQzZTk1ZTY3LTk4YWQtNGFjYy1iZDZhLWNhNzUyOGM4MWI5ZCIsImV4cCI6MTc4Mjk2MDc2NywianRpIjoiODIzYmE2NTYtNDUxZi00OThmLTg5MmEtYzk2YTU3YjQwMzFmIiwiaWF0IjoxNzgwNTQxNTY3fQ.SkogCfrrtkisjreJizNJSsam1PRHYLb6oRIXKytzGfs
+    roles:
+      - chat
+    defaultCompletionOptions:
+      reasoning: true
+
+  - name: Writing and General Chat
+    provider: openai
+    model: gemma3:12b
+    apiBase: http://localhost:3000/api
+    apiKey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQzZTk1ZTY3LTk4YWQtNGFjYy1iZDZhLWNhNzUyOGM4MWI5ZCIsImV4cCI6MTc4Mjk2MDc2NywianRpIjoiODIzYmE2NTYtNDUxZi00OThmLTg5MmEtYzk2YTU3YjQwMzFmIiwiaWF0IjoxNzgwNTQxNTY3fQ.SkogCfrrtkisjreJizNJSsam1PRHYLb6oRIXKytzGfs
+    roles:
+      - chat
+
 # Rules — always-on project conventions
 # https://docs.continue.dev/customize/deep-dives/rules
 rules:
-  - uses: file://AGENTS.md
-  - uses: file://.github/instructions/antd.instructions.md
-  - uses: file://.github/instructions/auth.instructions.md
-  - uses: file://.github/instructions/drizzle.instructions.md
-  - uses: file://.github/instructions/nextjs.instructions.md
-  - uses: file://.github/instructions/tests.instructions.md
-  - uses: file://.github/instructions/trpc.instructions.md
+  - uses: file://../../AGENTS.md
+  - uses: file://../../.github/instructions/antd.instructions.md
+  - uses: file://../../.github/instructions/auth.instructions.md
+  - uses: file://../../.github/instructions/drizzle.instructions.md
+  - uses: file://../../.github/instructions/nextjs.instructions.md
+  - uses: file://../../.github/instructions/tests.instructions.md
+  - uses: file://../../.github/instructions/trpc.instructions.md
 
 # Prompts — slash commands available in chat
 # https://docs.continue.dev/customize/deep-dives/prompts
 prompts:
-  - uses: file://.github/prompts/add-antd-form.prompt.md
-  - uses: file://.github/prompts/add-auth-flow.prompt.md
-  - uses: file://.github/prompts/add-page.prompt.md
-  - uses: file://.github/prompts/add-skeleton-loading.prompt.md
-  - uses: file://.github/prompts/add-trpc-router.prompt.md
-  - uses: file://.github/prompts/code-review.prompt.md
-  - uses: file://.github/prompts/db-migration.prompt.md
+  - uses: file://../../.github/prompts/add-antd-form.prompt.md
+  - uses: file://../../.github/prompts/add-auth-flow.prompt.md
+  - uses: file://../../.github/prompts/add-page.prompt.md
+  - uses: file://../../.github/prompts/add-skeleton-loading.prompt.md
+  - uses: file://../../.github/prompts/add-trpc-router.prompt.md
+  - uses: file://../../.github/prompts/code-review.prompt.md
+  - uses: file://../../.github/prompts/db-migration.prompt.md
 
 # Context providers
 # https://docs.continue.dev/customize/deep-dives/context
@@ -47,5 +83,4 @@ context:
   - provider: code
   - provider: terminal
   - provider: diff
-  - provider: folder
-  - provider: codebase
+  - provider: repo-map
