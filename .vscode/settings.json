@@ -41,6 +41,11 @@
     "**/.next": true
   },
 
+  // ── Environment Variables ───────────────────────────────────────────────
+  "terminal.integrated.env.osx": {
+    "TAVILY_API_KEY": "${env:TAVILY_API_KEY}"
+  },
+
   // ── ESLint ────────────────────────────────────────────────────────────────
   "eslint.validate": [
     "javascript",

@@ -14,7 +14,7 @@ mcpServers:
     args:
       - -y
       - "@modelcontextprotocol/server-filesystem"
-      - /path/to/projects
+      - /Users/markwinap/repos/trinity-elearning-portal
   - name: github
     command: npx
     args:
@@ -22,3 +22,19 @@ mcpServers:
       - "@modelcontextprotocol/server-github"
     env:
       GITHUB_PERSONAL_ACCESS_TOKEN: ${GITHUB_TOKEN}
+  - name: playwright
+    command: npx
+    args:
+      - -y
+      - "@playwright/mcp"
+  - name: git
+    command: uvx
+    args:
+      - mcp-server-git
+      - --repository
+      - /Users/markwinap/repos/trinity-elearning-portal
+  - name: memory
+    command: npx
+    args:
+      - -y
+      - "@modelcontextprotocol/server-memory"
