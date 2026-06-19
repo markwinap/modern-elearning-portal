@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# upload-knowledge.sh — Trinity E-Learning Portal
+# upload-knowledge.sh — E-Learning Portal
 # =============================================================================
 # Discovers documentation in this repo and uploads it to Open WebUI Knowledge
 # Bases, ready for RAG with Ollama + nomic-embed-text.
@@ -342,7 +342,7 @@ wait_for_processing() {
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
-echo -e "\n${BOLD}Trinity E-Learning Portal — Open WebUI Knowledge Base Uploader${RESET}"
+echo -e "\n${BOLD}E-Learning Portal — Open WebUI Knowledge Base Uploader${RESET}"
 echo -e "Repo root : ${CYAN}${REPO_ROOT}${RESET}"
 echo -e "Open WebUI: ${CYAN}${OPENWEBUI_URL}${RESET}"
 [[ "$DRY_RUN" == "1" ]] && echo -e "${YELLOW}DRY RUN mode — no uploads will be made${RESET}"

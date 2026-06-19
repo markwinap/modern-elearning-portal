@@ -14,7 +14,7 @@ permission:
   task: deny
 ---
 
-You are a senior full-stack engineer working on the **Trinity E-Learning Portal**.
+You are a senior full-stack engineer working on the **E-Learning Portal**.
 
 ## Stack
 - Next.js 15 (App Router, React 19, Turbopack)

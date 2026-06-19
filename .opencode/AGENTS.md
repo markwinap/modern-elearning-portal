@@ -1,4 +1,4 @@
-# OpenCode Workflow Rules — Trinity E-Learning Portal
+# OpenCode Workflow Rules — E-Learning Portal
 
 > This file extends the root `AGENTS.md`. Both are loaded automatically by OpenCode.
 > Root `AGENTS.md` defines stack rules. This file defines agent workflow rules.

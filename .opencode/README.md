@@ -1,6 +1,6 @@
 # OpenCode + Open WebUI Configuration
 
-AI coding agent setup for the **Trinity E-Learning Portal** using [OpenCode](https://opencode.ai) backed by local [Ollama](https://ollama.com) models and [Open WebUI](https://openwebui.com) as the RAG knowledge layer.
+AI coding agent setup for the **E-Learning Portal** using [OpenCode](https://opencode.ai) backed by local [Ollama](https://ollama.com) models and [Open WebUI](https://openwebui.com) as the RAG knowledge layer.
 
 ---
 
@@ -184,7 +184,7 @@ OpenCode will auto-load `.opencode/opencode.json`, `AGENTS.md`, and `.opencode/A
 - **Model**: `qwen3:14b`
 - **Mode**: `subagent` (invoke with `@reviewer`)
 - **Permissions**: read-only (edit/bash denied)
-- **Best for**: post-feature review against Trinity coding standards
+- **Best for**: post-feature review against coding standards
 - Checks: type safety, auth on mutations, Zod validation, named exports, no `any`
 - Outputs a numbered issue list with severity (CRITICAL / MAJOR / MINOR)
 
