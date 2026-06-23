@@ -64,9 +64,8 @@ export const postRouter = createTRPCRouter({
       return ctx.db
         .insert(posts)
         .values({
-          title: input.title,
-          content: input.content,
-          authorId: ctx.session.user.id,
+          name: input.title,
+          createdById: ctx.session.user.id, // FK to better-auth user (text)
         })
         .returning();
     }),
@@ -132,12 +131,12 @@ export type User = typeof user.$inferSelect;
 ### Query patterns
 
 ```typescript
-// Select with join
+// Select with join (auth table is `user`, FK is `createdById`)
 const postsWithAuthors = await db
-  .select({ post: posts, author: users })
+  .select({ post: posts, author: user })
   .from(posts)
-  .leftJoin(users, eq(posts.authorId, users.id))
-  .where(eq(posts.authorId, userId))
+  .leftJoin(user, eq(posts.createdById, user.id))
+  .where(eq(posts.createdById, userId))
   .orderBy(desc(posts.createdAt));
 
 // Insert and return
@@ -237,8 +236,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 ```typescript
 "use client";
-import { Button, Form, Input, message } from "antd";
-import type { FormProps } from "antd";
+import { App, Button, Form, Input } from "antd";
 
 interface FormValues {
   title: string;
@@ -247,11 +245,11 @@ interface FormValues {
 
 export function PostForm({ onSubmit }: { onSubmit: (values: FormValues) => void }) {
   const [form] = Form.useForm<FormValues>();
-  const [messageApi, contextHolder] = message.useMessage();
+  const { message } = App.useApp(); // requires <App> in the tree; never the static message.*
+  void message; // use message.success()/message.error() in handlers
 
   return (
     <>
-      {contextHolder}
       <Form form={form} layout="vertical" onFinish={onSubmit}>
         <Form.Item name="title" label="Title" rules={[{ required: true }]}>
           <Input />
@@ -293,6 +291,9 @@ export const env = createEnv({
 ```
 
 ## Testing
+
+> Not yet configured — there is no `test` script and Vitest/Playwright are not installed.
+> Do not run `pnpm test` until the harness is adopted. Target conventions when added:
 
 - Use **Vitest** for unit tests
 - Use **Playwright** for E2E tests

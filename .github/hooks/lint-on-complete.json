@@ -3,8 +3,8 @@
     "Stop": [
       {
         "type": "command",
-        "command": "pnpm run lint 2>&1 | head -30",
-        "windows": "pnpm run lint 2>&1 | Select-Object -First 30",
+        "command": "pnpm lint 2>&1 | head -30",
+        "windows": "pnpm lint 2>&1 | Select-Object -First 30",
         "timeout": 60
       }
     ]

@@ -66,7 +66,7 @@ export type New[TableName] = typeof [tableName].$inferInsert;
 ## Step 4: Generate and Review Migration
 
 ```bash
-pnpm run db:generate
+pnpm db:generate
 ```
 
 Read the generated SQL file in `drizzle/` and verify it matches intent. Check for unintended drops.
@@ -74,7 +74,7 @@ Read the generated SQL file in `drizzle/` and verify it matches intent. Check fo
 ## Step 5: Apply in Development
 
 ```bash
-pnpm run db:push
+pnpm db:push
 ```
 
 ## Step 6: Update Dependent Code
@@ -88,80 +88,6 @@ Search for all files that query the modified table and update:
 ## Step 7: Verify
 
 ```bash
-npx tsc --noEmit
-pnpm run lint
-```
-
-You will safely add or modify database schema in this PostgreSQL + Drizzle ORM project.
-
-## Step 1: Read Current Schema
-
-Read `src/server/db/schema.ts` completely to understand existing tables, relationships, and conventions.
-
-## Step 2: Design the Change
-
-Apply these rules:
-
-- **Primary keys**: `uuid("id").default(sql\`gen_random_uuid()\`).primaryKey()`
-- **Timestamps**: Every table has `createdAt` and `updatedAt`
-- **Enums**: Use `pgEnum` for finite sets of values
-- **Foreign keys**: Always specify `onDelete` behavior (`"cascade"`, `"set null"`, `"restrict"`)
-- **Indexes**: Add for every FK column, slug, status, email
-- **Nullable columns**: New columns in existing tables MUST be nullable (or have a default)
-
-## Step 3: Write the Schema Change
-
-Add to `src/server/db/schema.ts`:
-
-```typescript
-// Enum (if needed)
-export const statusEnum = pgEnum("status", ["active", "inactive"]);
-
-// Table
-export const [tableName] = pgTable(
-  "[table_name]",
-  {
-    id: uuid("id").default(sql`gen_random_uuid()`).primaryKey(),
-    // ... columns
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  },
-  (table) => ({
-    // indexes
-    [fkColumn]Idx: index("[table]_[fk]_idx").on(table.[fkColumn]),
-  })
-);
-
-// Type exports (always)
-export type [TableName] = typeof [tableName].$inferSelect;
-export type New[TableName] = typeof [tableName].$inferInsert;
-```
-
-## Step 4: Generate and Review Migration
-
-```bash
-npm run db:generate
-```
-
-Read the generated SQL file in `drizzle/` and verify it matches intent.
-
-## Step 5: Apply in Development
-
-```bash
-npm run db:push
-```
-
-## Step 6: Update Dependent Code
-
-Search for all files that query the modified table and update:
-
-- tRPC routers using the table
-- TypeScript interfaces (replace with new `$inferSelect` type)
-- Zod schemas matching new columns
-
-## Step 7: Verify
-
-```bash
-npx tsc --noEmit
-npm run lint
+pnpm typecheck
+pnpm lint
 ```

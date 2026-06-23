@@ -18,7 +18,7 @@ This is a **full-stack TypeScript** application built with:
 3. **Ant Design requires `"use client"`.** All antd components must be inside Client Components. Never render antd in a Server Component directly.
 4. **tRPC v11 in Server Components** — call procedures directly via `await api.router.procedure()`. Use `useQuery`/`useMutation` hooks only in Client Components.
 5. **No REST routes** — all data fetching goes through tRPC procedures, not Next.js route handlers (except for better-auth `/api/auth/[...all]` and file uploads).
-6. **Drizzle over raw SQL** — always use the Drizzle query builder. Run migrations with `npm run db:push` (dev) or `drizzle-kit migrate` (prod).
+6. **Drizzle over raw SQL** — always use the Drizzle query builder. Run migrations with `pnpm db:push` (dev) or `pnpm db:migrate` (prod). This project uses **pnpm** — never `npm`/`npx`.
 7. **Zod everywhere** — validate all inputs at tRPC procedure boundaries with Zod schemas. Share schemas between client and server.
 
 ## Project Folder Structure
@@ -52,9 +52,9 @@ src/
 │   └── api/
 │       ├── trpc.ts               # tRPC init + context
 │       ├── root.ts               # Root router (merges all routers)
-│       └── routers/              # Individual tRPC routers
-│           ├── user.ts
-│           └── post.ts
+│       └── routers/              # Individual tRPC routers (camelCase + `Router` suffix)
+│           ├── courseRouter.ts   # e.g. courseRouter, enrollmentRouter, quizRouter
+│           └── post.ts           # (legacy T3 scaffold router)
 ├── trpc/
 │   ├── server.ts                 # Server-side tRPC caller
 │   └── react.tsx                 # Client-side tRPC hooks provider
@@ -74,8 +74,8 @@ src/
 
 - **Files**: `kebab-case.tsx` for components, `camelCase.ts` for utilities/routers
 - **Components**: `PascalCase`
-- **tRPC routers**: `camelCase` (e.g., `userRouter`, `postRouter`)
-- **Drizzle tables**: `camelCase` in schema, map to `snake_case` in DB via `.`
+- **tRPC routers**: `camelCase` files with a `Router` suffix (e.g., `courseRouter.ts`, `enrollmentRouter.ts`). Co-locate Zod input schemas at the top of the router file (no `src/lib/validators/` folder)
+- **Drizzle tables**: `camelCase` exported symbols; app tables use the `createTable` factory (adds a `pg-drizzle_` prefix) with integer identity PKs; auth tables (`user`, `session`, `account`, `verification`) use `pgTable` with `text` PKs (managed by better-auth)
 - **Env vars**: `SCREAMING_SNAKE_CASE`, always validated via `src/env.js`
 
 ## Security Rules

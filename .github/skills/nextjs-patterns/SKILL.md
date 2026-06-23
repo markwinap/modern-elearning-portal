@@ -8,6 +8,7 @@ description: "Scaffold a complete Next.js App Router page with Server Component 
 You will create a complete Next.js App Router page with all required files.
 
 ## Step 1: Read Context
+
 - Check `src/server/api/root.ts` for available tRPC procedures
 - Check `src/server/db/schema.ts` for available data types
 - Check `src/app/layout.tsx` to understand available providers
@@ -15,11 +16,12 @@ You will create a complete Next.js App Router page with all required files.
 ## Step 2: Create Page Files
 
 ### `page.tsx` — Server Component
+
 ```typescript
 // NO "use client" — this is a Server Component
 import { type Metadata } from "next";
 import { api } from "~/trpc/server";
-import { auth } from "~/server/auth";
+import { getSession } from "~/server/better-auth/server";
 import { redirect, notFound } from "next/navigation";
 import { [Feature]List } from "./_components/[Feature]List";
 
@@ -30,8 +32,8 @@ export const metadata: Metadata = {
 
 export default async function [Feature]Page() {
   // Auth check (if protected)
-  const session = await auth();
-  if (!session) redirect("/login");
+  const session = await getSession();
+  if (!session?.user) redirect("/login");
 
   // Parallel data fetching
   const [items, stats] = await Promise.all([
@@ -49,6 +51,7 @@ export default async function [Feature]Page() {
 ```
 
 ### `loading.tsx` — Skeleton State
+
 ```typescript
 "use client";
 import { Skeleton, Card } from "antd";
@@ -66,6 +69,7 @@ export default function Loading() {
 ```
 
 ### `error.tsx` — Error Boundary
+
 ```typescript
 "use client";
 import { Result, Button } from "antd";
@@ -90,6 +94,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
 ```
 
 ### `_components/[Feature]List.tsx` — Main Client Component
+
 ```typescript
 "use client";
 // antd imports + tRPC hooks here
@@ -97,11 +102,13 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
 ```
 
 ## Step 3: Register Route
+
 Confirm the folder exists at the correct path under `src/app/`.
 For protected routes, ensure it's inside a route group with a session-checking layout.
 
 ## Step 4: Verify
+
 ```bash
-npm run dev
+pnpm dev
 # Navigate to the route and check for errors in terminal and browser console
 ```

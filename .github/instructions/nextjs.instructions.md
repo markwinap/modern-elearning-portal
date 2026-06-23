@@ -7,6 +7,7 @@ applyTo: "src/app/**/*.tsx,src/app/**/*.ts"
 ## Server vs Client Components
 
 **Default to Server Components.** Only add `"use client"` when the component:
+
 - Uses React hooks (`useState`, `useEffect`, `useRef`, etc.)
 - Handles browser events (`onClick`, `onChange`, etc.)
 - Uses browser APIs (`window`, `localStorage`, `navigator`)
@@ -34,6 +35,7 @@ export function ProductActions({ product }: { product: Product }) {
 ```
 
 ## File Conventions
+
 - `page.tsx` — route page (can be async Server Component)
 - `layout.tsx` — shared layout wrapper (can be async Server Component)
 - `loading.tsx` — Suspense fallback UI
@@ -42,6 +44,7 @@ export function ProductActions({ product }: { product: Product }) {
 - `route.ts` — API route handler (for auth callbacks and file uploads only)
 
 ## Data Fetching in Server Components
+
 ```typescript
 // ✅ Fetch data at the top of the page component
 export default async function DashboardPage() {
@@ -55,7 +58,9 @@ export default async function DashboardPage() {
 ```
 
 ## Metadata
+
 Always export `metadata` or `generateMetadata` from page files:
+
 ```typescript
 import type { Metadata } from "next";
 
@@ -72,6 +77,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 ```
 
 ## Route Groups and Layouts
+
 ```
 app/
 ├── (auth)/          # Auth routes — no shared layout with dashboard
@@ -84,10 +90,12 @@ app/
 ```
 
 ## Parallel and Intercepting Routes
+
 - Use `@slot` for parallel routes (modals, side panels)
 - Use `(.)route` for intercepting routes (modal on navigate, full page on refresh)
 
 ## Dynamic Routes
+
 ```typescript
 // src/app/posts/[id]/page.tsx
 export async function generateStaticParams() {
@@ -103,20 +111,25 @@ export default async function PostPage({ params }: { params: { id: string } }) {
 ```
 
 ## Middleware
+
+This project uses **better-auth** (not Auth.js). Use `getSessionCookie` for an optimistic
+redirect; always re-validate with `getSession()` in the page/layout. See
+`instructions/auth.instructions.md` for the full pattern.
+
 ```typescript
 // middleware.ts (root of project)
-import { auth } from "~/server/auth";
+import { getSessionCookie } from "better-auth/cookies";
+import { NextResponse, type NextRequest } from "next/server";
 
-export default auth((req) => {
-  const isLoggedIn = !!req.auth;
-  const isAuthPage = req.nextUrl.pathname.startsWith("/login");
-
-  if (!isLoggedIn && !isAuthPage) {
-    return Response.redirect(new URL("/login", req.nextUrl));
+export function middleware(request: NextRequest) {
+  const sessionCookie = getSessionCookie(request);
+  if (!sessionCookie) {
+    return NextResponse.redirect(new URL("/login", request.url));
   }
-});
+  return NextResponse.next();
+}
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/dashboard/:path*", "/admin/:path*"],
 };
 ```

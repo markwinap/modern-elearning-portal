@@ -4,9 +4,19 @@ applyTo: "**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx,**/__tests__/**"
 
 # Testing Rules — Vitest + Playwright
 
+> **Status: planned, not yet installed.** This project does not currently have a
+> test runner configured — `package.json` has no `test` script and CI does not run
+> tests (see `.github/workflows/ci.yml`: lint, format, typecheck, build only).
+> Do **not** run `pnpm test` as a verification step until the deps below are added.
+> When adopting tests, install: `vitest`, `@vitejs/plugin-react`,
+> `@testing-library/react`, `@testing-library/user-event`, `@playwright/test`,
+> add a `"test": "vitest"` script, and add a test job to CI. Until then, treat the
+> snippets below as the target convention.
+
 ## Unit Tests (Vitest)
 
 ### tRPC Router Tests
+
 ```typescript
 // src/server/api/routers/__tests__/post.test.ts
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -20,7 +30,9 @@ describe("postRouter", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("getAll returns posts", async () => {
-    const mockPosts = [{ id: "1", title: "Test", content: "Content", authorId: "user-1" }];
+    const mockPosts = [
+      { id: "1", title: "Test", content: "Content", authorId: "user-1" },
+    ];
     mockDb.select.mockResolvedValue(mockPosts);
 
     const caller = createCaller({ db: mockDb, session: null });
@@ -30,13 +42,15 @@ describe("postRouter", () => {
 
   it("create requires authentication", async () => {
     const caller = createCaller({ db: mockDb, session: null });
-    await expect(caller.post.create({ title: "Test", content: "Content" }))
-      .rejects.toThrow("UNAUTHORIZED");
+    await expect(
+      caller.post.create({ title: "Test", content: "Content" }),
+    ).rejects.toThrow("UNAUTHORIZED");
   });
 });
 ```
 
 ### Component Tests
+
 ```typescript
 // src/components/__tests__/PostForm.test.tsx
 import { render, screen, waitFor } from "@testing-library/react";
@@ -60,6 +74,7 @@ describe("PostForm", () => {
 ```
 
 ## E2E Tests (Playwright)
+
 ```typescript
 // e2e/auth.spec.ts
 import { test, expect } from "@playwright/test";
@@ -72,7 +87,8 @@ test.describe("Authentication", () => {
 
   test("user can sign in", async ({ page }) => {
     await page.goto("/login");
-    await page.getByRole("button", { name: "Sign in with Google" }).click();
+    // This project uses better-auth with GitHub OAuth + email/password.
+    await page.getByRole("button", { name: "Sign in with GitHub" }).click();
     // ... OAuth flow
     await expect(page).toHaveURL("/dashboard");
   });
@@ -80,6 +96,7 @@ test.describe("Authentication", () => {
 ```
 
 ## Naming Conventions
+
 - Test files: `ComponentName.test.tsx` or `routerName.test.ts`
 - Describe blocks: match the module/component name
 - It blocks: plain English descriptions of behavior

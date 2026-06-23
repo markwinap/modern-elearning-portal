@@ -176,189 +176,26 @@ export const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
 });
 ```
 
-## Configuration
+## Middleware — Optimistic Route Protection
+
+better-auth has no `auth()` middleware wrapper. For an optimistic redirect, read the
+session cookie with `getSessionCookie` (do **not** treat it as full validation — always
+re-check with `getSession()` in the page/layout or `protectedProcedure`):
 
 ```typescript
-// src/server/auth.ts
-import NextAuth from "next-auth";
-import { DrizzleAdapter } from "@auth/drizzle-adapter";
-import GoogleProvider from "next-auth/providers/google";
-import GithubProvider from "next-auth/providers/github";
-import CredentialsProvider from "next-auth/providers/credentials";
-import { db } from "~/server/db";
-import {
-  users,
-  accounts,
-  sessions,
-  verificationTokens,
-} from "~/server/db/schema";
-import { env } from "~/env";
+// middleware.ts (root of project)
+import { getSessionCookie } from "better-auth/cookies";
+import { NextResponse, type NextRequest } from "next/server";
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter: DrizzleAdapter(db, {
-    usersTable: users,
-    accountsTable: accounts,
-    sessionsTable: sessions,
-    verificationTokensTable: verificationTokens,
-  }),
-  session: { strategy: "jwt" },
-  providers: [
-    GoogleProvider({
-      clientId: env.GOOGLE_CLIENT_ID,
-      clientSecret: env.GOOGLE_CLIENT_SECRET,
-    }),
-    GithubProvider({
-      clientId: env.GITHUB_CLIENT_ID,
-      clientSecret: env.GITHUB_CLIENT_SECRET,
-    }),
-  ],
-  callbacks: {
-    session: ({ session, token }) => ({
-      ...session,
-      user: { ...session.user, id: token.sub! },
-    }),
-    jwt: ({ token, user }) => {
-      if (user) token.sub = user.id;
-      return token;
-    },
-  },
-  pages: {
-    signIn: "/login",
-    error: "/auth/error",
-  },
-});
-```
-
-## Auth Schema Tables (required for DrizzleAdapter)
-
-```typescript
-// Add to src/server/db/schema.ts
-import { integer, primaryKey } from "drizzle-orm/pg-core";
-
-export const accounts = pgTable(
-  "accounts",
-  {
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    type: text("type").notNull(),
-    provider: text("provider").notNull(),
-    providerAccountId: text("provider_account_id").notNull(),
-    refresh_token: text("refresh_token"),
-    access_token: text("access_token"),
-    expires_at: integer("expires_at"),
-    token_type: text("token_type"),
-    scope: text("scope"),
-    id_token: text("id_token"),
-    session_state: text("session_state"),
-  },
-  (t) => ({ pk: primaryKey({ columns: [t.provider, t.providerAccountId] }) }),
-);
-
-export const sessions = pgTable("sessions", {
-  sessionToken: text("session_token").primaryKey(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  expires: timestamp("expires", { mode: "date" }).notNull(),
-});
-
-export const verificationTokens = pgTable(
-  "verification_tokens",
-  {
-    identifier: text("identifier").notNull(),
-    token: text("token").notNull(),
-    expires: timestamp("expires", { mode: "date" }).notNull(),
-  },
-  (t) => ({ pk: primaryKey({ columns: [t.identifier, t.token] }) }),
-);
-```
-
-## Usage Patterns
-
-### Server Component — get session
-
-```typescript
-import { auth } from "~/server/auth";
-import { redirect } from "next/navigation";
-
-export default async function ProtectedPage() {
-  const session = await auth();
-  if (!session?.user) redirect("/login");
-  return <div>Welcome {session.user.name}</div>;
-}
-```
-
-### Route Handler — auth route
-
-```typescript
-// src/app/api/auth/[...nextauth]/route.ts
-import { handlers } from "~/server/auth";
-export const { GET, POST } = handlers;
-```
-
-### Middleware — protect routes
-
-```typescript
-// middleware.ts
-import { auth } from "~/server/auth";
-
-export default auth((req) => {
-  const { nextUrl, auth: session } = req;
-  const isLoggedIn = !!session;
-
-  const protectedPaths = ["/dashboard", "/settings", "/profile"];
-  const isProtected = protectedPaths.some((p) =>
-    nextUrl.pathname.startsWith(p),
-  );
-
-  if (isProtected && !isLoggedIn) {
-    const loginUrl = new URL("/login", nextUrl.origin);
-    loginUrl.searchParams.set("callbackUrl", nextUrl.pathname);
-    return Response.redirect(loginUrl);
+export function middleware(request: NextRequest) {
+  const sessionCookie = getSessionCookie(request);
+  if (!sessionCookie) {
+    return NextResponse.redirect(new URL("/login", request.url));
   }
-});
+  return NextResponse.next();
+}
 
 export const config = {
-  matcher: ["/((?!api/auth|_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/dashboard/:path*", "/admin/:path*"],
 };
-```
-
-### Client Component — sign in/out
-
-```typescript
-"use client";
-import { signIn, signOut } from "next-auth/react";
-import { Button } from "antd";
-
-export function AuthButtons({ session }: { session: Session | null }) {
-  if (session) {
-    return <Button onClick={() => signOut({ callbackUrl: "/" })}>Sign out</Button>;
-  }
-  return (
-    <>
-      <Button onClick={() => signIn("google")}>Sign in with Google</Button>
-      <Button onClick={() => signIn("github")}>Sign in with GitHub</Button>
-    </>
-  );
-}
-```
-
-## Session Type Augmentation
-
-```typescript
-// src/types/next-auth.d.ts
-import "next-auth";
-
-declare module "next-auth" {
-  interface Session {
-    user: {
-      id: string;
-      email: string;
-      name: string | null;
-      image: string | null;
-      role: "user" | "admin" | "moderator";
-    };
-  }
-}
 ```

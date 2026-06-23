@@ -3,8 +3,8 @@
     "Stop": [
       {
         "type": "command",
-        "command": "npx tsc --noEmit 2>&1 | head -50",
-        "windows": "npx tsc --noEmit 2>&1 | Select-Object -First 50",
+        "command": "pnpm typecheck 2>&1 | head -50",
+        "windows": "pnpm typecheck 2>&1 | Select-Object -First 50",
         "timeout": 60
       }
     ]

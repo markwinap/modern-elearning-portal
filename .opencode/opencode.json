@@ -1,18 +1,14 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "model": "ollama/qwen2.5-Coder:14b",
-  "instructions": [
-    "AGENTS.md",
-    ".opencode/AGENTS.md",
-    "README.md"
-  ],
+  "instructions": ["AGENTS.md", ".opencode/AGENTS.md", "README.md"],
   "provider": {
     "ollama": {
       "npm": "@ai-sdk/openai-compatible",
       "name": "Ollama via Open WebUI",
       "options": {
         "baseURL": "http://localhost:3000/api",
-        "apiKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQzZTk1ZTY3LTk4YWQtNGFjYy1iZDZhLWNhNzUyOGM4MWI5ZCIsImV4cCI6MTc4Mjk2MDc2NywianRpIjoiODIzYmE2NTYtNDUxZi00OThmLTg5MmEtYzk2YTU3YjQwMzFmIiwiaWF0IjoxNzgwNTQxNTY3fQ.SkogCfrrtkisjreJizNJSsam1PRHYLb6oRIXKytzGfs"
+        "apiKey": "{env:OPENWEBUI_API_KEY}"
       },
       "models": {
         "qwen3:14b": {
@@ -43,13 +39,21 @@
     "openwebui": {
       "type": "local",
       "command": [
-        "npx", "-y", "@ivotoby/openapi-mcp-server",
-        "--api-base-url", "http://localhost:3000",
-        "--openapi-spec", ".opencode/openwebui-openapi.json",
-        "--headers", "Authorization:Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQzZTk1ZTY3LTk4YWQtNGFjYy1iZDZhLWNhNzUyOGM4MWI5ZCIsImV4cCI6MTc4Mjk2MDc2NywianRpIjoiODIzYmE2NTYtNDUxZi00OThmLTg5MmEtYzk2YTU3YjQwMzFmIiwiaWF0IjoxNzgwNTQxNTY3fQ.SkogCfrrtkisjreJizNJSsam1PRHYLb6oRIXKytzGfs",
-        "--tag", "knowledge",
-        "--tag", "files",
-        "--tag", "retrieval"
+        "npx",
+        "-y",
+        "@ivotoby/openapi-mcp-server",
+        "--api-base-url",
+        "http://localhost:3000",
+        "--openapi-spec",
+        ".opencode/openwebui-openapi.json",
+        "--headers",
+        "Authorization:Bearer {env:OPENWEBUI_API_KEY}",
+        "--tag",
+        "knowledge",
+        "--tag",
+        "files",
+        "--tag",
+        "retrieval"
       ],
       "enabled": true
     }

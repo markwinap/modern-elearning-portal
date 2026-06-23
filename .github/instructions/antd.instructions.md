@@ -45,7 +45,8 @@ applyTo: "src/components/**/*.tsx,src/app/**/_components/**/*.tsx"
 
 ```typescript
 "use client";
-import { Button, Form, Input, Select, message } from "antd";
+import { App, Button, Form, Input } from "antd";
+import { MailOutlined } from "@ant-design/icons";
 
 interface LoginFormValues {
   email: string;
@@ -55,20 +56,19 @@ interface LoginFormValues {
 
 export function LoginForm() {
   const [form] = Form.useForm<LoginFormValues>();
-  const [messageApi, contextHolder] = message.useMessage();
+  const { message } = App.useApp(); // requires <App> in the tree (see App.useApp section)
 
   const onFinish = async (values: LoginFormValues) => {
     try {
       await signIn(values);
-      messageApi.success("Logged in successfully");
+      message.success("Logged in successfully");
     } catch {
-      messageApi.error("Invalid credentials");
+      message.error("Invalid credentials");
     }
   };
 
   return (
     <>
-      {contextHolder}
       <Form form={form} layout="vertical" onFinish={onFinish} autoComplete="off">
         <Form.Item
           name="email"
@@ -93,12 +93,13 @@ export function LoginForm() {
 
 ```typescript
 "use client";
+import { useState } from "react";
 import { Table, Space, Button, Tag } from "antd";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import { api } from "~/trpc/react";
 
 interface DataItem {
-  id: string;
+  id: number;
   title: string;
   status: "draft" | "published";
 }

@@ -9,11 +9,13 @@ context: fork
 You will create a production-ready Ant Design component for this project.
 
 ## Pre-Build Checklist
+
 1. Read the tRPC router for the relevant feature: `src/server/api/routers/[feature].ts`
 2. Read existing antd components in `src/components/` for style reference
 3. Identify input/output types from the tRPC procedure
 
 ## Rules (Non-Negotiable)
+
 - File MUST start with `"use client"`
 - NO dot notation: use `options` prop or direct path imports for subcomponents
 - Message/notification/modal via `App.useApp()` — never static `message.success()`
@@ -24,11 +26,14 @@ You will create a production-ready Ant Design component for this project.
 ## Component Templates
 
 ### Form Component
+
 ```typescript
 "use client";
 import { Form, Input, Button, App } from "antd";
 import { api } from "~/trpc/react";
-import type { Create[Feature]Input } from "~/lib/validators/[feature]";
+// Infer input types from the tRPC router (no src/lib/validators/ folder in this project):
+import type { RouterInputs } from "~/trpc/react";
+type Create[Feature]Input = RouterInputs["[feature]"]["create"];
 
 export function [Feature]Form({ onSuccess }: { onSuccess?: () => void }) {
   const { message } = App.useApp();
@@ -57,6 +62,7 @@ export function [Feature]Form({ onSuccess }: { onSuccess?: () => void }) {
 ```
 
 ### Table Component
+
 ```typescript
 "use client";
 import { Table, Tag, Space, Button, App } from "antd";
@@ -82,7 +88,7 @@ export function [Feature]Table() {
     },
   });
 
-  const handleDelete = (id: string) => {
+  const handleDelete = (id: number) => {
     modal.confirm({
       title: "Are you sure?",
       content: "This action cannot be undone.",
@@ -131,4 +137,5 @@ export function [Feature]Table() {
 ```
 
 ## After Building
+
 Verify the component renders without errors by checking imports and that no dot notation exists.

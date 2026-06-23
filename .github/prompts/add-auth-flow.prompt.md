@@ -137,4 +137,4 @@ export default async function DashboardLayout({ children }: { children: React.Re
 2. Sign in with email → should reach /dashboard
 3. Sign in with GitHub → should complete OAuth flow
 4. Sign out → session cleared, protected routes redirect again
-5. Run `npx tsc --noEmit` — no type errors
+5. Run `pnpm typecheck` — no type errors

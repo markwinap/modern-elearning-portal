@@ -5,19 +5,24 @@ applyTo: "src/server/api/**/*.ts,src/trpc/**/*.ts"
 # tRPC v11 Rules
 
 ## Router Structure
+
 Every router file exports a single `createTRPCRouter()`. Routers are composed in `src/server/api/root.ts`.
 
 ```typescript
 // src/server/api/routers/user.ts
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "~/server/api/trpc";
+import {
+  createTRPCRouter,
+  protectedProcedure,
+  publicProcedure,
+} from "~/server/api/trpc";
 import { users } from "~/server/db/schema";
 import { eq, desc } from "drizzle-orm";
 
 export const userRouter = createTRPCRouter({
   // Public: anyone can call
   getPublicProfile: publicProcedure
-    .input(z.object({ id: z.string().uuid() }))
+    .input(z.object({ id: z.string() })) // better-auth user.id is text, not UUID
     .query(async ({ ctx, input }) => {
       const [user] = await ctx.db
         .select({ id: users.id, name: users.name })
@@ -42,6 +47,7 @@ export const userRouter = createTRPCRouter({
 ```
 
 ## Procedure Types
+
 - `publicProcedure` — no auth required
 - `protectedProcedure` — requires `ctx.session`, throws `UNAUTHORIZED` if missing
 - Create custom procedures for role-based access:
@@ -56,21 +62,22 @@ const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
 ```
 
 ## Input Validation with Zod
-Always validate inputs. Share schemas between client and server:
+
+Always validate inputs. Define schemas at the **top of the router file** (this project has no `src/lib/validators/` folder); the client can reuse types via `RouterInputs` from `~/trpc/react`:
+
 ```typescript
-// src/lib/validators/post.ts — shared schema
+// top of src/server/api/routers/postRouter.ts
 import { z } from "zod";
 
-export const createPostSchema = z.object({
+const createPostSchema = z.object({
   title: z.string().min(1, "Title required").max(256),
   content: z.string().min(1).max(10000),
   published: z.boolean().default(false),
 });
-
-export type CreatePostInput = z.infer<typeof createPostSchema>;
 ```
 
 ## Error Handling
+
 ```typescript
 import { TRPCError } from "@trpc/server";
 
@@ -82,6 +89,7 @@ throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB error" });
 ```
 
 ## Root Router — Always Update When Adding New Routers
+
 ```typescript
 // src/server/api/root.ts
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
@@ -99,6 +107,7 @@ export const createCaller = createCallerFactory(appRouter);
 ```
 
 ## Calling tRPC in Server Components
+
 ```typescript
 // src/trpc/server.ts
 import { createCaller } from "~/server/api/root";
@@ -106,7 +115,7 @@ import { createTRPCContext } from "~/server/api/trpc";
 import { cache } from "react";
 
 const createContext = cache(async () => {
-  const session = await auth();
+  const session = await getSession();
   return createTRPCContext({ session });
 });
 
@@ -114,6 +123,7 @@ export const api = createCaller(createContext);
 ```
 
 ## Optimistic Updates in Client Components
+
 ```typescript
 "use client";
 const utils = api.useUtils();
@@ -122,7 +132,7 @@ const like = api.post.like.useMutation({
     await utils.post.getById.cancel({ id: postId });
     const prev = utils.post.getById.getData({ id: postId });
     utils.post.getById.setData({ id: postId }, (old) =>
-      old ? { ...old, likes: old.likes + 1 } : old
+      old ? { ...old, likes: old.likes + 1 } : old,
     );
     return { prev };
   },

@@ -167,13 +167,13 @@ const result = await db.transaction(async (tx) => {
 
 ```bash
 # Generate migration from schema changes
-pnpm run db:generate
+pnpm db:generate
 
 # Apply migrations in development (push schema directly)
-pnpm run db:push
+pnpm db:push
 
 # Open Drizzle Studio
-pnpm run db:studio
+pnpm db:studio
 ```
 
 ## Drizzle Config

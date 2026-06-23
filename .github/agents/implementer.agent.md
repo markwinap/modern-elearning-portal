@@ -23,14 +23,13 @@ You implement features following T3 Stack conventions precisely.
 
 ## Implementation Order (always follow this sequence)
 
-1. **Schema first** — modify `src/server/db/schema.ts`
-2. **Validators** — create/update `src/lib/validators/`
-3. **tRPC router** — create `src/server/api/routers/[feature].ts`
-4. **Register router** — update `src/server/api/root.ts`
-5. **Server Component page** — `src/app/[route]/page.tsx`
-6. **Client Components** — `src/app/[route]/_components/`
-7. **Loading/Error states** — `loading.tsx` and `error.tsx`
-8. **Run verification** — compile + test
+1. **Schema first** — modify `src/server/db/schema.ts`, then `pnpm db:generate && pnpm db:push`
+2. **tRPC router** — create `src/server/api/routers/[feature]Router.ts` with Zod input schemas co-located at the top (no `src/lib/validators/` folder in this project)
+3. **Register router** — update `src/server/api/root.ts`
+4. **Server Component page** — `src/app/[route]/page.tsx`
+5. **Client Components** — `src/app/[route]/_components/`
+6. **Loading/Error states** — `loading.tsx` and `error.tsx`
+7. **Run verification** — typecheck + lint + build
 
 ## Verification After Every File Change
 
@@ -38,17 +37,16 @@ After completing all files, run these in order:
 
 ```bash
 # Type check — must pass with 0 errors
-npx tsc --noEmit
+pnpm typecheck
 
 # Lint — must pass
-npm run lint
+pnpm lint
 
-# Tests
-npm test
-
-# Build check
-npm run build
+# Build check (catches RSC/SSR errors)
+pnpm build
 ```
+
+> No `test` script exists yet (Vitest/Playwright not installed). Skip `pnpm test` until adopted.
 
 ## Code Quality Rules (non-negotiable)
 
@@ -64,15 +62,15 @@ npm run build
 
 1. Search the codebase for existing similar implementations: `search/codebase`
 2. Check `src/server/db/schema.ts` for available table structures
-3. Check `src/server/api/trpc.ts` for available procedure helpers
+3. Check `src/server/api/trpc.ts` for available procedure helpers (`publicProcedure`, `protectedProcedure`, `adminProcedure`, `teacherProcedure`)
 4. Look at existing routers in `src/server/api/routers/` as reference
 
 ## Completion Checklist
 
 - [ ] All new files created
 - [ ] Router registered in `root.ts`
-- [ ] `npx tsc --noEmit` passes
-- [ ] `npm run lint` passes
+- [ ] `pnpm typecheck` passes
+- [ ] `pnpm lint` passes
 - [ ] Key user flows work end-to-end
 - [ ] Loading states implemented
 - [ ] Error states implemented

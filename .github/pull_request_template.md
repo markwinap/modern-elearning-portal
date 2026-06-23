@@ -23,8 +23,8 @@
 - [ ] Database operations use Drizzle ORM (no raw SQL)
 - [ ] Authentication uses `protectedProcedure` for mutations
 - [ ] Environment variables added to `src/env.js`
-- [ ] TypeScript check passes: `npx tsc --noEmit`
-- [ ] ESLint passes: `pnpm run lint`
+- [ ] TypeScript check passes: `pnpm typecheck`
+- [ ] ESLint passes: `pnpm lint`
 
 ## How Has This Been Tested?
 

@@ -6,13 +6,13 @@ This repository is configured for optimal use with the **Windsurf AI Code Editor
 
 Located in `.github/agents/`:
 
-| Agent | Purpose | Use When |
-|-------|---------|----------|
-| `@t3-developer` | Full-stack T3 Stack development | General implementation tasks |
-| `@db-architect` | Database schema design | Creating/modifying tables |
-| `@planner` | Architecture planning | Complex features requiring design |
-| `@implementer` | Focused implementation | Well-defined, scoped tasks |
-| `@reviewer` | Code review | Reviewing PRs or changes |
+| Agent           | Purpose                         | Use When                          |
+| --------------- | ------------------------------- | --------------------------------- |
+| `@t3-developer` | Full-stack T3 Stack development | General implementation tasks      |
+| `@db-architect` | Database schema design          | Creating/modifying tables         |
+| `@planner`      | Architecture planning           | Complex features requiring design |
+| `@implementer`  | Focused implementation          | Well-defined, scoped tasks        |
+| `@reviewer`     | Code review                     | Reviewing PRs or changes          |
 
 ## Available Skills
 
@@ -66,11 +66,14 @@ Located in `.github/hooks/` - These run automatically:
 
 # Apply a skill
 @skill apply drizzle-schema create enrollment table
+
+# Verify (this project uses pnpm)
+pnpm typecheck && pnpm lint && pnpm build
 ```
 
 ## Best Practices
 
-1. **Always verify type safety**: Run `npx tsc --noEmit` after AI changes
+1. **Always verify type safety**: Run `pnpm typecheck` after AI changes (this project uses **pnpm**, never npm/npx)
 2. **Review AI-generated code**: Use `@reviewer` agent for quality checks
 3. **Follow the stack**: tRPC → Drizzle → Next.js → Ant Design
 4. **Server-first**: Default to Server Components, add `"use client"` only when needed
@@ -86,4 +89,5 @@ GitHub Actions workflows (`.github/workflows/`):
 ## Related Files
 
 - `copilot-instructions.md` - GitHub Copilot instructions (similar to Windsurf config)
-- `AGENTS.md` (root) - Legacy agent instructions
+- `AGENTS.md` (root) - **Single source of truth** for stack rules; all tools (Copilot, Windsurf, OpenCode) reference it
+- `.windsurf/rules/` + `.windsurf/workflows/` - Windsurf-native rule and workflow layer that points back to `AGENTS.md`

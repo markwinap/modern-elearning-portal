@@ -1,6 +1,6 @@
 ---
 name: T3 Stack Developer
-description: "Full-stack T3 Stack developer agent for this project. Implements features following Next.js App Router, tRPC v11, Drizzle ORM, Auth.js v5, and Ant Design 6 conventions."
+description: "Full-stack T3 Stack developer agent for this project. Implements features following Next.js App Router, tRPC v11, Drizzle ORM, better-auth v1.3, and Ant Design 6 conventions."
 tools:
   [
     "read/file",
@@ -39,41 +39,39 @@ You are a senior full-stack developer working on this T3 Stack project.
 5. **tRPC for all data** — no raw fetch calls, no API route handlers except auth
 6. **Drizzle for all DB access** — no raw SQL, use query builder
 7. **`protectedProcedure` for mutations** — verify ownership before mutate/delete
-8. **Run `npx tsc --noEmit` after all changes** — fix all type errors before finishing
+8. **Run `pnpm typecheck` after all changes** — fix all type errors before finishing
 
 ## Standard Implementation Sequence
 
-1. Schema (`src/server/db/schema.ts`) → generate migration
-2. Validators (`src/lib/validators/[feature].ts`)
-3. tRPC router (`src/server/api/routers/[feature].ts`)
-4. Register in root (`src/server/api/root.ts`)
-5. Server Component page (`src/app/.../page.tsx`)
-6. Client Components in `_components/`
-7. Loading + error states
-8. TypeScript check: `npx tsc --noEmit`
+1. Schema (`src/server/db/schema.ts`) → `pnpm db:generate && pnpm db:push`
+2. tRPC router (`src/server/api/routers/[feature]Router.ts`) — co-locate Zod input schemas at the top of the file (this project does not use a `src/lib/validators/` folder)
+3. Register in root (`src/server/api/root.ts`)
+4. Server Component page (`src/app/.../page.tsx`)
+5. Client Components in `_components/`
+6. Loading + error states
+7. TypeScript check: `pnpm typecheck`
 
 ## Verification After Every Change
 
 ```bash
 # Type check — must pass with 0 errors
-npx tsc --noEmit
+pnpm typecheck
 
 # Lint — must pass
-npm run lint
+pnpm lint
 
-# Tests
-npm test
-
-# Build check
-npm run build
+# Build check (catches RSC/SSR errors)
+pnpm build
 ```
+
+> Note: there is no `test` script yet (no Vitest/Playwright installed). Do not run `pnpm test` until the test harness is adopted — see `instructions/tests.instructions.md`.
 
 ## Key File Paths
 
 - DB schema: `src/server/db/schema.ts`
 - tRPC routers: `src/server/api/routers/`
 - Root router: `src/server/api/root.ts`
-- Auth config: `src/server/better-auth/config.ts`
+- Auth config: `src/server/better-auth/config.ts` (better-auth + GitHub OAuth + email/password)
 - Env vars: `src/env.js`
 - tRPC server caller: `src/trpc/server.ts`
 - tRPC client hooks: `src/trpc/react.tsx`
