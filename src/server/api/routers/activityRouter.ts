@@ -7,11 +7,13 @@ import {
   protectedProcedure,
   teacherProcedure,
 } from "~/server/api/trpc";
+import { type db } from "~/server/db";
 import { activities, courses, courseSections } from "~/server/db/schema";
 
 /** Get courseId from an activity via its section */
-async function getCourseIdFromActivity(db: typeof import("~/server/db").db, activityId: number) {
-  const [row] = await db
+type DB = typeof db;
+async function getCourseIdFromActivity(database: DB, activityId: number) {
+  const [row] = await database
     .select({ courseId: courseSections.courseId })
     .from(activities)
     .innerJoin(courseSections, eq(activities.sectionId, courseSections.id))
@@ -48,9 +50,20 @@ export const activityRouter = createTRPCRouter({
       z.object({
         sectionId: z.number().int(),
         title: z.string().min(1).max(256),
-        type: z.enum(["lesson", "quiz", "page", "file", "url", "text_media", "wiki", "workshop"]),
+        type: z.enum([
+          "lesson",
+          "quiz",
+          "page",
+          "file",
+          "url",
+          "text_media",
+          "wiki",
+          "workshop",
+        ]),
         order: z.number().int().default(0),
-        completionType: z.enum(["view", "submit", "grade", "time"]).default("view"),
+        completionType: z
+          .enum(["view", "submit", "grade", "time"])
+          .default("view"),
         completionGrade: z.number().int().optional(),
         completionTimeSecs: z.number().int().optional(),
       }),
@@ -71,7 +84,10 @@ export const activityRouter = createTRPCRouter({
       if (course?.teacherId !== ctx.session.user.id && role !== "admin") {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
-      const [activity] = await ctx.db.insert(activities).values(input).returning();
+      const [activity] = await ctx.db
+        .insert(activities)
+        .values(input)
+        .returning();
       return activity;
     }),
 

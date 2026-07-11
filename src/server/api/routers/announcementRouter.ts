@@ -1,8 +1,12 @@
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { createTRPCRouter, protectedProcedure, teacherProcedure } from "~/server/api/trpc";
+import {
+  createTRPCRouter,
+  protectedProcedure,
+  teacherProcedure,
+} from "~/server/api/trpc";
 import { announcements, courses } from "~/server/db/schema";
 
 export const announcementRouter = createTRPCRouter({
@@ -48,7 +52,10 @@ export const announcementRouter = createTRPCRouter({
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ ctx, input }) => {
       const [announcement] = await ctx.db
-        .select({ courseId: announcements.courseId, authorId: announcements.authorId })
+        .select({
+          courseId: announcements.courseId,
+          authorId: announcements.authorId,
+        })
         .from(announcements)
         .where(eq(announcements.id, input.id))
         .limit(1);

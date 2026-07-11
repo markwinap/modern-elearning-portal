@@ -16,6 +16,7 @@ import {
   theme,
 } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
+import Image from "next/image";
 import Link from "next/link";
 
 import { api } from "~/trpc/react";
@@ -117,11 +118,16 @@ export function CourseCatalog({ initialCourses, categories }: Props) {
                     }}
                     cover={
                       course.coverImageUrl ? (
-                        <img
-                          src={course.coverImageUrl}
-                          alt={course.title}
-                          style={{ height: 160, objectFit: "cover" }}
-                        />
+                        <div style={{ position: "relative", height: 160 }}>
+                          <Image
+                            src={course.coverImageUrl}
+                            alt={course.title}
+                            fill
+                            unoptimized
+                            style={{ objectFit: "cover" }}
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                          />
+                        </div>
                       ) : (
                         <div
                           style={{

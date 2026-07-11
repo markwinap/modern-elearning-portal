@@ -1,12 +1,12 @@
-import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { createTRPCRouter, protectedProcedure, teacherProcedure } from "~/server/api/trpc";
 import {
-  activities,
-  courses,
-  courseSections,
+  createTRPCRouter,
+  protectedProcedure,
+  teacherProcedure,
+} from "~/server/api/trpc";
+import {
   workshopAssessments,
   workshopRubrics,
   workshopSubmissions,
@@ -31,7 +31,9 @@ export const workshopRouter = createTRPCRouter({
     .input(
       z.object({
         activityId: z.number().int(),
-        phase: z.enum(["setup", "submission", "assessment", "grading", "closed"]).default("setup"),
+        phase: z
+          .enum(["setup", "submission", "assessment", "grading", "closed"])
+          .default("setup"),
         submissionDeadline: z.date().optional(),
         assessmentDeadline: z.date().optional(),
         maxSubmissions: z.number().int().default(1),
@@ -83,7 +85,10 @@ export const workshopRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const [rubric] = await ctx.db.insert(workshopRubrics).values(input).returning();
+      const [rubric] = await ctx.db
+        .insert(workshopRubrics)
+        .values(input)
+        .returning();
       return rubric;
     }),
 
@@ -119,14 +124,22 @@ export const workshopRouter = createTRPCRouter({
         return ctx.db
           .select()
           .from(workshopSubmissions)
-          .where(eq(workshopSubmissions.workshopActivityId, input.workshopActivityId));
+          .where(
+            eq(
+              workshopSubmissions.workshopActivityId,
+              input.workshopActivityId,
+            ),
+          );
       }
       return ctx.db
         .select()
         .from(workshopSubmissions)
         .where(
           and(
-            eq(workshopSubmissions.workshopActivityId, input.workshopActivityId),
+            eq(
+              workshopSubmissions.workshopActivityId,
+              input.workshopActivityId,
+            ),
             eq(workshopSubmissions.userId, ctx.session.user.id),
           ),
         );

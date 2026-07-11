@@ -5,7 +5,6 @@ import { z } from "zod";
 import {
   createTRPCRouter,
   protectedProcedure,
-  publicProcedure,
   teacherProcedure,
 } from "~/server/api/trpc";
 import { courses, enrollments, user } from "~/server/db/schema";
@@ -20,20 +19,33 @@ export const enrollmentRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const [course] = await ctx.db
-        .select({ status: courses.status, accessKey: courses.accessKey, maxEnrollments: courses.maxEnrollments })
+        .select({
+          status: courses.status,
+          accessKey: courses.accessKey,
+          maxEnrollments: courses.maxEnrollments,
+        })
         .from(courses)
         .where(eq(courses.id, input.courseId))
         .limit(1);
       if (!course) throw new TRPCError({ code: "NOT_FOUND" });
-      if (course.status !== "published") throw new TRPCError({ code: "FORBIDDEN" });
+      if (course.status !== "published")
+        throw new TRPCError({ code: "FORBIDDEN" });
       if (course.accessKey && course.accessKey !== input.accessKey) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Invalid access key" });
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Invalid access key",
+        });
       }
       if (course.maxEnrollments) {
         const [cnt] = await ctx.db
           .select({ count: sql<number>`count(*)::int` })
           .from(enrollments)
-          .where(and(eq(enrollments.courseId, input.courseId), eq(enrollments.status, "active")));
+          .where(
+            and(
+              eq(enrollments.courseId, input.courseId),
+              eq(enrollments.status, "active"),
+            ),
+          );
         if ((cnt?.count ?? 0) >= course.maxEnrollments) {
           throw new TRPCError({ code: "FORBIDDEN", message: "Course is full" });
         }
@@ -41,12 +53,22 @@ export const enrollmentRouter = createTRPCRouter({
       const [existing] = await ctx.db
         .select()
         .from(enrollments)
-        .where(and(eq(enrollments.courseId, input.courseId), eq(enrollments.userId, ctx.session.user.id)))
+        .where(
+          and(
+            eq(enrollments.courseId, input.courseId),
+            eq(enrollments.userId, ctx.session.user.id),
+          ),
+        )
         .limit(1);
       if (existing) return existing;
       const [enrollment] = await ctx.db
         .insert(enrollments)
-        .values({ courseId: input.courseId, userId: ctx.session.user.id, role: "student", status: "active" })
+        .values({
+          courseId: input.courseId,
+          userId: ctx.session.user.id,
+          role: "student",
+          status: "active",
+        })
         .returning();
       return enrollment;
     }),
@@ -56,7 +78,12 @@ export const enrollmentRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       await ctx.db
         .delete(enrollments)
-        .where(and(eq(enrollments.courseId, input.courseId), eq(enrollments.userId, ctx.session.user.id)));
+        .where(
+          and(
+            eq(enrollments.courseId, input.courseId),
+            eq(enrollments.userId, ctx.session.user.id),
+          ),
+        );
     }),
 
   getMyEnrollments: protectedProcedure.query(async ({ ctx }) => {
@@ -99,14 +126,21 @@ export const enrollmentRouter = createTRPCRouter({
         })
         .from(enrollments)
         .innerJoin(user, eq(enrollments.userId, user.id))
-        .where(and(eq(enrollments.courseId, input.courseId), eq(enrollments.role, "student")));
+        .where(
+          and(
+            eq(enrollments.courseId, input.courseId),
+            eq(enrollments.role, "student"),
+          ),
+        );
     }),
 
   updateStatus: teacherProcedure
-    .input(z.object({
-      enrollmentId: z.number().int(),
-      status: z.enum(["active", "suspended", "completed", "waitlisted"]),
-    }))
+    .input(
+      z.object({
+        enrollmentId: z.number().int(),
+        status: z.enum(["active", "suspended", "completed", "waitlisted"]),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       const [enrollment] = await ctx.db
         .select({ courseId: enrollments.courseId })
@@ -135,7 +169,12 @@ export const enrollmentRouter = createTRPCRouter({
       const [row] = await ctx.db
         .select({ status: enrollments.status })
         .from(enrollments)
-        .where(and(eq(enrollments.courseId, input.courseId), eq(enrollments.userId, ctx.session.user.id)))
+        .where(
+          and(
+            eq(enrollments.courseId, input.courseId),
+            eq(enrollments.userId, ctx.session.user.id),
+          ),
+        )
         .limit(1);
       return row ?? null;
     }),

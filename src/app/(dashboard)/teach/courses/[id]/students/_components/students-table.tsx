@@ -18,16 +18,8 @@ interface Props {
   students: Student[];
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  active: "success",
-  suspended: "error",
-  completed: "processing",
-  waitlisted: "warning",
-};
-
 export function StudentsTable({ students }: Props) {
   const [messageApi, contextHolder] = message.useMessage();
-  const utils = api.useUtils();
 
   const updateStatus = api.enrollment.updateStatus.useMutation({
     onSuccess: () => messageApi.success("Status updated"),
@@ -42,7 +34,9 @@ export function StudentsTable({ students }: Props) {
         <div>
           <Typography.Text strong>{s.userName ?? "—"}</Typography.Text>
           <br />
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>{s.userEmail}</Typography.Text>
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            {s.userEmail}
+          </Typography.Text>
         </div>
       ),
     },
@@ -66,14 +60,24 @@ export function StudentsTable({ students }: Props) {
           onChange={(val) =>
             updateStatus.mutate({
               enrollmentId: s.enrollmentId,
-              status: val as "active" | "suspended" | "completed" | "waitlisted",
+              status: val as
+                | "active"
+                | "suspended"
+                | "completed"
+                | "waitlisted",
             })
           }
           options={[
             { value: "active", label: <Tag color="success">Active</Tag> },
             { value: "suspended", label: <Tag color="error">Suspended</Tag> },
-            { value: "completed", label: <Tag color="processing">Completed</Tag> },
-            { value: "waitlisted", label: <Tag color="warning">Waitlisted</Tag> },
+            {
+              value: "completed",
+              label: <Tag color="processing">Completed</Tag>,
+            },
+            {
+              value: "waitlisted",
+              label: <Tag color="warning">Waitlisted</Tag>,
+            },
           ]}
         />
       ),
@@ -84,7 +88,9 @@ export function StudentsTable({ students }: Props) {
     <>
       {contextHolder}
       <div style={{ marginBottom: 16 }}>
-        <Typography.Text type="secondary">{students.length} student{students.length !== 1 ? "s" : ""} enrolled</Typography.Text>
+        <Typography.Text type="secondary">
+          {students.length} student{students.length !== 1 ? "s" : ""} enrolled
+        </Typography.Text>
       </div>
       <Table
         dataSource={students}

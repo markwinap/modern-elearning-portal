@@ -3,7 +3,6 @@
 import { useState } from "react";
 import {
   Button,
-  Card,
   Form,
   Input,
   InputNumber,
@@ -48,7 +47,8 @@ export function GradebookView({ courseId }: Props) {
   const [form] = Form.useForm<GradeFormValues>();
   const utils = api.useUtils();
 
-  const { data: grades = [], isLoading } = api.gradebook.getCourseGrades.useQuery({ courseId });
+  const { data: grades = [], isLoading } =
+    api.gradebook.getCourseGrades.useQuery({ courseId });
 
   const submitGrade = api.gradebook.submitGrade.useMutation({
     onSuccess: () => {
@@ -66,7 +66,11 @@ export function GradebookView({ courseId }: Props) {
       dataIndex: "userId",
       key: "userId",
       width: 200,
-      render: (id: string) => <Typography.Text code style={{ fontSize: 11 }}>{id.slice(0, 8)}…</Typography.Text>,
+      render: (id: string) => (
+        <Typography.Text code style={{ fontSize: 11 }}>
+          {id.slice(0, 8)}…
+        </Typography.Text>
+      ),
     },
     {
       title: "Activity ID",
@@ -81,7 +85,9 @@ export function GradebookView({ courseId }: Props) {
       render: (_: unknown, g: Grade) =>
         g.rawScore != null && g.maxScore != null ? (
           <Space>
-            <Typography.Text strong>{g.rawScore} / {g.maxScore}</Typography.Text>
+            <Typography.Text strong>
+              {g.rawScore} / {g.maxScore}
+            </Typography.Text>
             <Progress
               percent={g.percentage ?? 0}
               size="small"
@@ -89,29 +95,45 @@ export function GradebookView({ courseId }: Props) {
               format={(p) => `${p?.toFixed(0)}%`}
             />
           </Space>
-        ) : "—",
+        ) : (
+          "—"
+        ),
     },
     {
       title: "Feedback",
       dataIndex: "feedback",
       key: "feedback",
-      render: (fb: string | null) => fb ?? <Typography.Text type="secondary">—</Typography.Text>,
+      render: (fb: string | null) =>
+        fb ?? <Typography.Text type="secondary">—</Typography.Text>,
     },
     {
       title: "Graded At",
       dataIndex: "gradedAt",
       key: "gradedAt",
       width: 140,
-      render: (d: Date | null) => d ? new Date(d).toLocaleDateString() : "—",
+      render: (d: Date | null) => (d ? new Date(d).toLocaleDateString() : "—"),
     },
   ];
 
   return (
     <>
       {contextHolder}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <Typography.Text type="secondary">{grades.length} grade{grades.length !== 1 ? "s" : ""} recorded</Typography.Text>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => setSubmitOpen(true)}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 16,
+        }}
+      >
+        <Typography.Text type="secondary">
+          {grades.length} grade{grades.length !== 1 ? "s" : ""} recorded
+        </Typography.Text>
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={() => setSubmitOpen(true)}
+        >
           Submit Grade
         </Button>
       </div>
@@ -128,12 +150,23 @@ export function GradebookView({ courseId }: Props) {
       <Modal
         title="Submit Grade"
         open={submitOpen}
-        onCancel={() => { setSubmitOpen(false); form.resetFields(); }}
+        onCancel={() => {
+          setSubmitOpen(false);
+          form.resetFields();
+        }}
         onOk={() => form.submit()}
         confirmLoading={submitGrade.isPending}
       >
-        <Form form={form} layout="vertical" onFinish={(v) => submitGrade.mutate(v)}>
-          <Form.Item name="activityId" label="Activity ID" rules={[{ required: true }]}>
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={(v) => submitGrade.mutate(v)}
+        >
+          <Form.Item
+            name="activityId"
+            label="Activity ID"
+            rules={[{ required: true }]}
+          >
             <InputNumber style={{ width: "100%" }} />
           </Form.Item>
           <Form.Item name="userId" label="User ID" rules={[{ required: true }]}>
@@ -142,7 +175,11 @@ export function GradebookView({ courseId }: Props) {
           <Form.Item name="rawScore" label="Score" rules={[{ required: true }]}>
             <InputNumber min={0} style={{ width: "100%" }} />
           </Form.Item>
-          <Form.Item name="maxScore" label="Max Score" rules={[{ required: true }]}>
+          <Form.Item
+            name="maxScore"
+            label="Max Score"
+            rules={[{ required: true }]}
+          >
             <InputNumber min={0} style={{ width: "100%" }} />
           </Form.Item>
           <Form.Item name="feedback" label="Feedback">

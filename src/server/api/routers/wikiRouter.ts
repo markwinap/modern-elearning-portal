@@ -1,8 +1,12 @@
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { createTRPCRouter, protectedProcedure, teacherProcedure } from "~/server/api/trpc";
+import {
+  createTRPCRouter,
+  protectedProcedure,
+  teacherProcedure,
+} from "~/server/api/trpc";
 import { wikiPages, wikiRevisions } from "~/server/db/schema";
 
 export const wikiRouter = createTRPCRouter({
@@ -10,7 +14,10 @@ export const wikiRouter = createTRPCRouter({
   listPages: protectedProcedure
     .input(z.object({ activityId: z.number().int() }))
     .query(async ({ ctx, input }) => {
-      return ctx.db.select().from(wikiPages).where(eq(wikiPages.activityId, input.activityId));
+      return ctx.db
+        .select()
+        .from(wikiPages)
+        .where(eq(wikiPages.activityId, input.activityId));
     }),
 
   /** Get a wiki page by id. */
@@ -57,13 +64,24 @@ export const wikiRouter = createTRPCRouter({
 
         const [updated] = await ctx.db
           .update(wikiPages)
-          .set({ title: input.title, content: input.content, version: newVersion, authorId: ctx.session.user.id })
+          .set({
+            title: input.title,
+            content: input.content,
+            version: newVersion,
+            authorId: ctx.session.user.id,
+          })
           .where(eq(wikiPages.id, input.id))
           .returning();
         return updated;
       } else {
         // Create new page
-        const slug = input.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + "-" + Date.now().toString(36);
+        const slug =
+          input.title
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-|-$/g, "") +
+          "-" +
+          Date.now().toString(36);
         const [page] = await ctx.db
           .insert(wikiPages)
           .values({
@@ -94,13 +112,19 @@ export const wikiRouter = createTRPCRouter({
   lockPage: teacherProcedure
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ ctx, input }) => {
-      await ctx.db.update(wikiPages).set({ lockedBy: ctx.session.user.id }).where(eq(wikiPages.id, input.id));
+      await ctx.db
+        .update(wikiPages)
+        .set({ lockedBy: ctx.session.user.id })
+        .where(eq(wikiPages.id, input.id));
     }),
 
   /** Unlock a page (teacher). */
   unlockPage: teacherProcedure
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ ctx, input }) => {
-      await ctx.db.update(wikiPages).set({ lockedBy: null }).where(eq(wikiPages.id, input.id));
+      await ctx.db
+        .update(wikiPages)
+        .set({ lockedBy: null })
+        .where(eq(wikiPages.id, input.id));
     }),
 });

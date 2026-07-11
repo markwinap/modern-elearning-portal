@@ -12,6 +12,7 @@ import {
   Typography,
 } from "antd";
 import { BookOutlined } from "@ant-design/icons";
+import Image from "next/image";
 import Link from "next/link";
 
 interface Enrollment {
@@ -72,11 +73,16 @@ export function MyCourseList({ enrollments }: Props) {
               hoverable
               cover={
                 enrollment.courseCoverImageUrl ? (
-                  <img
-                    src={enrollment.courseCoverImageUrl}
-                    alt={enrollment.courseTitle}
-                    style={{ height: 140, objectFit: "cover" }}
-                  />
+                  <div style={{ position: "relative", height: 140 }}>
+                    <Image
+                      src={enrollment.courseCoverImageUrl}
+                      alt={enrollment.courseTitle}
+                      fill
+                      unoptimized
+                      style={{ objectFit: "cover" }}
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    />
+                  </div>
                 ) : (
                   <div
                     style={{

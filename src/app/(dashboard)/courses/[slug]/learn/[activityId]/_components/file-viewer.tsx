@@ -31,7 +31,7 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function FileViewer({ file, activityTitle }: Props) {
+export function FileViewer({ file, activityTitle: _activityTitle }: Props) {
   const { token } = theme.useToken();
   if (!file) {
     return (

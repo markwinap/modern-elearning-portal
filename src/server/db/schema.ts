@@ -1,15 +1,12 @@
 import {
   boolean,
   index,
-  integer,
-  jsonb,
   pgEnum,
   pgTable,
   pgTableCreator,
   text,
   timestamp,
   unique,
-  varchar,
 } from "drizzle-orm/pg-core";
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
@@ -256,7 +253,9 @@ export const activities = createTable(
     title: d.varchar({ length: 256 }).notNull(),
     order: d.integer().default(0).notNull(),
     visible: d.boolean().default(true).notNull(),
-    completionType: completionTypeEnum("completion_type").default("view").notNull(),
+    completionType: completionTypeEnum("completion_type")
+      .default("view")
+      .notNull(),
     completionGrade: d.integer(),
     completionTimeSecs: d.integer(),
     createdAt: d
@@ -349,7 +348,10 @@ export const quizAttempts = createTable(
       .integer()
       .notNull()
       .references(() => activities.id),
-    userId: d.text().notNull().references(() => user.id),
+    userId: d
+      .text()
+      .notNull()
+      .references(() => user.id),
     startedAt: d
       .timestamp({ withTimezone: true })
       .$defaultFn(() => new Date())
@@ -358,7 +360,9 @@ export const quizAttempts = createTable(
     score: d.integer(),
     maxScore: d.integer(),
   }),
-  (t) => [index("quiz_attempt_activity_user_idx").on(t.quizActivityId, t.userId)],
+  (t) => [
+    index("quiz_attempt_activity_user_idx").on(t.quizActivityId, t.userId),
+  ],
 );
 
 export const quizAnswers = createTable(
@@ -417,7 +421,10 @@ export const wikiPages = createTable(
     title: d.varchar({ length: 256 }).notNull(),
     slug: d.varchar({ length: 256 }).notNull(),
     content: d.text().notNull().default(""),
-    authorId: d.text().notNull().references(() => user.id),
+    authorId: d
+      .text()
+      .notNull()
+      .references(() => user.id),
     version: d.integer().default(1).notNull(),
     lockedBy: d.text().references(() => user.id),
     createdAt: d
@@ -441,7 +448,10 @@ export const wikiRevisions = createTable(
       .notNull()
       .references(() => wikiPages.id, { onDelete: "cascade" }),
     content: d.text().notNull(),
-    authorId: d.text().notNull().references(() => user.id),
+    authorId: d
+      .text()
+      .notNull()
+      .references(() => user.id),
     version: d.integer().notNull(),
     createdAt: d
       .timestamp({ withTimezone: true })
@@ -491,7 +501,10 @@ export const workshopSubmissions = createTable(
       .integer()
       .notNull()
       .references(() => activities.id),
-    userId: d.text().notNull().references(() => user.id),
+    userId: d
+      .text()
+      .notNull()
+      .references(() => user.id),
     content: d.text().notNull(),
     attachmentKey: d.text(),
     submittedAt: d
@@ -500,7 +513,10 @@ export const workshopSubmissions = createTable(
       .notNull(),
   }),
   (t) => [
-    index("workshop_submission_activity_user_idx").on(t.workshopActivityId, t.userId),
+    index("workshop_submission_activity_user_idx").on(
+      t.workshopActivityId,
+      t.userId,
+    ),
   ],
 );
 
@@ -512,13 +528,21 @@ export const workshopAssessments = createTable(
       .integer()
       .notNull()
       .references(() => workshopSubmissions.id, { onDelete: "cascade" }),
-    assessorId: d.text().notNull().references(() => user.id),
+    assessorId: d
+      .text()
+      .notNull()
+      .references(() => user.id),
     scores: d.jsonb().$type<Record<string, number>>().notNull().default({}),
     feedback: d.text(),
     totalScore: d.integer(),
     submittedAt: d.timestamp({ withTimezone: true }),
   }),
-  (t) => [index("workshop_assessment_submission_idx").on(t.submissionId, t.assessorId)],
+  (t) => [
+    index("workshop_assessment_submission_idx").on(
+      t.submissionId,
+      t.assessorId,
+    ),
+  ],
 );
 
 // ─── Enrollments ──────────────────────────────────────────────────────────────
@@ -530,7 +554,10 @@ export const enrollments = createTable(
       .integer()
       .notNull()
       .references(() => courses.id, { onDelete: "cascade" }),
-    userId: d.text().notNull().references(() => user.id),
+    userId: d
+      .text()
+      .notNull()
+      .references(() => user.id),
     role: enrollmentRoleEnum("role").default("student").notNull(),
     status: enrollmentStatusEnum("status").default("active").notNull(),
     enrolledAt: d
@@ -556,8 +583,13 @@ export const activityProgress = createTable(
       .integer()
       .notNull()
       .references(() => activities.id, { onDelete: "cascade" }),
-    userId: d.text().notNull().references(() => user.id),
-    status: activityProgressStatusEnum("status").default("not_started").notNull(),
+    userId: d
+      .text()
+      .notNull()
+      .references(() => user.id),
+    status: activityProgressStatusEnum("status")
+      .default("not_started")
+      .notNull(),
     firstViewedAt: d.timestamp({ withTimezone: true }),
     completedAt: d.timestamp({ withTimezone: true }),
     timeSpentSecs: d.integer().default(0).notNull(),
@@ -573,7 +605,10 @@ export const courseProgress = createTable(
       .integer()
       .notNull()
       .references(() => courses.id, { onDelete: "cascade" }),
-    userId: d.text().notNull().references(() => user.id),
+    userId: d
+      .text()
+      .notNull()
+      .references(() => user.id),
     progressPct: d.integer().default(0).notNull(),
     completedAt: d.timestamp({ withTimezone: true }),
   }),
@@ -604,7 +639,10 @@ export const grades = createTable(
       .integer()
       .notNull()
       .references(() => activities.id, { onDelete: "cascade" }),
-    userId: d.text().notNull().references(() => user.id),
+    userId: d
+      .text()
+      .notNull()
+      .references(() => user.id),
     gradeCategoryId: d.integer().references(() => gradeCategories.id),
     rawScore: d.integer(),
     maxScore: d.integer(),
@@ -629,7 +667,10 @@ export const announcements = createTable(
       .integer()
       .notNull()
       .references(() => courses.id, { onDelete: "cascade" }),
-    authorId: d.text().notNull().references(() => user.id),
+    authorId: d
+      .text()
+      .notNull()
+      .references(() => user.id),
     title: d.varchar({ length: 256 }).notNull(),
     content: d.text().notNull(),
     pinned: d.boolean().default(false).notNull(),
@@ -648,7 +689,10 @@ export const messageThreads = createTable(
     id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
     courseId: d.integer().references(() => courses.id),
     subject: d.varchar({ length: 256 }).notNull(),
-    createdBy: d.text().notNull().references(() => user.id),
+    createdBy: d
+      .text()
+      .notNull()
+      .references(() => user.id),
     createdAt: d
       .timestamp({ withTimezone: true })
       .$defaultFn(() => new Date())
@@ -665,7 +709,10 @@ export const messages = createTable(
       .integer()
       .notNull()
       .references(() => messageThreads.id, { onDelete: "cascade" }),
-    authorId: d.text().notNull().references(() => user.id),
+    authorId: d
+      .text()
+      .notNull()
+      .references(() => user.id),
     content: d.text().notNull(),
     sentAt: d
       .timestamp({ withTimezone: true })
@@ -679,7 +726,10 @@ export const notifications = createTable(
   "notification",
   (d) => ({
     id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
-    userId: d.text().notNull().references(() => user.id),
+    userId: d
+      .text()
+      .notNull()
+      .references(() => user.id),
     type: d.text().notNull(),
     payload: d.jsonb().$type<Record<string, unknown>>().notNull().default({}),
     readAt: d.timestamp({ withTimezone: true }),

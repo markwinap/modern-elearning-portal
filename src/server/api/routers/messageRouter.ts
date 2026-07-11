@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, asc, desc, eq } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
@@ -19,11 +19,20 @@ export const messageRouter = createTRPCRouter({
 
   /** Create a new thread. */
   createThread: protectedProcedure
-    .input(z.object({ courseId: z.number().int(), subject: z.string().min(1).max(256) }))
+    .input(
+      z.object({
+        courseId: z.number().int(),
+        subject: z.string().min(1).max(256),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       const [thread] = await ctx.db
         .insert(messageThreads)
-        .values({ courseId: input.courseId, subject: input.subject, createdBy: ctx.session.user.id })
+        .values({
+          courseId: input.courseId,
+          subject: input.subject,
+          createdBy: ctx.session.user.id,
+        })
         .returning();
       return thread;
     }),
@@ -57,7 +66,12 @@ export const messageRouter = createTRPCRouter({
       if (!thread) throw new TRPCError({ code: "NOT_FOUND" });
       const [msg] = await ctx.db
         .insert(messages)
-        .values({ threadId: input.threadId, authorId: ctx.session.user.id, content: input.content, sentAt: new Date() })
+        .values({
+          threadId: input.threadId,
+          authorId: ctx.session.user.id,
+          content: input.content,
+          sentAt: new Date(),
+        })
         .returning();
       return msg;
     }),

@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
@@ -67,7 +67,12 @@ export const progressRouter = createTRPCRouter({
     }),
 
   updateCourseProgress: protectedProcedure
-    .input(z.object({ courseId: z.number().int(), progressPct: z.number().min(0).max(100) }))
+    .input(
+      z.object({
+        courseId: z.number().int(),
+        progressPct: z.number().min(0).max(100),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       await ctx.db
         .insert(courseProgress)
