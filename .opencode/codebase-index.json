@@ -1,0 +1,23 @@
+{
+  "embeddingProvider": "custom",
+  "customProvider": {
+    "baseUrl": "http://192.168.1.226:11434/v1",
+    "model": "nomic-embed-text",
+    "dimensions": 768,
+    "apiKey": "ollama"
+  },
+  "scope": "project",
+  "exclude": [
+    "**/node_modules/**",
+    "**/.git/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/.next/**",
+    "**/coverage/**",
+    "**/bin/**",
+    "**/obj/**",
+    "**/vendor/**",
+    "**/__pycache__/**",
+    "**/target/**"
+  ]
+}

@@ -1,0 +1,84 @@
+{
+	"servers": {
+		"io.github.upstash/context7": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"@upstash/context7-mcp@1.0.31"
+			],
+			"env": {
+				"CONTEXT7_API_KEY": "${input:CONTEXT7_API_KEY}"
+			},
+			"gallery": "https://api.mcp.github.com",
+			"version": "1.0.31"
+		},
+		"io.github.bytebase/dbhub": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"@bytebase/dbhub@0.22.2"
+			],
+			"env": {
+				"DSN": "${input:DSN}",
+				"DB_TYPE": "${input:DB_TYPE}"
+			},
+			"gallery": "https://api.mcp.github.com",
+			"version": "0.22.2"
+		},
+		"microsoftdocs/mcp": {
+			"type": "http",
+			"url": "https://learn.microsoft.com/api/mcp",
+			"gallery": "https://api.mcp.github.com",
+			"version": "1.0.0"
+		},
+		"microsoft/markitdown": {
+			"type": "stdio",
+			"command": "uvx",
+			"args": [
+				"markitdown-mcp@0.0.1a4"
+			],
+			"gallery": "https://api.mcp.github.com",
+			"version": "1.0.0"
+		},
+		"io.github.github/github-mcp-server": {
+			"type": "stdio",
+			"command": "docker",
+			"args": [
+				"run",
+				"-i",
+				"--rm",
+				"-e",
+				"GITHUB_PERSONAL_ACCESS_TOKEN=${input:token}",
+				"ghcr.io/github/github-mcp-server:1.4.0"
+			],
+			"gallery": "https://api.mcp.github.com",
+			"version": "1.4.0"
+		}
+	},
+	"inputs": [
+		{
+			"id": "CONTEXT7_API_KEY",
+			"type": "promptString",
+			"description": "API key for authentication",
+			"password": true
+		},
+		{
+			"id": "DSN",
+			"type": "promptString",
+			"description": "Postgres connection string (e.g., postgres://user:pass@host:5432/db)",
+			"password": true
+		},
+		{
+			"id": "DB_TYPE",
+			"type": "promptString",
+			"description": "Database type for dbhub. This project is PostgreSQL: use 'postgres'",
+			"password": false
+		},
+		{
+			"id": "token",
+			"type": "promptString",
+			"description": "GitHub personal access token for the GitHub MCP server",
+			"password": true
+		}
+	]
+}

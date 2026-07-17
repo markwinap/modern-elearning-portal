@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Read the README
+    url: https://github.com/markwinap/modern-elearning-portal/blob/main/README.md
+    about: Find setup instructions, scripts, and project overview.
+  - name: Read the Implementation Plan
+    url: https://github.com/markwinap/modern-elearning-portal/blob/main/PLAN.md
+    about: See the current roadmap and next steps.
+  - name: Read the Agent Conventions
+    url: https://github.com/markwinap/modern-elearning-portal/blob/main/AGENTS.md
+    about: See the project's coding conventions and security rules.
