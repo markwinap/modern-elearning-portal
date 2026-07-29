@@ -1,4 +1,6 @@
 "use client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTRPC } from "~/trpc/react";
 
 import { useState } from "react";
 import {
@@ -23,7 +25,6 @@ import {
   SaveOutlined,
 } from "@ant-design/icons";
 
-import { api } from "~/trpc/react";
 import { FormModal } from "~/components/ui/form-modal";
 import { formatDurationMins } from "~/lib/insight-utils";
 import { toastMutationOptions } from "~/lib/mutation-utils";
@@ -92,8 +93,10 @@ export function QuizEditor({
   initialSettings,
   initialQuestions,
 }: Props) {
-  const { data: recommendedDuration } =
-    api.quiz.getRecommendedDuration.useQuery({ activityId });
+  const trpc = useTRPC();
+  const { data: recommendedDuration } = useQuery(
+    trpc.quiz.getRecommendedDuration.queryOptions({ activityId }),
+  );
   const [questions, setQuestions] = useState<Question[]>(initialQuestions);
   const {
     isOpen: questionModalOpen,
@@ -106,7 +109,7 @@ export function QuizEditor({
   const [settingsForm] = Form.useForm<SettingsFormValues>();
   const { message: messageApi } = App.useApp();
   const [questionType, setQuestionType] = useState("multiple_choice");
-  const utils = api.useUtils();
+  const queryClient = useQueryClient();
 
   const watchedOptions = Form.useWatch<string>("options", questionForm);
   const parsedOptions =
@@ -117,45 +120,59 @@ export function QuizEditor({
           .filter(Boolean)
       : [];
 
-  const upsertQuiz = api.quiz.upsertQuiz.useMutation({
-    ...toastMutationOptions({
-      messageApi,
-      successMessage: "Quiz settings saved!",
+  const upsertQuiz = useMutation(
+    trpc.quiz.upsertQuiz.mutationOptions({
+      ...toastMutationOptions({
+        messageApi,
+        successMessage: "Quiz settings saved!",
+      }),
     }),
-  });
+  );
 
-  const createQuestion = api.quiz.createQuestion.useMutation({
-    ...toastMutationOptions({
-      messageApi,
-      successMessage: "Question added!",
-      invalidate: () => utils.quiz.listQuestions.invalidate({ activityId }),
-      onSuccess: (newQ) => {
-        if (newQ) {
-          setQuestions((prev) => [...prev, newQ]);
-        }
-        closeQuestionModal();
-      },
+  const createQuestion = useMutation(
+    trpc.quiz.createQuestion.mutationOptions({
+      ...toastMutationOptions({
+        messageApi,
+        successMessage: "Question added!",
+        invalidate: () =>
+          queryClient.invalidateQueries({
+            queryKey: trpc.quiz.listQuestions.queryKey({ activityId }),
+          }),
+        onSuccess: (newQ) => {
+          if (newQ) {
+            setQuestions((prev) => [...prev, newQ]);
+          }
+          closeQuestionModal();
+        },
+      }),
     }),
-  });
+  );
 
-  const updateQuestion = api.quiz.updateQuestion.useMutation({
-    ...toastMutationOptions({
-      messageApi,
-      successMessage: "Question updated!",
-      invalidate: () => utils.quiz.listQuestions.invalidate({ activityId }),
-      onSuccess: () => closeQuestionModal(),
+  const updateQuestion = useMutation(
+    trpc.quiz.updateQuestion.mutationOptions({
+      ...toastMutationOptions({
+        messageApi,
+        successMessage: "Question updated!",
+        invalidate: () =>
+          queryClient.invalidateQueries({
+            queryKey: trpc.quiz.listQuestions.queryKey({ activityId }),
+          }),
+        onSuccess: () => closeQuestionModal(),
+      }),
     }),
-  });
+  );
 
-  const deleteQuestion = api.quiz.deleteQuestion.useMutation({
-    ...toastMutationOptions({
-      messageApi,
-      successMessage: "Question removed.",
-      onSuccess: (_data, variables) => {
-        setQuestions((prev) => prev.filter((q) => q.id !== variables.id));
-      },
+  const deleteQuestion = useMutation(
+    trpc.quiz.deleteQuestion.mutationOptions({
+      ...toastMutationOptions({
+        messageApi,
+        successMessage: "Question removed.",
+        onSuccess: (_data, variables) => {
+          setQuestions((prev) => prev.filter((q) => q.id !== variables.id));
+        },
+      }),
     }),
-  });
+  );
 
   function handleSaveSettings(values: SettingsFormValues) {
     upsertQuiz.mutate({

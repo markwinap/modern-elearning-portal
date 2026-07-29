@@ -1,7 +1,9 @@
 "use client";
 
-import { Button, Space, Table, Typography, theme } from "antd";
+import { Button, Space, Typography, theme } from "antd";
 import type { ColumnsType } from "antd/es/table";
+
+import { EntityTable } from "~/components/ui/entity-table";
 import {
   BookOutlined,
   EditOutlined,
@@ -102,10 +104,9 @@ export function TeacherDashboard({ courses }: Props) {
   }
 
   return (
-    <Table
+    <EntityTable
       dataSource={courses}
       columns={columns}
-      rowKey="id"
       pagination={{ pageSize: 20, hideOnSinglePage: true }}
     />
   );

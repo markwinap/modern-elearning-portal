@@ -1,20 +1,22 @@
 "use client";
+import { useQuery } from "@tanstack/react-query";
+import { useTRPC } from "~/trpc/react";
 
 import { Card, Col, Progress, Row, Space, Statistic, Typography } from "antd";
 
-import { api } from "~/trpc/react";
 
 interface Props {
   courseId: number;
 }
 
 export function CourseInsightsView({ courseId }: Props) {
-  const { data: insights, isLoading } = api.course.getCourseInsights.useQuery({
+  const trpc = useTRPC();
+  const { data: insights, isLoading } = useQuery(trpc.course.getCourseInsights.queryOptions({
     courseId,
-  });
-  const { data: totalDuration = 0 } = api.section.getCourseDuration.useQuery({
+  }));
+  const { data: totalDuration = 0 } = useQuery(trpc.section.getCourseDuration.queryOptions({
     courseId,
-  });
+  }));
 
   return (
     <Space direction="vertical" size="large" style={{ width: "100%" }}>

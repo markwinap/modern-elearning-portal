@@ -1,4 +1,6 @@
 "use client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTRPC } from "~/trpc/react";
 
 import {
   Button,
@@ -12,7 +14,6 @@ import {
 } from "antd";
 import { SaveOutlined } from "@ant-design/icons";
 
-import { api } from "~/trpc/react";
 
 const OPEN_MODE_OPTIONS = [
   { value: "new_tab", label: "Open in new tab" },
@@ -40,17 +41,18 @@ interface FormValues {
 }
 
 export function UrlEditor({ activityId, initialData }: Props) {
+  const trpc = useTRPC();
   const [form] = Form.useForm<FormValues>();
   const [messageApi, contextHolder] = message.useMessage();
-  const utils = api.useUtils();
+  const queryClient = useQueryClient();
 
-  const upsert = api.url.upsert.useMutation({
+  const upsert = useMutation(trpc.url.upsert.mutationOptions({
     onSuccess: () => {
-      void utils.url.getByActivity.invalidate({ activityId });
+      void queryClient.invalidateQueries({ queryKey: trpc.url.getByActivity.queryKey({ activityId }) });
       messageApi.success("URL resource saved!");
     },
     onError: (err) => messageApi.error(err.message),
-  });
+  }));
 
   return (
     <>

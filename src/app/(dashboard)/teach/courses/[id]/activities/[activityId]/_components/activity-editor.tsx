@@ -1,10 +1,11 @@
 "use client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTRPC } from "~/trpc/react";
 
 import { Alert, Card, Select, Space, Switch, Typography } from "antd";
 import { ArrowLeftOutlined } from "@ant-design/icons";
 import Link from "next/link";
 
-import { api } from "~/trpc/react";
 
 import { ActivityBadge } from "~/components/ui/activity-badge";
 import { FileEditor } from "./file-editor";
@@ -57,25 +58,17 @@ interface Props {
   }> | null;
 }
 
-export function ActivityEditor({
-  activity,
-  courseId,
-  pageContent,
-  fileContent,
-  urlContent,
-  textMediaContent,
-  quizSettings,
-  quizQuestions,
-}: Props) {
-  const utils = api.useUtils();
-  const { data: categories = [] } = api.gradebook.listCategories.useQuery({
+export function ActivityEditor({ activity,   courseId,   pageContent,   fileContent,   urlContent,   textMediaContent,   quizSettings,   quizQuestions, }: Props) {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const { data: categories = [] } = useQuery(trpc.gradebook.listCategories.queryOptions({
     courseId,
-  });
-  const updateActivity = api.activity.update.useMutation({
+  }));
+  const updateActivity = useMutation(trpc.activity.update.mutationOptions({
     onSuccess: () => {
-      void utils.activity.getById.invalidate({ id: activity.id });
+      void queryClient.invalidateQueries({ queryKey: trpc.activity.getById.queryKey({ id: activity.id }) });
     },
-  });
+  }));
 
   return (
     <Space orientation="vertical" style={{ width: "100%" }} size="large">

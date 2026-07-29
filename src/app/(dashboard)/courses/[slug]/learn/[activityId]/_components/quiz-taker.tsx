@@ -1,4 +1,6 @@
 "use client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTRPC } from "~/trpc/react";
 
 import { useState, useEffect, useRef } from "react";
 import {
@@ -21,7 +23,6 @@ import {
   CloseCircleOutlined,
 } from "@ant-design/icons";
 
-import { api } from "~/trpc/react";
 
 interface QuizConfig {
   timeLimitSecs: number | null;
@@ -63,16 +64,11 @@ interface QuizResult {
   feedback: FeedbackItem[] | null;
 }
 
-export function QuizTaker({
-  activityId,
-  quiz,
-  questions,
-  initialProgress: _initialProgress,
-  onComplete,
-}: Props) {
+export function QuizTaker({ activityId,   quiz,   questions,   initialProgress: _initialProgress,   onComplete, }: Props) {
+  const trpc = useTRPC();
   const [messageApi, contextHolder] = message.useMessage();
   const { token } = theme.useToken();
-  const utils = api.useUtils();
+  const queryClient = useQueryClient();
   const [attemptId, setAttemptId] = useState<number | null>(null);
   const [answers, setAnswers] = useState<AnswerMap>({});
   const [result, setResult] = useState<QuizResult | null>(null);
@@ -80,7 +76,7 @@ export function QuizTaker({
   const answersRef = useRef<AnswerMap>({});
   answersRef.current = answers;
 
-  const { data: attempts } = api.quiz.getMyAttempts.useQuery({ activityId });
+  const { data: attempts } = useQuery(trpc.quiz.getMyAttempts.queryOptions({ activityId }));
   const hasInProgress = attempts?.some((a) => a.submittedAt === null) ?? false;
   const submittedCount =
     attempts?.filter((a) => a.submittedAt !== null).length ?? 0;
@@ -91,7 +87,7 @@ export function QuizTaker({
     : Math.max(0, maxAttempts - submittedCount);
   const canStart = unlimited || hasInProgress || (remainingAttempts ?? 0) > 0;
 
-  const startAttempt = api.quiz.startAttempt.useMutation({
+  const startAttempt = useMutation(trpc.quiz.startAttempt.mutationOptions({
     onSuccess: (attempt) => {
       if (attempt) {
         setAttemptId(attempt.id);
@@ -99,19 +95,19 @@ export function QuizTaker({
         setResult(null);
         setTimeLeft(null);
       }
-      void utils.quiz.getMyAttempts.invalidate({ activityId });
+      void queryClient.invalidateQueries({ queryKey: trpc.quiz.getMyAttempts.queryKey({ activityId }) });
     },
     onError: (err) => messageApi.error(err.message),
-  });
+  }));
 
-  const submitAttempt = api.quiz.submitAttempt.useMutation({
+  const submitAttempt = useMutation(trpc.quiz.submitAttempt.mutationOptions({
     onSuccess: (res) => {
       setResult(res);
       onComplete();
-      void utils.quiz.getMyAttempts.invalidate({ activityId });
+      void queryClient.invalidateQueries({ queryKey: trpc.quiz.getMyAttempts.queryKey({ activityId }) });
     },
     onError: (err) => messageApi.error(err.message),
-  });
+  }));
 
   function handleSubmit() {
     if (!attemptId) return;

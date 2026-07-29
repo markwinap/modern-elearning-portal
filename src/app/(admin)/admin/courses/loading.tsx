@@ -1,7 +1,5 @@
-"use client";
-
-import { ListSkeleton } from "~/components/ui/skeleton-list";
+import { ServerSkeleton } from "~/components/ui/server-skeleton";
 
 export default function Loading() {
-  return <ListSkeleton titleWidth={120} />;
+  return <ServerSkeleton />;
 }

@@ -80,31 +80,24 @@ export const courseRouter = createTRPCRouter({
   getBySlug: publicProcedure
     .input(z.object({ slug: z.string() }))
     .query(async ({ ctx, input }) => {
-      const [course] = await ctx.db
-        .select()
-        .from(courses)
-        .where(eq(courses.slug, input.slug))
-        .limit(1);
+      const course = await ctx.db.query.courses.findFirst({
+        where: (coursesTable, { eq }) => eq(coursesTable.slug, input.slug),
+        with: {
+          teacher: { columns: { name: true, email: true, image: true } },
+          sessions: {
+            orderBy: (sessionsTable, { asc }) => [
+              asc(sessionsTable.dayOfWeek),
+              asc(sessionsTable.startTime),
+            ],
+          },
+        },
+      });
       if (!course) throw new TRPCError({ code: "NOT_FOUND" });
 
-      const [teacher] = await ctx.db
-        .select({
-          name: user.name,
-          email: user.email,
-          image: user.image,
-        })
-        .from(user)
-        .where(eq(user.id, course.teacherId))
-        .limit(1);
-
-      const sessions = await ctx.db
-        .select()
-        .from(courseSessions)
-        .where(eq(courseSessions.courseId, course.id))
-        .orderBy(asc(courseSessions.dayOfWeek), asc(courseSessions.startTime));
+      const { teacher, sessions, ...courseBase } = course;
 
       return {
-        ...course,
+        ...courseBase,
         teacherName: teacher?.name ?? null,
         teacherEmail: teacher?.email ?? null,
         teacherImage: teacher?.image ?? null,

@@ -1,4 +1,6 @@
 "use client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTRPC } from "~/trpc/react";
 
 import { useMemo, useState } from "react";
 import {
@@ -44,11 +46,11 @@ import {
 
 import Link from "next/link";
 
-import { api } from "~/trpc/react";
 import { ActivityBadge } from "~/components/ui/activity-badge";
 import { ActivityIcon } from "~/components/ui/activity-icon";
 import { FormModal } from "~/components/ui/form-modal";
 import { toastMutationOptions } from "~/lib/mutation-utils";
+import { useCrudModal } from "~/lib/use-crud-modal";
 import { formatDurationMins } from "~/lib/insight-utils";
 import { ACTIVITY_TYPES, type ActivityType } from "~/lib/activity-types";
 
@@ -73,34 +75,49 @@ function ActivityList({
   sectionId: number;
   courseId: number;
 }) {
+  const trpc = useTRPC();
   const { message: messageApi, modal } = App.useApp();
-  const [addModal, setAddModal] = useState(false);
+  const {
+    isOpen,
+    openCreate: openAddModal,
+    close: closeAddModal,
+  } = useCrudModal();
   const [form] = Form.useForm<{ title: string; type: string }>();
-  const utils = api.useUtils();
+  const queryClient = useQueryClient();
   const { token } = theme.useToken();
 
-  const { data: activities = [], isLoading } =
-    api.activity.listBySection.useQuery({ sectionId });
+  const activitiesQuery = trpc.activity.listBySection.queryOptions({
+    sectionId,
+  });
+  const { data: activities = [], isLoading } = useQuery(activitiesQuery);
 
-  const createActivity = api.activity.create.useMutation({
+  const createActivityOptions = trpc.activity.create.mutationOptions({
     ...toastMutationOptions({
       messageApi,
       successMessage: "Activity added!",
-      invalidate: () => utils.activity.listBySection.invalidate({ sectionId }),
+      invalidate: () =>
+        queryClient.invalidateQueries({
+          queryKey: trpc.activity.listBySection.queryKey({ sectionId }),
+        }),
       onSuccess: () => {
-        setAddModal(false);
+        closeAddModal();
         form.resetFields();
       },
     }),
   });
+  const createActivity = useMutation(createActivityOptions);
 
-  const deleteActivity = api.activity.delete.useMutation({
+  const deleteActivityOptions = trpc.activity.delete.mutationOptions({
     ...toastMutationOptions({
       messageApi,
       successMessage: "Activity deleted.",
-      invalidate: () => utils.activity.listBySection.invalidate({ sectionId }),
+      invalidate: () =>
+        queryClient.invalidateQueries({
+          queryKey: trpc.activity.listBySection.queryKey({ sectionId }),
+        }),
     }),
   });
+  const deleteActivity = useMutation(deleteActivityOptions);
 
   return (
     <>
@@ -185,7 +202,7 @@ function ActivityList({
           size="small"
           icon={<PlusOutlined />}
           style={{ marginTop: 8 }}
-          onClick={() => setAddModal(true)}
+          onClick={openAddModal}
         >
           Add Activity
         </Button>
@@ -194,9 +211,9 @@ function ActivityList({
       <FormModal
         form={form}
         title="Add Activity"
-        open={addModal}
+        open={isOpen}
         onCancel={() => {
-          setAddModal(false);
+          closeAddModal();
           form.resetFields();
         }}
         confirmLoading={createActivity.isPending}
@@ -253,6 +270,7 @@ function SectionSettingsDrawer({
   courseId: number;
   autoDuration: number;
 }) {
+  const trpc = useTRPC();
   const { message: messageApi } = App.useApp();
   const [form] = Form.useForm<{
     title: string;
@@ -260,32 +278,48 @@ function SectionSettingsDrawer({
     durationMins: number | null;
     pickCount: number | null;
   }>();
-  const utils = api.useUtils();
+  const queryClient = useQueryClient();
 
-  const updateSection = api.section.update.useMutation({
-    ...toastMutationOptions({
-      messageApi,
-      successMessage: "Section settings saved!",
-      invalidate: () => {
-        void utils.section.listByCourse.invalidate({ courseId });
-        void utils.section.getCourseDuration.invalidate({ courseId });
-        void utils.section.getAutoDurations.invalidate({ courseId });
-      },
-      onSuccess: () => onClose(),
+  const updateSection = useMutation(
+    trpc.section.update.mutationOptions({
+      ...toastMutationOptions({
+        messageApi,
+        successMessage: "Section settings saved!",
+        invalidate: () => {
+          void queryClient.invalidateQueries({
+            queryKey: trpc.section.listByCourse.queryKey({ courseId }),
+          });
+          void queryClient.invalidateQueries({
+            queryKey: trpc.section.getCourseDuration.queryKey({ courseId }),
+          });
+          void queryClient.invalidateQueries({
+            queryKey: trpc.section.getAutoDurations.queryKey({ courseId }),
+          });
+        },
+        onSuccess: () => onClose(),
+      }),
     }),
-  });
+  );
 
-  const deleteSection = api.section.delete.useMutation({
-    ...toastMutationOptions({
-      messageApi,
-      successMessage: "Section deleted.",
-      invalidate: () => {
-        void utils.section.listByCourse.invalidate({ courseId });
-        void utils.section.getCourseDuration.invalidate({ courseId });
-        void utils.section.getAutoDurations.invalidate({ courseId });
-      },
+  const deleteSection = useMutation(
+    trpc.section.delete.mutationOptions({
+      ...toastMutationOptions({
+        messageApi,
+        successMessage: "Section deleted.",
+        invalidate: () => {
+          void queryClient.invalidateQueries({
+            queryKey: trpc.section.listByCourse.queryKey({ courseId }),
+          });
+          void queryClient.invalidateQueries({
+            queryKey: trpc.section.getCourseDuration.queryKey({ courseId }),
+          });
+          void queryClient.invalidateQueries({
+            queryKey: trpc.section.getAutoDurations.queryKey({ courseId }),
+          });
+        },
+      }),
     }),
-  });
+  );
 
   const durationMode =
     Form.useWatch("durationMode", form) ?? section?.durationMode ?? "manual";
@@ -484,13 +518,18 @@ function SortableSectionCard({
 }
 
 export function SectionBuilder({ courseId }: Props) {
-  const { message: messageApi, modal } = App.useApp();
-  const [addSectionOpen, setAddSectionOpen] = useState(false);
+  const trpc = useTRPC();
+  const { message: messageApi } = App.useApp();
+  const {
+    isOpen: isAddSectionModalOpen,
+    openCreate: openAddSectionModal,
+    close: closeAddSectionModal,
+  } = useCrudModal();
   const [expandedSection, setExpandedSection] = useState<number | null>(null);
   const [settingsSection, setSettingsSection] =
     useState<SectionWithDuration | null>(null);
   const [form] = Form.useForm<{ title: string; gradable?: boolean }>();
-  const utils = api.useUtils();
+  const queryClient = useQueryClient();
   const { token } = theme.useToken();
 
   const sensors = useSensors(
@@ -499,40 +538,58 @@ export function SectionBuilder({ courseId }: Props) {
     }),
   );
 
-  const { data: sections = [], isLoading } = api.section.listByCourse.useQuery({
-    courseId,
-  });
-
-  const { data: autoDurations = new Map<number, number>() } =
-    api.section.getAutoDurations.useQuery({ courseId });
-
-  const { data: totalDuration = 0 } = api.section.getCourseDuration.useQuery({
-    courseId,
-  });
-
-  const createSection = api.section.create.useMutation({
-    ...toastMutationOptions({
-      messageApi,
-      successMessage: "Section added!",
-      invalidate: () => {
-        void utils.section.listByCourse.invalidate({ courseId });
-        void utils.section.getCourseDuration.invalidate({ courseId });
-        void utils.section.getAutoDurations.invalidate({ courseId });
-      },
-      onSuccess: () => {
-        setAddSectionOpen(false);
-        form.resetFields();
-      },
+  const { data: sections = [], isLoading } = useQuery(
+    trpc.section.listByCourse.queryOptions({
+      courseId,
     }),
-  });
+  );
 
-  const reorderSections = api.section.reorder.useMutation({
-    ...toastMutationOptions({
-      messageApi,
-      successMessage: "Section order updated!",
-      invalidate: () => utils.section.listByCourse.invalidate({ courseId }),
+  const { data: autoDurations = new Map<number, number>() } = useQuery(
+    trpc.section.getAutoDurations.queryOptions({ courseId }),
+  );
+
+  const { data: totalDuration = 0 } = useQuery(
+    trpc.section.getCourseDuration.queryOptions({
+      courseId,
     }),
-  });
+  );
+
+  const createSection = useMutation(
+    trpc.section.create.mutationOptions({
+      ...toastMutationOptions({
+        messageApi,
+        successMessage: "Section added!",
+        invalidate: () => {
+          void queryClient.invalidateQueries({
+            queryKey: trpc.section.listByCourse.queryKey({ courseId }),
+          });
+          void queryClient.invalidateQueries({
+            queryKey: trpc.section.getCourseDuration.queryKey({ courseId }),
+          });
+          void queryClient.invalidateQueries({
+            queryKey: trpc.section.getAutoDurations.queryKey({ courseId }),
+          });
+        },
+        onSuccess: () => {
+          closeAddSectionModal();
+          form.resetFields();
+        },
+      }),
+    }),
+  );
+
+  const reorderSections = useMutation(
+    trpc.section.reorder.mutationOptions({
+      ...toastMutationOptions({
+        messageApi,
+        successMessage: "Section order updated!",
+        invalidate: () =>
+          queryClient.invalidateQueries({
+            queryKey: trpc.section.listByCourse.queryKey({ courseId }),
+          }),
+      }),
+    }),
+  );
 
   const sectionIds = useMemo(() => sections.map((s) => s.id), [sections]);
 
@@ -605,7 +662,7 @@ export function SectionBuilder({ courseId }: Props) {
             <Button
               type="primary"
               icon={<PlusOutlined />}
-              onClick={() => setAddSectionOpen(true)}
+              onClick={openAddSectionModal}
             >
               Add First Section
             </Button>
@@ -643,7 +700,7 @@ export function SectionBuilder({ courseId }: Props) {
           type="dashed"
           block
           icon={<PlusOutlined />}
-          onClick={() => setAddSectionOpen(true)}
+          onClick={openAddSectionModal}
         >
           Add Section
         </Button>
@@ -652,9 +709,9 @@ export function SectionBuilder({ courseId }: Props) {
       <FormModal
         form={form}
         title="Add Section"
-        open={addSectionOpen}
+        open={isAddSectionModalOpen}
         onCancel={() => {
-          setAddSectionOpen(false);
+          closeAddSectionModal();
           form.resetFields();
         }}
         confirmLoading={createSection.isPending}

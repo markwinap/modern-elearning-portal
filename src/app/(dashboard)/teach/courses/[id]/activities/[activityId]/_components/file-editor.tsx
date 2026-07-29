@@ -1,4 +1,6 @@
 "use client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTRPC } from "~/trpc/react";
 
 import {
   Button,
@@ -13,7 +15,6 @@ import {
 } from "antd";
 import { SaveOutlined } from "@ant-design/icons";
 
-import { api } from "~/trpc/react";
 
 interface FileData {
   storageKey: string;
@@ -37,17 +38,18 @@ interface FormValues {
 }
 
 export function FileEditor({ activityId, initialData }: Props) {
+  const trpc = useTRPC();
   const [form] = Form.useForm<FormValues>();
   const [messageApi, contextHolder] = message.useMessage();
-  const utils = api.useUtils();
+  const queryClient = useQueryClient();
 
-  const upsert = api.file.upsert.useMutation({
+  const upsert = useMutation(trpc.file.upsert.mutationOptions({
     onSuccess: () => {
-      void utils.file.getByActivity.invalidate({ activityId });
+      void queryClient.invalidateQueries({ queryKey: trpc.file.getByActivity.queryKey({ activityId }) });
       messageApi.success("File resource saved!");
     },
     onError: (err) => messageApi.error(err.message),
-  });
+  }));
 
   return (
     <>

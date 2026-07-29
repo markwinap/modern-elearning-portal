@@ -1,11 +1,14 @@
 "use client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTRPC } from "~/trpc/react";
 
-import { App, Button, Popconfirm, Space, Table, Typography, theme } from "antd";
+import { App, Button, Popconfirm, Space, Typography, theme } from "antd";
 import type { ColumnsType } from "antd/es/table";
+
+import { EntityTable } from "~/components/ui/entity-table";
 import { CheckOutlined, EditOutlined, InboxOutlined } from "@ant-design/icons";
 import Link from "next/link";
 
-import { api } from "~/trpc/react";
 import { StatusBadge } from "~/components/ui/status-badge";
 import { toastMutationOptions } from "~/lib/mutation-utils";
 
@@ -23,28 +26,40 @@ interface Props {
 }
 
 export function AdminCoursesTable({ courses: initialCourses }: Props) {
+  const trpc = useTRPC();
   const { message: messageApi } = App.useApp();
   const { token } = theme.useToken();
-  const utils = api.useUtils();
+  const queryClient = useQueryClient();
 
-  const { data: courses = initialCourses, isLoading } =
-    api.course.listAll.useQuery({ page: 1, limit: 50 });
+  const { data: courses = initialCourses, isLoading } = useQuery(
+    trpc.course.listAll.queryOptions({ page: 1, limit: 50 }),
+  );
 
-  const publishCourse = api.course.publish.useMutation({
-    ...toastMutationOptions({
-      messageApi,
-      successMessage: "Course published!",
-      invalidate: () => utils.course.listAll.invalidate(),
+  const publishCourse = useMutation(
+    trpc.course.publish.mutationOptions({
+      ...toastMutationOptions({
+        messageApi,
+        successMessage: "Course published!",
+        invalidate: () =>
+          queryClient.invalidateQueries({
+            queryKey: trpc.course.listAll.queryKey(),
+          }),
+      }),
     }),
-  });
+  );
 
-  const archiveCourse = api.course.archive.useMutation({
-    ...toastMutationOptions({
-      messageApi,
-      successMessage: "Course archived.",
-      invalidate: () => utils.course.listAll.invalidate(),
+  const archiveCourse = useMutation(
+    trpc.course.archive.mutationOptions({
+      ...toastMutationOptions({
+        messageApi,
+        successMessage: "Course archived.",
+        invalidate: () =>
+          queryClient.invalidateQueries({
+            queryKey: trpc.course.listAll.queryKey(),
+          }),
+      }),
     }),
-  });
+  );
 
   const columns: ColumnsType<Course> = [
     {
@@ -132,10 +147,9 @@ export function AdminCoursesTable({ courses: initialCourses }: Props) {
 
   return (
     <>
-      <Table
+      <EntityTable
         dataSource={courses}
         columns={columns}
-        rowKey="id"
         loading={isLoading}
         pagination={{ pageSize: 20, hideOnSinglePage: true }}
         locale={{ emptyText: "No courses found." }}

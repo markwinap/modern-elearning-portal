@@ -1,6 +1,7 @@
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
 
+import { env } from "~/env";
 import { getSession } from "~/server/better-auth/server";
 
 export async function POST(request: Request): Promise<NextResponse> {
@@ -31,7 +32,9 @@ export async function POST(request: Request): Promise<NextResponse> {
         // The blob URL is returned directly to the client from the upload call.
         // This callback is used for post-upload server-side work (e.g. DB writes).
         // In this flow the form itself saves coverImageUrl, so no DB write needed here.
-        console.log("Cover image upload completed", blob.url, tokenPayload);
+        if (env.NODE_ENV === "development") {
+          console.log("Cover image upload completed", blob.url, tokenPayload);
+        }
       },
     });
 

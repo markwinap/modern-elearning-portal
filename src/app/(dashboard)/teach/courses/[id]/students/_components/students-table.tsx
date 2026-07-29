@@ -1,9 +1,11 @@
 "use client";
+import { useMutation } from "@tanstack/react-query";
+import { useTRPC } from "~/trpc/react";
 
-import { Select, Table, Tag, Typography, message } from "antd";
+import { Select, Tag, Typography, message } from "antd";
 import type { ColumnsType } from "antd/es/table";
 
-import { api } from "~/trpc/react";
+import { EntityTable } from "~/components/ui/entity-table";
 
 interface Student {
   enrollmentId: number;
@@ -19,12 +21,15 @@ interface Props {
 }
 
 export function StudentsTable({ students }: Props) {
+  const trpc = useTRPC();
   const [messageApi, contextHolder] = message.useMessage();
 
-  const updateStatus = api.enrollment.updateStatus.useMutation({
-    onSuccess: () => messageApi.success("Status updated"),
-    onError: (err) => messageApi.error(err.message),
-  });
+  const updateStatus = useMutation(
+    trpc.enrollment.updateStatus.mutationOptions({
+      onSuccess: () => messageApi.success("Status updated"),
+      onError: (err) => messageApi.error(err.message),
+    }),
+  );
 
   const columns: ColumnsType<Student> = [
     {
@@ -92,7 +97,7 @@ export function StudentsTable({ students }: Props) {
           {students.length} student{students.length !== 1 ? "s" : ""} enrolled
         </Typography.Text>
       </div>
-      <Table
+      <EntityTable
         dataSource={students}
         columns={columns}
         rowKey="enrollmentId"

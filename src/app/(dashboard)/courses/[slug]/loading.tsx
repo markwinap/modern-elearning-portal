@@ -1,5 +1,5 @@
-import { LoadingSkeleton } from "./_components/loading-skeleton";
+import { ServerSkeleton } from "~/components/ui/server-skeleton";
 
 export default function Loading() {
-  return <LoadingSkeleton />;
+  return <ServerSkeleton />;
 }

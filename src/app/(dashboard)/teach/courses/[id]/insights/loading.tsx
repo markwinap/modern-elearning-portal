@@ -1,5 +1,5 @@
-import { Skeleton } from "antd";
+import { ServerSkeleton } from "~/components/ui/server-skeleton";
 
 export default function Loading() {
-  return <Skeleton active paragraph={{ rows: 8 }} />;
+  return <ServerSkeleton />;
 }

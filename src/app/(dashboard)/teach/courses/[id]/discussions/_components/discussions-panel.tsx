@@ -1,4 +1,6 @@
 "use client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTRPC } from "~/trpc/react";
 
 import { useState } from "react";
 import {
@@ -23,7 +25,6 @@ import {
   UserOutlined,
 } from "@ant-design/icons";
 
-import { api } from "~/trpc/react";
 
 interface Props {
   courseId: number;
@@ -43,40 +44,41 @@ interface Message {
 }
 
 export function DiscussionsPanel({ courseId }: Props) {
+  const trpc = useTRPC();
   const [messageApi, contextHolder] = message.useMessage();
   const [activeThread, setActiveThread] = useState<Thread | null>(null);
   const [newThreadOpen, setNewThreadOpen] = useState(false);
   const [threadForm] = Form.useForm<{ subject: string }>();
   const [replyText, setReplyText] = useState("");
-  const utils = api.useUtils();
+  const queryClient = useQueryClient();
   const { token } = theme.useToken();
 
   const { data: threads = [], isLoading: threadsLoading } =
-    api.message.listByCourse.useQuery({ courseId });
+    useQuery(trpc.message.listByCourse.queryOptions({ courseId }));
 
-  const { data: threadMessages = [] } = api.message.getMessages.useQuery(
+  const { data: threadMessages = [] } = useQuery(trpc.message.getMessages.queryOptions(
     { threadId: activeThread?.id ?? 0 },
     { enabled: !!activeThread },
-  );
+  ));
 
-  const createThread = api.message.createThread.useMutation({
+  const createThread = useMutation(trpc.message.createThread.mutationOptions({
     onSuccess: (thread) => {
-      void utils.message.listByCourse.invalidate({ courseId });
+      void queryClient.invalidateQueries({ queryKey: trpc.message.listByCourse.queryKey({ courseId }) });
       setNewThreadOpen(false);
       threadForm.resetFields();
       setActiveThread(thread ?? null);
       messageApi.success("Thread created!");
     },
     onError: (err) => messageApi.error(err.message),
-  });
+  }));
 
-  const sendMessage = api.message.sendMessage.useMutation({
+  const sendMessage = useMutation(trpc.message.sendMessage.mutationOptions({
     onSuccess: () => {
-      void utils.message.getMessages.invalidate({ threadId: activeThread?.id });
+      void queryClient.invalidateQueries({ queryKey: trpc.message.getMessages.queryKey({ threadId: activeThread?.id }) });
       setReplyText("");
     },
     onError: (err) => messageApi.error(err.message),
-  });
+  }));
 
   return (
     <>

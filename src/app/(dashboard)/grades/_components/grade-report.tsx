@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Card, Progress, Space, Table, Tag, Typography } from "antd";
+import { Card, Progress, Space, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { BookOutlined } from "@ant-design/icons";
 import type { inferRouterOutputs } from "@trpc/server";
+
+import { EntityTable } from "~/components/ui/entity-table";
 
 import type { AppRouter } from "~/server/api/root";
 
@@ -149,7 +151,7 @@ function CourseCard({ course }: { course: GradeSummary["courses"][number] }) {
         {course.breakdown.length > 0 && (
           <>
             <Typography.Text strong>Category Breakdown</Typography.Text>
-            <Table
+            <EntityTable
               size="small"
               pagination={false}
               dataSource={course.breakdown}
@@ -162,11 +164,10 @@ function CourseCard({ course }: { course: GradeSummary["courses"][number] }) {
         )}
 
         <Typography.Text strong>Assignments</Typography.Text>
-        <Table
+        <EntityTable
           size="small"
           dataSource={course.grades}
           columns={columns}
-          rowKey="id"
           pagination={false}
         />
       </Space>

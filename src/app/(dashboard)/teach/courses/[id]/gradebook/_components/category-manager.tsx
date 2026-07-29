@@ -1,4 +1,6 @@
 "use client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTRPC } from "~/trpc/react";
 
 import { useMemo, useState } from "react";
 import {
@@ -15,7 +17,6 @@ import {
 } from "antd";
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 
-import { api } from "~/trpc/react";
 
 interface Props {
   courseId: number;
@@ -28,13 +29,14 @@ interface CategoryFormValues {
 }
 
 export function CategoryManager({ courseId }: Props) {
+  const trpc = useTRPC();
   const [messageApi, contextHolder] = message.useMessage();
   const [open, setOpen] = useState(false);
   const [form] = Form.useForm<CategoryFormValues>();
-  const utils = api.useUtils();
+  const queryClient = useQueryClient();
 
   const { data: categories = [], isLoading } =
-    api.gradebook.listCategories.useQuery({ courseId });
+    useQuery(trpc.gradebook.listCategories.queryOptions({ courseId }));
 
   const totalWeight = useMemo(
     () => (categories ?? []).reduce((sum, c) => sum + c.weight, 0),
@@ -42,24 +44,24 @@ export function CategoryManager({ courseId }: Props) {
   );
   const remainingWeight = Math.max(0, 100 - totalWeight);
 
-  const createCategory = api.gradebook.createCategory.useMutation({
+  const createCategory = useMutation(trpc.gradebook.createCategory.mutationOptions({
     onSuccess: () => {
-      void utils.gradebook.listCategories.invalidate({ courseId });
-      void utils.gradebook.getCourseGradeSummary.invalidate({ courseId });
+      void queryClient.invalidateQueries({ queryKey: trpc.gradebook.listCategories.queryKey({ courseId }) });
+      void queryClient.invalidateQueries({ queryKey: trpc.gradebook.getCourseGradeSummary.queryKey({ courseId }) });
       form.resetFields();
       messageApi.success("Category added");
     },
     onError: (err) => messageApi.error(err.message),
-  });
+  }));
 
-  const deleteCategory = api.gradebook.deleteCategory.useMutation({
+  const deleteCategory = useMutation(trpc.gradebook.deleteCategory.mutationOptions({
     onSuccess: () => {
-      void utils.gradebook.listCategories.invalidate({ courseId });
-      void utils.gradebook.getCourseGradeSummary.invalidate({ courseId });
+      void queryClient.invalidateQueries({ queryKey: trpc.gradebook.listCategories.queryKey({ courseId }) });
+      void queryClient.invalidateQueries({ queryKey: trpc.gradebook.getCourseGradeSummary.queryKey({ courseId }) });
       messageApi.success("Category deleted");
     },
     onError: (err) => messageApi.error(err.message),
-  });
+  }));
 
   return (
     <>

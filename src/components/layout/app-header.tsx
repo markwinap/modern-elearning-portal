@@ -6,14 +6,23 @@ import {
   SettingOutlined,
   UserOutlined,
 } from "@ant-design/icons";
-import { Avatar, Badge, Button, Dropdown, Layout, Space, theme } from "antd";
+import {
+  Avatar,
+  Badge,
+  Button,
+  Dropdown,
+  Layout,
+  Space,
+  Typography,
+  theme,
+} from "antd";
 import type { MenuProps } from "antd";
-import Text from "antd/es/typography/Text";
 import { useRouter } from "next/navigation";
 
 import { authClient } from "~/server/better-auth/client";
 import { ThemeToggle } from "~/components/theme/theme-toggle";
-import { api } from "~/trpc/react";
+import { useQuery } from "@tanstack/react-query";
+import { useTRPC } from "~/trpc/react";
 
 interface AppHeaderProps {
   userName: string;
@@ -26,14 +35,16 @@ export function AppHeader({
   userImage,
   unreadNotifications = 0,
 }: AppHeaderProps) {
+  const trpc = useTRPC();
   const router = useRouter();
   const { data: session } = authClient.useSession();
   const { token } = theme.useToken();
-  const { data: unreadCount = unreadNotifications } =
-    api.notification.getUnreadCount.useQuery(undefined, {
+  const { data: unreadCount = unreadNotifications } = useQuery(
+    trpc.notification.getUnreadCount.queryOptions(undefined, {
       initialData: unreadNotifications,
       refetchInterval: 15_000,
-    });
+    }),
+  );
 
   const userMenuItems: MenuProps["items"] = [
     {
@@ -109,7 +120,7 @@ export function AppHeader({
               size={32}
               style={{ backgroundColor: token.colorPrimary }}
             />
-            <Text>{session?.user?.name ?? userName}</Text>
+            <Typography.Text>{session?.user?.name ?? userName}</Typography.Text>
           </Space>
         </Dropdown>
       </Space>

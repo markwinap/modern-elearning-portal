@@ -1,4 +1,6 @@
 "use client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTRPC } from "~/trpc/react";
 
 import { useState } from "react";
 import {
@@ -9,15 +11,14 @@ import {
   Modal,
   Popconfirm,
   Select,
-  Table,
   Tag,
   Typography,
   message,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { StopOutlined, CheckCircleOutlined } from "@ant-design/icons";
 
-import { api } from "~/trpc/react";
+import { EntityTable } from "~/components/ui/entity-table";
+import { StopOutlined, CheckCircleOutlined } from "@ant-design/icons";
 
 interface User {
   id: string;
@@ -33,40 +34,53 @@ interface Props {
 }
 
 export function UsersTable({ users: initialUsers }: Props) {
+  const trpc = useTRPC();
   const [messageApi, contextHolder] = message.useMessage();
   const [banTarget, setBanTarget] = useState<User | null>(null);
   const [banForm] = Form.useForm<{ reason: string }>();
-  const utils = api.useUtils();
+  const queryClient = useQueryClient();
 
-  const { data: users = initialUsers, isLoading } = api.user.listUsers.useQuery(
-    { page: 1, limit: 50 },
+  const { data: users = initialUsers, isLoading } = useQuery(
+    trpc.user.listUsers.queryOptions({ page: 1, limit: 50 }),
   );
 
-  const setRole = api.user.setRole.useMutation({
-    onSuccess: () => {
-      void utils.user.listUsers.invalidate();
-      messageApi.success("Role updated");
-    },
-    onError: (err) => messageApi.error(err.message),
-  });
+  const setRole = useMutation(
+    trpc.user.setRole.mutationOptions({
+      onSuccess: () => {
+        void queryClient.invalidateQueries({
+          queryKey: trpc.user.listUsers.queryKey(),
+        });
+        messageApi.success("Role updated");
+      },
+      onError: (err) => messageApi.error(err.message),
+    }),
+  );
 
-  const banUser = api.user.banUser.useMutation({
-    onSuccess: () => {
-      void utils.user.listUsers.invalidate();
-      setBanTarget(null);
-      banForm.resetFields();
-      messageApi.success("User banned");
-    },
-    onError: (err) => messageApi.error(err.message),
-  });
+  const banUser = useMutation(
+    trpc.user.banUser.mutationOptions({
+      onSuccess: () => {
+        void queryClient.invalidateQueries({
+          queryKey: trpc.user.listUsers.queryKey(),
+        });
+        setBanTarget(null);
+        banForm.resetFields();
+        messageApi.success("User banned");
+      },
+      onError: (err) => messageApi.error(err.message),
+    }),
+  );
 
-  const unbanUser = api.user.unbanUser.useMutation({
-    onSuccess: () => {
-      void utils.user.listUsers.invalidate();
-      messageApi.success("User unbanned");
-    },
-    onError: (err) => messageApi.error(err.message),
-  });
+  const unbanUser = useMutation(
+    trpc.user.unbanUser.mutationOptions({
+      onSuccess: () => {
+        void queryClient.invalidateQueries({
+          queryKey: trpc.user.listUsers.queryKey(),
+        });
+        messageApi.success("User unbanned");
+      },
+      onError: (err) => messageApi.error(err.message),
+    }),
+  );
 
   const columns: ColumnsType<User> = [
     {
@@ -148,7 +162,7 @@ export function UsersTable({ users: initialUsers }: Props) {
   return (
     <>
       {contextHolder}
-      <Table
+      <EntityTable
         dataSource={users}
         columns={columns}
         rowKey="id"

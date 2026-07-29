@@ -1,10 +1,11 @@
 "use client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTRPC } from "~/trpc/react";
 
 import { useState } from "react";
 import { Button, Card, Input, Space, Typography, message } from "antd";
 import { SaveOutlined } from "@ant-design/icons";
 
-import { api } from "~/trpc/react";
 
 interface Props {
   activityId: number;
@@ -12,17 +13,18 @@ interface Props {
 }
 
 export function PageEditor({ activityId, initialContent }: Props) {
+  const trpc = useTRPC();
   const [content, setContent] = useState(initialContent);
   const [messageApi, contextHolder] = message.useMessage();
-  const utils = api.useUtils();
+  const queryClient = useQueryClient();
 
-  const upsert = api.page.upsert.useMutation({
+  const upsert = useMutation(trpc.page.upsert.mutationOptions({
     onSuccess: () => {
-      void utils.page.getByActivity.invalidate({ activityId });
+      void queryClient.invalidateQueries({ queryKey: trpc.page.getByActivity.queryKey({ activityId }) });
       messageApi.success("Page content saved!");
     },
     onError: (err) => messageApi.error(err.message),
-  });
+  }));
 
   return (
     <>

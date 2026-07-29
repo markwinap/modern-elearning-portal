@@ -1,4 +1,6 @@
 "use client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTRPC } from "~/trpc/react";
 
 import {
   Button,
@@ -12,7 +14,6 @@ import {
 } from "antd";
 import { CheckOutlined, InboxOutlined } from "@ant-design/icons";
 
-import { api } from "~/trpc/react";
 import { CoverImageUpload } from "~/components/ui/cover-image-upload";
 import { StatusBadge } from "~/components/ui/status-badge";
 import { CourseSessionManager } from "./course-session-manager";
@@ -66,34 +67,35 @@ interface FormValues {
 }
 
 export function EditCourseForm({ course, categories, teachers }: Props) {
+  const trpc = useTRPC();
   const [form] = Form.useForm<FormValues>();
   const locationType = Form.useWatch<"online" | "onsite">("locationType", form);
   const { message } = App.useApp();
-  const utils = api.useUtils();
+  const queryClient = useQueryClient();
 
-  const updateCourse = api.course.update.useMutation({
+  const updateCourse = useMutation(trpc.course.update.mutationOptions({
     onSuccess: () => {
       void message.success("Course updated!");
-      void utils.course.getMyCourses.invalidate();
+      void queryClient.invalidateQueries({ queryKey: trpc.course.getMyCourses.queryKey() });
     },
     onError: (err) => void message.error(err.message),
-  });
+  }));
 
-  const publishCourse = api.course.publish.useMutation({
+  const publishCourse = useMutation(trpc.course.publish.mutationOptions({
     onSuccess: () => {
       void message.success("Course published!");
-      void utils.course.getMyCourses.invalidate();
+      void queryClient.invalidateQueries({ queryKey: trpc.course.getMyCourses.queryKey() });
     },
     onError: (err) => void message.error(err.message),
-  });
+  }));
 
-  const archiveCourse = api.course.archive.useMutation({
+  const archiveCourse = useMutation(trpc.course.archive.mutationOptions({
     onSuccess: () => {
       void message.success("Course archived.");
-      void utils.course.getMyCourses.invalidate();
+      void queryClient.invalidateQueries({ queryKey: trpc.course.getMyCourses.queryKey() });
     },
     onError: (err) => void message.error(err.message),
-  });
+  }));
 
   return (
     <>

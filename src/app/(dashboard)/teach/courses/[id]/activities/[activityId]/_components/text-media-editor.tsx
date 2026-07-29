@@ -1,4 +1,6 @@
 "use client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTRPC } from "~/trpc/react";
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
@@ -6,7 +8,6 @@ import { Button, Card, Space, Typography, message } from "antd";
 import { SaveOutlined } from "@ant-design/icons";
 import "@mdxeditor/editor/style.css";
 
-import { api } from "~/trpc/react";
 
 // Dynamically import to avoid SSR issues — MDXEditor uses browser-only APIs
 const MDXEditor = dynamic(
@@ -79,17 +80,18 @@ interface Props {
 }
 
 export function TextMediaEditor({ activityId, initialContent }: Props) {
+  const trpc = useTRPC();
   const [content, setContent] = useState(initialContent);
   const [messageApi, contextHolder] = message.useMessage();
-  const utils = api.useUtils();
+  const queryClient = useQueryClient();
 
-  const upsert = api.textMedia.upsert.useMutation({
+  const upsert = useMutation(trpc.textMedia.upsert.mutationOptions({
     onSuccess: () => {
-      void utils.textMedia.getByActivity.invalidate({ activityId });
+      void queryClient.invalidateQueries({ queryKey: trpc.textMedia.getByActivity.queryKey({ activityId }) });
       messageApi.success("Content saved!");
     },
     onError: (err) => messageApi.error(err.message),
-  });
+  }));
 
   return (
     <>

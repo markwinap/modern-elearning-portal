@@ -1,4 +1,6 @@
 "use client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTRPC } from "~/trpc/react";
 
 import { useState } from "react";
 import {
@@ -19,7 +21,6 @@ import {
   NotificationOutlined,
 } from "@ant-design/icons";
 
-import { api } from "~/trpc/react";
 
 interface Announcement {
   id: number;
@@ -39,32 +40,33 @@ interface FormValues {
 }
 
 export function AnnouncementsPanel({ courseId, initialAnnouncements }: Props) {
+  const trpc = useTRPC();
   const [messageApi, contextHolder] = message.useMessage();
   const [showForm, setShowForm] = useState(false);
   const [form] = Form.useForm<FormValues>();
-  const utils = api.useUtils();
+  const queryClient = useQueryClient();
   const { token } = theme.useToken();
 
   const { data: announcements = initialAnnouncements, isLoading } =
-    api.announcement.listByCourse.useQuery({ courseId });
+    useQuery(trpc.announcement.listByCourse.queryOptions({ courseId }));
 
-  const create = api.announcement.create.useMutation({
+  const create = useMutation(trpc.announcement.create.mutationOptions({
     onSuccess: () => {
-      void utils.announcement.listByCourse.invalidate({ courseId });
+      void queryClient.invalidateQueries({ queryKey: trpc.announcement.listByCourse.queryKey({ courseId }) });
       form.resetFields();
       setShowForm(false);
       messageApi.success("Announcement posted!");
     },
     onError: (err) => messageApi.error(err.message),
-  });
+  }));
 
-  const remove = api.announcement.delete.useMutation({
+  const remove = useMutation(trpc.announcement.delete.mutationOptions({
     onSuccess: () => {
-      void utils.announcement.listByCourse.invalidate({ courseId });
+      void queryClient.invalidateQueries({ queryKey: trpc.announcement.listByCourse.queryKey({ courseId }) });
       messageApi.success("Deleted.");
     },
     onError: (err) => messageApi.error(err.message),
-  });
+  }));
 
   return (
     <>

@@ -1,9 +1,11 @@
 "use client";
+import { useQuery } from "@tanstack/react-query";
+import { useTRPC } from "~/trpc/react";
 
-import { Card, Col, Row, Space, Statistic, Table, Tag, Typography } from "antd";
+import { Card, Col, Row, Space, Statistic, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 
-import { api } from "~/trpc/react";
+import { EntityTable } from "~/components/ui/entity-table";
 
 interface Props {
   activityId: number;
@@ -43,10 +45,13 @@ function discriminationTag(d: number) {
 }
 
 export function QuestionInsightsView({ activityId }: Props) {
-  const { data: questionInsights = [], isLoading: questionsLoading } =
-    api.quiz.getQuestionInsights.useQuery({ activityId });
-  const { data: testInsights, isLoading: testLoading } =
-    api.quiz.getTestInsights.useQuery({ activityId });
+  const trpc = useTRPC();
+  const { data: questionInsights = [], isLoading: questionsLoading } = useQuery(
+    trpc.quiz.getQuestionInsights.queryOptions({ activityId }),
+  );
+  const { data: testInsights, isLoading: testLoading } = useQuery(
+    trpc.quiz.getTestInsights.queryOptions({ activityId }),
+  );
 
   const columns: ColumnsType<QuestionInsight> = [
     {
@@ -150,7 +155,7 @@ export function QuestionInsightsView({ activityId }: Props) {
 
       {/* Question-level table */}
       <Card title="Per-Question Insights">
-        <Table<QuestionInsight>
+        <EntityTable<QuestionInsight>
           dataSource={questionInsights}
           columns={columns}
           rowKey="questionId"

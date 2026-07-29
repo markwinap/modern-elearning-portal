@@ -1,4 +1,6 @@
 "use client";
+import { useQuery } from "@tanstack/react-query";
+import { useTRPC } from "~/trpc/react";
 
 import { useEffect, useState } from "react";
 import {
@@ -19,7 +21,6 @@ import { EnvironmentOutlined, SearchOutlined } from "@ant-design/icons";
 import Image from "next/image";
 import Link from "next/link";
 
-import { api } from "~/trpc/react";
 import { EmptyState } from "~/components/ui/empty-state";
 import { PageHeader } from "~/components/ui/page-header";
 
@@ -48,6 +49,7 @@ interface Props {
 }
 
 export function CourseCatalog({ initialCourses, categories }: Props) {
+  const trpc = useTRPC();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
@@ -60,16 +62,16 @@ export function CourseCatalog({ initialCourses, categories }: Props) {
     return () => clearTimeout(t);
   }, [search]);
 
-  const { data: courses = initialCourses, isFetching } =
-    api.course.list.useQuery(
-      { page, limit, categoryId, search: debouncedSearch || undefined },
-      {
-        initialData:
-          page === 1 && !categoryId && !debouncedSearch
-            ? initialCourses
-            : undefined,
-      },
-    );
+  const courseQuery = trpc.course.list.queryOptions(
+    { page, limit, categoryId, search: debouncedSearch || undefined },
+    {
+      initialData:
+        page === 1 && !categoryId && !debouncedSearch
+          ? initialCourses
+          : undefined,
+    },
+  );
+  const { data: courses = initialCourses, isFetching } = useQuery(courseQuery);
 
   const categoryOptions = [
     { value: 0, label: "All Categories" },
@@ -125,7 +127,6 @@ export function CourseCatalog({ initialCourses, categories }: Props) {
                             src={course.coverImageUrl}
                             alt={course.title}
                             fill
-                            unoptimized
                             style={{ objectFit: "cover" }}
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                           />

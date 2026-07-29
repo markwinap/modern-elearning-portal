@@ -1,4 +1,6 @@
 "use client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTRPC } from "~/trpc/react";
 
 import { useState } from "react";
 import {
@@ -14,7 +16,6 @@ import {
 } from "antd";
 import Link from "next/link";
 
-import { api } from "~/trpc/react";
 import { PageHeader } from "~/components/ui/page-header";
 
 interface NotificationItem {
@@ -115,44 +116,45 @@ function toTemplate(item: NotificationItem): NotificationTemplate {
 }
 
 export function NotificationsList({ initialNotifications }: Props) {
+  const trpc = useTRPC();
   const [unreadOnly, setUnreadOnly] = useState(false);
   const { message } = App.useApp();
-  const utils = api.useUtils();
+  const queryClient = useQueryClient();
   const { token } = theme.useToken();
 
   const { data: notifications = initialNotifications, isLoading } =
-    api.notification.getMyNotifications.useQuery(
+    useQuery(trpc.notification.getMyNotifications.queryOptions(
       { unreadOnly },
       {
         placeholderData: (previousData) => previousData ?? initialNotifications,
         refetchInterval: 20_000,
       },
-    );
+    ));
 
-  const markRead = api.notification.markRead.useMutation({
+  const markRead = useMutation(trpc.notification.markRead.mutationOptions({
     onSuccess: async () => {
       await Promise.all([
-        utils.notification.getMyNotifications.invalidate(),
-        utils.notification.getUnreadCount.invalidate(),
+        queryClient.invalidateQueries({ queryKey: trpc.notification.getMyNotifications.queryKey() }),
+        queryClient.invalidateQueries({ queryKey: trpc.notification.getUnreadCount.queryKey() }),
       ]);
     },
     onError: (error) => {
       message.error(error.message);
     },
-  });
+  }));
 
-  const markAllRead = api.notification.markAllRead.useMutation({
+  const markAllRead = useMutation(trpc.notification.markAllRead.mutationOptions({
     onSuccess: async () => {
       message.success("All notifications marked as read.");
       await Promise.all([
-        utils.notification.getMyNotifications.invalidate(),
-        utils.notification.getUnreadCount.invalidate(),
+        queryClient.invalidateQueries({ queryKey: trpc.notification.getMyNotifications.queryKey() }),
+        queryClient.invalidateQueries({ queryKey: trpc.notification.getUnreadCount.queryKey() }),
       ]);
     },
     onError: (error) => {
       message.error(error.message);
     },
-  });
+  }));
 
   const unreadCount = notifications.filter((item) => !item.readAt).length;
 

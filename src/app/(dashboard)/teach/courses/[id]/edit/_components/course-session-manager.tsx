@@ -1,4 +1,6 @@
 "use client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTRPC } from "~/trpc/react";
 
 import {
   App,
@@ -8,13 +10,13 @@ import {
   Popconfirm,
   Select,
   Space,
-  Table,
   Typography,
 } from "antd";
 import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 
-import { api } from "~/trpc/react";
+import { EntityTable } from "~/components/ui/entity-table";
 import { FormModal } from "~/components/ui/form-modal";
+import { ToolbarRow } from "~/components/ui/toolbar-row";
 import { toastMutationOptions } from "~/lib/mutation-utils";
 import { useCrudModal } from "~/lib/use-crud-modal";
 
@@ -62,6 +64,7 @@ function formatTime(time: string) {
 }
 
 export function CourseSessionManager({ courseId }: Props) {
+  const trpc = useTRPC();
   const [form] = Form.useForm<SessionFormValues>();
   const {
     isOpen,
@@ -71,43 +74,60 @@ export function CourseSessionManager({ courseId }: Props) {
     close,
   } = useCrudModal<CourseSession>();
   const { message } = App.useApp();
-  const utils = api.useUtils();
+  const queryClient = useQueryClient();
 
-  const { data: sessions = [] } = api.course.session.list.useQuery({
-    courseId,
-  });
-
-  const createSession = api.course.session.create.useMutation({
-    ...toastMutationOptions({
-      messageApi: message,
-      successMessage: "Session created.",
-      invalidate: () => utils.course.session.list.invalidate({ courseId }),
-      onSuccess: () => {
-        close();
-        form.resetFields();
-      },
+  const { data: sessions = [] } = useQuery(
+    trpc.course.session.list.queryOptions({
+      courseId,
     }),
-  });
+  );
 
-  const updateSession = api.course.session.update.useMutation({
-    ...toastMutationOptions({
-      messageApi: message,
-      successMessage: "Session updated.",
-      invalidate: () => utils.course.session.list.invalidate({ courseId }),
-      onSuccess: () => {
-        close();
-        form.resetFields();
-      },
+  const createSession = useMutation(
+    trpc.course.session.create.mutationOptions({
+      ...toastMutationOptions({
+        messageApi: message,
+        successMessage: "Session created.",
+        invalidate: () =>
+          queryClient.invalidateQueries({
+            queryKey: trpc.course.session.list.queryKey({ courseId }),
+          }),
+        onSuccess: () => {
+          close();
+          form.resetFields();
+        },
+      }),
     }),
-  });
+  );
 
-  const deleteSession = api.course.session.delete.useMutation({
-    ...toastMutationOptions({
-      messageApi: message,
-      successMessage: "Session deleted.",
-      invalidate: () => utils.course.session.list.invalidate({ courseId }),
+  const updateSession = useMutation(
+    trpc.course.session.update.mutationOptions({
+      ...toastMutationOptions({
+        messageApi: message,
+        successMessage: "Session updated.",
+        invalidate: () =>
+          queryClient.invalidateQueries({
+            queryKey: trpc.course.session.list.queryKey({ courseId }),
+          }),
+        onSuccess: () => {
+          close();
+          form.resetFields();
+        },
+      }),
     }),
-  });
+  );
+
+  const deleteSession = useMutation(
+    trpc.course.session.delete.mutationOptions({
+      ...toastMutationOptions({
+        messageApi: message,
+        successMessage: "Session deleted.",
+        invalidate: () =>
+          queryClient.invalidateQueries({
+            queryKey: trpc.course.session.list.queryKey({ courseId }),
+          }),
+      }),
+    }),
+  );
 
   function openAdd() {
     form.resetFields();
@@ -150,20 +170,22 @@ export function CourseSessionManager({ courseId }: Props) {
 
   return (
     <div style={{ marginTop: 24 }}>
-      <Typography.Title level={5}>On-Site Sessions</Typography.Title>
-      <Button
-        type="primary"
-        icon={<PlusOutlined />}
-        onClick={openAdd}
-        style={{ marginBottom: 12 }}
-      >
-        Add Session
-      </Button>
-      <Table
+      <ToolbarRow
+        left={
+          <Typography.Title level={5} style={{ margin: 0 }}>
+            On-Site Sessions
+          </Typography.Title>
+        }
+        right={
+          <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>
+            Add Session
+          </Button>
+        }
+      />
+      <EntityTable
         size="small"
         pagination={false}
         dataSource={sessions}
-        rowKey="id"
         columns={[
           {
             title: "Day",

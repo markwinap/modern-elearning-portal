@@ -1,4 +1,6 @@
 "use client";
+import { useMutation } from "@tanstack/react-query";
+import { useTRPC } from "~/trpc/react";
 
 import { useState } from "react";
 import {
@@ -12,7 +14,6 @@ import {
   Modal,
   Row,
   Space,
-  Table,
   Tag,
   Typography,
   message,
@@ -28,7 +29,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { api } from "~/trpc/react";
+import { EntityTable } from "~/components/ui/entity-table";
 
 interface CourseSession {
   id: number;
@@ -70,19 +71,22 @@ interface Props {
 }
 
 export function CourseDetailClient({ course, enrollment }: Props) {
+  const trpc = useTRPC();
   const router = useRouter();
   const [messageApi, contextHolder] = message.useMessage();
   const { token } = theme.useToken();
   const [accessKeyModalOpen, setAccessKeyModalOpen] = useState(false);
   const [accessKeyInput, setAccessKeyInput] = useState("");
 
-  const enrollMutation = api.enrollment.enroll.useMutation({
-    onSuccess: () => {
-      messageApi.success("Enrolled successfully!");
-      router.push(`/courses/${course.slug}/learn`);
-    },
-    onError: (err) => messageApi.error(err.message),
-  });
+  const enrollMutation = useMutation(
+    trpc.enrollment.enroll.mutationOptions({
+      onSuccess: () => {
+        messageApi.success("Enrolled successfully!");
+        router.push(`/courses/${course.slug}/learn`);
+      },
+      onError: (err) => messageApi.error(err.message),
+    }),
+  );
 
   function handleEnroll() {
     if (course.accessKey) {
@@ -294,11 +298,10 @@ export function CourseDetailClient({ course, enrollment }: Props) {
                     <Typography.Text strong>
                       <ClockCircleOutlined /> Schedule
                     </Typography.Text>
-                    <Table
+                    <EntityTable
                       size="small"
                       pagination={false}
                       dataSource={course.sessions}
-                      rowKey="id"
                       columns={[
                         {
                           title: "Day",

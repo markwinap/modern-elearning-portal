@@ -1,7 +1,5 @@
-"use client";
-
-import { CardGridSkeleton } from "~/components/ui/skeleton-card-grid";
+import { ServerSkeleton } from "~/components/ui/server-skeleton";
 
 export default function Loading() {
-  return <CardGridSkeleton titleWidth={200} />;
+  return <ServerSkeleton />;
 }

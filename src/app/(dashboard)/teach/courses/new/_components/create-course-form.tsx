@@ -1,9 +1,10 @@
 "use client";
+import { useMutation } from "@tanstack/react-query";
+import { useTRPC } from "~/trpc/react";
 
 import { Button, Form, Input, InputNumber, Select, App } from "antd";
 import { useRouter } from "next/navigation";
 
-import { api } from "~/trpc/react";
 import { CoverImageUpload } from "~/components/ui/cover-image-upload";
 
 interface Category {
@@ -29,18 +30,19 @@ interface FormValues {
 }
 
 export function CreateCourseForm({ categories }: Props) {
+  const trpc = useTRPC();
   const [form] = Form.useForm<FormValues>();
   const locationType = Form.useWatch<"online" | "onsite">("locationType", form);
   const { message } = App.useApp();
   const router = useRouter();
 
-  const createCourse = api.course.create.useMutation({
+  const createCourse = useMutation(trpc.course.create.mutationOptions({
     onSuccess: (course) => {
       void message.success("Course created!");
       router.push(`/teach/courses/${course!.id}/edit`);
     },
     onError: (err) => void message.error(err.message),
-  });
+  }));
 
   return (
     <>

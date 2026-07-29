@@ -1,22 +1,17 @@
 "use client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTRPC } from "~/trpc/react";
 
-import { useState } from "react";
-import {
-  App,
-  Button,
-  Form,
-  Input,
-  Popconfirm,
-  Space,
-  Table,
-  Typography,
-} from "antd";
+import { useEffect } from "react";
+import { App, Button, Form, Input, Popconfirm, Space, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 
-import { api } from "~/trpc/react";
+import { EntityTable } from "~/components/ui/entity-table";
 import { FormModal } from "~/components/ui/form-modal";
+import { ToolbarRow } from "~/components/ui/toolbar-row";
 import { toastMutationOptions } from "~/lib/mutation-utils";
+import { useCrudModal } from "~/lib/use-crud-modal";
 
 interface Category {
   id: number;
@@ -29,63 +24,77 @@ interface Props {
   categories: Category[];
 }
 
-interface CreateFormValues {
-  name: string;
-  description: string;
-}
-
-interface EditFormValues {
+interface CategoryFormValues {
   name: string;
   description: string;
 }
 
 export function CategoriesManager({ categories: initialCategories }: Props) {
+  const trpc = useTRPC();
   const { message: messageApi } = App.useApp();
-  const [createOpen, setCreateOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<Category | null>(null);
-  const [createForm] = Form.useForm<CreateFormValues>();
-  const [editForm] = Form.useForm<EditFormValues>();
-  const utils = api.useUtils();
+  const modal = useCrudModal<Category>();
+  const [form] = Form.useForm<CategoryFormValues>();
+  const queryClient = useQueryClient();
 
-  const { data: categories = initialCategories, isLoading } =
-    api.category.list.useQuery();
+  const { data: categories = initialCategories, isLoading } = useQuery(
+    trpc.category.list.queryOptions(),
+  );
 
-  const createCategory = api.category.create.useMutation({
-    ...toastMutationOptions({
-      messageApi,
-      successMessage: "Category created!",
-      invalidate: () => utils.category.list.invalidate(),
-      onSuccess: () => {
-        setCreateOpen(false);
-        createForm.resetFields();
-      },
+  useEffect(() => {
+    if (!modal.isOpen) return;
+    if (modal.editing) {
+      form.setFieldsValue({
+        name: modal.editing.name,
+        description: modal.editing.description ?? "",
+      });
+    } else {
+      form.resetFields();
+    }
+  }, [modal.isOpen, modal.editing, form]);
+
+  const createCategory = useMutation(
+    trpc.category.create.mutationOptions({
+      ...toastMutationOptions({
+        messageApi,
+        successMessage: "Category created!",
+        invalidate: () =>
+          queryClient.invalidateQueries({
+            queryKey: trpc.category.list.queryKey(),
+          }),
+        onSuccess: () => {
+          modal.close();
+          form.resetFields();
+        },
+      }),
     }),
-  });
+  );
 
-  const updateCategory = api.category.update.useMutation({
-    ...toastMutationOptions({
-      messageApi,
-      successMessage: "Category updated!",
-      invalidate: () => utils.category.list.invalidate(),
-      onSuccess: () => setEditTarget(null),
+  const updateCategory = useMutation(
+    trpc.category.update.mutationOptions({
+      ...toastMutationOptions({
+        messageApi,
+        successMessage: "Category updated!",
+        invalidate: () =>
+          queryClient.invalidateQueries({
+            queryKey: trpc.category.list.queryKey(),
+          }),
+        onSuccess: () => modal.close(),
+      }),
     }),
-  });
+  );
 
-  const deleteCategory = api.category.delete.useMutation({
-    ...toastMutationOptions({
-      messageApi,
-      successMessage: "Category deleted.",
-      invalidate: () => utils.category.list.invalidate(),
+  const deleteCategory = useMutation(
+    trpc.category.delete.mutationOptions({
+      ...toastMutationOptions({
+        messageApi,
+        successMessage: "Category deleted.",
+        invalidate: () =>
+          queryClient.invalidateQueries({
+            queryKey: trpc.category.list.queryKey(),
+          }),
+      }),
     }),
-  });
-
-  function openEdit(cat: Category) {
-    setEditTarget(cat);
-    editForm.setFieldsValue({
-      name: cat.name,
-      description: cat.description ?? "",
-    });
-  }
+  );
 
   const columns: ColumnsType<Category> = [
     {
@@ -117,7 +126,7 @@ export function CategoriesManager({ categories: initialCategories }: Props) {
           <Button
             size="small"
             icon={<EditOutlined />}
-            onClick={() => openEdit(cat)}
+            onClick={() => modal.openEdit(cat)}
           />
           <Popconfirm
             title="Delete this category? This may affect courses."
@@ -139,72 +148,43 @@ export function CategoriesManager({ categories: initialCategories }: Props) {
 
   return (
     <>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          marginBottom: 16,
-        }}
-      >
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => setCreateOpen(true)}
-        >
-          New Category
-        </Button>
-      </div>
+      <ToolbarRow
+        right={
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => modal.openCreate()}
+          >
+            New Category
+          </Button>
+        }
+      />
 
-      <Table
+      <EntityTable
         dataSource={categories}
         columns={columns}
-        rowKey="id"
         loading={isLoading}
         pagination={{ pageSize: 20, hideOnSinglePage: true }}
         locale={{ emptyText: "No categories yet." }}
       />
 
       <FormModal
-        form={createForm}
-        title="New Category"
-        open={createOpen}
-        onCancel={() => {
-          setCreateOpen(false);
-          createForm.resetFields();
-        }}
-        confirmLoading={createCategory.isPending}
-        onFinish={(v: CreateFormValues) =>
-          createCategory.mutate({
+        form={form}
+        title={modal.editing ? `Edit "${modal.editing.name}"` : "New Category"}
+        open={modal.isOpen}
+        onCancel={() => modal.close()}
+        confirmLoading={
+          modal.editing ? updateCategory.isPending : createCategory.isPending
+        }
+        onFinish={(v: CategoryFormValues) => {
+          const values = {
             name: v.name,
             description: v.description || undefined,
-          })
-        }
-      >
-        <Form.Item
-          name="name"
-          label="Name"
-          rules={[{ required: true, min: 1 }]}
-        >
-          <Input />
-        </Form.Item>
-        <Form.Item name="description" label="Description">
-          <Input.TextArea rows={2} />
-        </Form.Item>
-      </FormModal>
-
-      <FormModal
-        form={editForm}
-        title={`Edit "${editTarget?.name ?? ""}"`}
-        open={!!editTarget}
-        onCancel={() => setEditTarget(null)}
-        confirmLoading={updateCategory.isPending}
-        onFinish={(v: EditFormValues) => {
-          if (editTarget) {
-            updateCategory.mutate({
-              id: editTarget.id,
-              name: v.name,
-              description: v.description || undefined,
-            });
+          };
+          if (modal.editing) {
+            updateCategory.mutate({ id: modal.editing.id, ...values });
+          } else {
+            createCategory.mutate(values);
           }
         }}
       >

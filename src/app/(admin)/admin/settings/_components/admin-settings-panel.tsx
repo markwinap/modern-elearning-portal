@@ -1,4 +1,6 @@
 "use client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTRPC } from "~/trpc/react";
 
 import { useState } from "react";
 import {
@@ -18,7 +20,6 @@ import {
   theme,
 } from "antd";
 
-import { api } from "~/trpc/react";
 
 interface AdminSettingsValues {
   platformName: string;
@@ -47,21 +48,22 @@ interface Props {
 }
 
 export function AdminSettingsPanel({ settings }: Props) {
+  const trpc = useTRPC();
   const [form] = Form.useForm<AdminSettingsValues>();
   const { message } = App.useApp();
   const { token } = theme.useToken();
-  const utils = api.useUtils();
+  const queryClient = useQueryClient();
   const [savedAt, setSavedAt] = useState<string | null>(null);
-  const updateSettings = api.settings.update.useMutation({
+  const updateSettings = useMutation(trpc.settings.update.mutationOptions({
     onSuccess: async () => {
       setSavedAt(new Date().toLocaleString());
       message.success("Settings saved.");
-      await utils.settings.get.invalidate();
+      await queryClient.invalidateQueries({ queryKey: trpc.settings.get.queryKey() });
     },
     onError: (error) => {
       message.error(error.message);
     },
-  });
+  }));
 
   function handleSave(values: AdminSettingsValues) {
     updateSettings.mutate(values);

@@ -1,10 +1,11 @@
 "use client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTRPC } from "~/trpc/react";
 
 import { useEffect } from "react";
 import { Alert, Button, Card, Space, Tag, Typography, message } from "antd";
 import { CheckCircleOutlined } from "@ant-design/icons";
 
-import { api } from "~/trpc/react";
 
 import { FileViewer } from "./file-viewer";
 import { PageViewer } from "./page-viewer";
@@ -49,21 +50,15 @@ interface Props {
   initialProgress: { status: string; completedAt: Date | null } | null;
 }
 
-export function ActivityDispatcher({
-  activity,
-  pageContent,
-  fileContent,
-  quizContent,
-  textMediaContent,
-  initialProgress,
-}: Props) {
+export function ActivityDispatcher({ activity,   pageContent,   fileContent,   quizContent,   textMediaContent,   initialProgress, }: Props) {
+  const trpc = useTRPC();
   const [messageApi, contextHolder] = message.useMessage();
-  const utils = api.useUtils();
+  const queryClient = useQueryClient();
 
-  const markActivity = api.progress.markActivity.useMutation({
-    onSuccess: () => utils.progress.getActivityProgress.invalidate(),
+  const markActivity = useMutation(trpc.progress.markActivity.mutationOptions({
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: trpc.progress.getActivityProgress.queryKey() }),
     onError: (err) => messageApi.error(err.message),
-  });
+  }));
 
   const isCompleted = initialProgress?.status === "completed";
 

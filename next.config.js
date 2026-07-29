@@ -9,6 +9,15 @@ if (!isLintCommand) {
 }
 
 /** @type {import("next").NextConfig} */
-const config = {};
+const config = {
+  outputFileTracingRoot: import.meta.dirname,
+  poweredByHeader: false,
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
+      { protocol: "https", hostname: "avatars.githubusercontent.com" },
+    ],
+  },
+};
 
 export default config;

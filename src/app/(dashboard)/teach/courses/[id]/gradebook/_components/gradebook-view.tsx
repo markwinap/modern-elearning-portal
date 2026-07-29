@@ -1,4 +1,6 @@
 "use client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTRPC } from "~/trpc/react";
 
 import { useMemo, useState } from "react";
 import {
@@ -9,7 +11,6 @@ import {
   Modal,
   Select,
   Space,
-  Table,
   Tag,
   Typography,
   message,
@@ -17,7 +18,10 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import { PlusOutlined } from "@ant-design/icons";
 
-import { api, type RouterOutputs } from "~/trpc/react";
+import { type RouterOutputs } from "~/trpc/react";
+
+import { EntityTable } from "~/components/ui/entity-table";
+import { ToolbarRow } from "~/components/ui/toolbar-row";
 
 import { CategoryManager } from "./category-manager";
 
@@ -36,15 +40,18 @@ interface GradeFormValues {
 }
 
 export function GradebookView({ courseId }: Props) {
+  const trpc = useTRPC();
   const [messageApi, contextHolder] = message.useMessage();
   const [submitOpen, setSubmitOpen] = useState(false);
   const [form] = Form.useForm<GradeFormValues>();
   const selectedSectionId = Form.useWatch("sectionId", form);
-  const utils = api.useUtils();
+  const queryClient = useQueryClient();
 
-  const { data, isLoading } = api.gradebook.getCourseGradeSummary.useQuery({
-    courseId,
-  });
+  const { data, isLoading } = useQuery(
+    trpc.gradebook.getCourseGradeSummary.queryOptions({
+      courseId,
+    }),
+  );
   type Summary = RouterOutputs["gradebook"]["getCourseGradeSummary"];
   const emptySummary: Summary = {
     students: [],
@@ -53,15 +60,19 @@ export function GradebookView({ courseId }: Props) {
   };
   const summary = data ?? emptySummary;
 
-  const submitGrade = api.gradebook.submitGrade.useMutation({
-    onSuccess: () => {
-      void utils.gradebook.getCourseGradeSummary.invalidate({ courseId });
-      setSubmitOpen(false);
-      form.resetFields();
-      messageApi.success("Grade submitted!");
-    },
-    onError: (err) => messageApi.error(err.message),
-  });
+  const submitGrade = useMutation(
+    trpc.gradebook.submitGrade.mutationOptions({
+      onSuccess: () => {
+        void queryClient.invalidateQueries({
+          queryKey: trpc.gradebook.getCourseGradeSummary.queryKey({ courseId }),
+        });
+        setSubmitOpen(false);
+        form.resetFields();
+        messageApi.success("Grade submitted!");
+      },
+      onError: (err) => messageApi.error(err.message),
+    }),
+  );
 
   type Student = (typeof summary)["students"][number];
   type GradeEntry = Student["grades"][number];
@@ -212,30 +223,27 @@ export function GradebookView({ courseId }: Props) {
   return (
     <>
       {contextHolder}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 16,
-        }}
-      >
-        <Typography.Text type="secondary">
-          {students.length} student{students.length !== 1 ? "s" : ""}
-        </Typography.Text>
-        <Space>
-          <CategoryManager courseId={courseId} />
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => openGradeModal(null, null)}
-          >
-            Submit Grade
-          </Button>
-        </Space>
-      </div>
+      <ToolbarRow
+        left={
+          <Typography.Text type="secondary">
+            {students.length} student{students.length !== 1 ? "s" : ""}
+          </Typography.Text>
+        }
+        right={
+          <Space>
+            <CategoryManager courseId={courseId} />
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => openGradeModal(null, null)}
+            >
+              Submit Grade
+            </Button>
+          </Space>
+        }
+      />
 
-      <Table
+      <EntityTable
         dataSource={dataSource}
         columns={columns}
         rowKey="userId"

@@ -1,7 +1,5 @@
-"use client";
-
-import { PageSkeleton } from "~/components/ui/skeleton-page";
+import { ServerSkeleton } from "~/components/ui/server-skeleton";
 
 export default function Loading() {
-  return <PageSkeleton />;
+  return <ServerSkeleton />;
 }
