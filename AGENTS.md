@@ -23,7 +23,7 @@ This is a **full-stack TypeScript** application built with:
 
 ## Project Folder Structure
 
-```
+```text
 src/
 ├── app/                          # Next.js App Router
 │   ├── layout.tsx                # Root layout (AntdRegistry + providers)
@@ -54,7 +54,7 @@ src/
 │       ├── root.ts               # Root router (merges all routers)
 │       └── routers/              # Individual tRPC routers (camelCase + `Router` suffix)
 │           ├── courseRouter.ts   # e.g. courseRouter, enrollmentRouter, quizRouter
-│           └── post.ts           # (legacy T3 scaffold router)
+│           └── postRouter.ts     # (legacy T3 scaffold router)
 ├── trpc/
 │   ├── server.ts                 # Server-side tRPC caller
 │   └── react.tsx                 # Client-side tRPC hooks provider
