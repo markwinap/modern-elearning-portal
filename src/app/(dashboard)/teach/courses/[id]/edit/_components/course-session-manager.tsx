@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   App,
   Button,
@@ -16,6 +15,8 @@ import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 
 import { api } from "~/trpc/react";
 import { FormModal } from "~/components/ui/form-modal";
+import { toastMutationOptions } from "~/lib/mutation-utils";
+import { useCrudModal } from "~/lib/use-crud-modal";
 
 export interface CourseSession {
   id: number;
@@ -62,52 +63,58 @@ function formatTime(time: string) {
 
 export function CourseSessionManager({ courseId }: Props) {
   const [form] = Form.useForm<SessionFormValues>();
-  const [isOpen, setIsOpen] = useState(false);
-  const [editing, setEditing] = useState<CourseSession | null>(null);
+  const {
+    isOpen,
+    editing,
+    openCreate,
+    openEdit: openEditModal,
+    close,
+  } = useCrudModal<CourseSession>();
   const { message } = App.useApp();
   const utils = api.useUtils();
 
-  const { data: sessions = [] } = api.course.listSessions.useQuery({
+  const { data: sessions = [] } = api.course.session.list.useQuery({
     courseId,
   });
 
-  const createSession = api.course.createSession.useMutation({
-    onSuccess: () => {
-      void message.success("Session created.");
-      void utils.course.listSessions.invalidate({ courseId });
-      setIsOpen(false);
-      form.resetFields();
-    },
-    onError: (err) => void message.error(err.message),
+  const createSession = api.course.session.create.useMutation({
+    ...toastMutationOptions({
+      messageApi: message,
+      successMessage: "Session created.",
+      invalidate: () => utils.course.session.list.invalidate({ courseId }),
+      onSuccess: () => {
+        close();
+        form.resetFields();
+      },
+    }),
   });
 
-  const updateSession = api.course.updateSession.useMutation({
-    onSuccess: () => {
-      void message.success("Session updated.");
-      void utils.course.listSessions.invalidate({ courseId });
-      setIsOpen(false);
-      form.resetFields();
-      setEditing(null);
-    },
-    onError: (err) => void message.error(err.message),
+  const updateSession = api.course.session.update.useMutation({
+    ...toastMutationOptions({
+      messageApi: message,
+      successMessage: "Session updated.",
+      invalidate: () => utils.course.session.list.invalidate({ courseId }),
+      onSuccess: () => {
+        close();
+        form.resetFields();
+      },
+    }),
   });
 
-  const deleteSession = api.course.deleteSession.useMutation({
-    onSuccess: () => {
-      void message.success("Session deleted.");
-      void utils.course.listSessions.invalidate({ courseId });
-    },
-    onError: (err) => void message.error(err.message),
+  const deleteSession = api.course.session.delete.useMutation({
+    ...toastMutationOptions({
+      messageApi: message,
+      successMessage: "Session deleted.",
+      invalidate: () => utils.course.session.list.invalidate({ courseId }),
+    }),
   });
 
   function openAdd() {
-    setEditing(null);
     form.resetFields();
-    setIsOpen(true);
+    openCreate();
   }
 
   function openEdit(session: CourseSession) {
-    setEditing(session);
     form.setFieldsValue({
       dayOfWeek: session.dayOfWeek,
       startDate: session.startDate,
@@ -117,7 +124,7 @@ export function CourseSessionManager({ courseId }: Props) {
       location: session.location ?? "",
       classroom: session.classroom ?? "",
     });
-    setIsOpen(true);
+    openEditModal(session);
   }
 
   function handleDelete(session: CourseSession) {
@@ -208,7 +215,7 @@ export function CourseSessionManager({ courseId }: Props) {
         form={form}
         title={editing ? "Edit Session" : "Add Session"}
         open={isOpen}
-        onCancel={() => setIsOpen(false)}
+        onCancel={close}
         footer={null}
         onFinish={handleFinish}
       >

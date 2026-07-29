@@ -52,7 +52,7 @@ body:
       label: Reference Implementation
       description: Link to similar existing code or examples
       placeholder: |
-        Similar pattern in: `src/server/api/routers/post.ts`
+        Similar pattern in: `src/server/api/routers/postRouter.ts`
         UI reference: `src/app/posts/page.tsx`
     validations:
       required: false

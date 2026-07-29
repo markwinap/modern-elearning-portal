@@ -1,9 +1,19 @@
 import { TRPCError } from "@trpc/server";
-import { and, asc, count, eq, isNotNull, isNull } from "drizzle-orm";
+import { and, asc, count, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import { calculatePercentage, percentageToLetter } from "~/lib/grade-utils";
 import {
+  calculateAverage,
+  calculateDifficultyIndex,
+  calculateDiscriminationIndex,
+  calculateMedian,
+  calculatePercentile,
+  formatDurationSecs,
+  sumRecommendedDurationMins,
+} from "~/lib/insight-utils";
+import {
+  assertOwnerOrAdmin,
   createTRPCRouter,
   protectedProcedure,
   teacherProcedure,
@@ -92,6 +102,7 @@ export const quizRouter = createTRPCRouter({
         correctAnswer: z.unknown().optional(),
         points: z.number().int().default(1),
         order: z.number().int().default(0),
+        recommendedTimeMins: z.number().int().min(0).default(1),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -341,6 +352,7 @@ export const quizRouter = createTRPCRouter({
         options: z.array(z.unknown()).optional(),
         correctAnswer: z.unknown().optional(),
         points: z.number().int().min(1),
+        recommendedTimeMins: z.number().int().min(0).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -353,10 +365,7 @@ export const quizRouter = createTRPCRouter({
         .where(eq(quizQuestions.id, input.id))
         .limit(1);
       if (!row) throw new TRPCError({ code: "NOT_FOUND" });
-      const role = ctx.session.user.role as string | undefined;
-      if (row.teacherId !== ctx.session.user.id && role !== "admin") {
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
+      assertOwnerOrAdmin(ctx, row.teacherId);
       const [updated] = await ctx.db
         .update(quizQuestions)
         .set({
@@ -365,10 +374,174 @@ export const quizRouter = createTRPCRouter({
           options: input.options ?? null,
           correctAnswer: input.correctAnswer ?? null,
           points: input.points,
+          recommendedTimeMins: input.recommendedTimeMins,
         })
         .where(eq(quizQuestions.id, input.id))
         .returning();
       return updated;
+    }),
+
+  /** Recommended duration for a quiz based on per-question recommended times. */
+  getRecommendedDuration: protectedProcedure
+    .input(z.object({ activityId: z.number().int() }))
+    .query(async ({ ctx, input }) => {
+      const questions = await ctx.db
+        .select({ recommendedTimeMins: quizQuestions.recommendedTimeMins })
+        .from(quizQuestions)
+        .where(eq(quizQuestions.quizActivityId, input.activityId));
+      return {
+        recommendedMins: sumRecommendedDurationMins(questions),
+      };
+    }),
+
+  /** Question-level insights for a quiz. */
+  getQuestionInsights: teacherProcedure
+    .input(z.object({ activityId: z.number().int() }))
+    .query(async ({ ctx, input }) => {
+      const [course] = await ctx.db
+        .select({ teacherId: courses.teacherId })
+        .from(activities)
+        .innerJoin(courseSections, eq(activities.sectionId, courseSections.id))
+        .innerJoin(courses, eq(courseSections.courseId, courses.id))
+        .where(eq(activities.id, input.activityId))
+        .limit(1);
+      if (!course) throw new TRPCError({ code: "NOT_FOUND" });
+      assertOwnerOrAdmin(ctx, course.teacherId);
+
+      const questions = await ctx.db
+        .select()
+        .from(quizQuestions)
+        .where(eq(quizQuestions.quizActivityId, input.activityId))
+        .orderBy(asc(quizQuestions.order));
+
+      const attempts = await ctx.db
+        .select({
+          id: quizAttempts.id,
+          score: quizAttempts.score,
+          maxScore: quizAttempts.maxScore,
+        })
+        .from(quizAttempts)
+        .where(
+          and(
+            eq(quizAttempts.quizActivityId, input.activityId),
+            isNotNull(quizAttempts.submittedAt),
+          ),
+        );
+
+      const answers =
+        attempts.length > 0
+          ? await ctx.db
+              .select()
+              .from(quizAnswers)
+              .where(
+                inArray(
+                  quizAnswers.attemptId,
+                  attempts.map((a) => a.id),
+                ),
+              )
+          : [];
+
+      const attemptsByScorePct = new Map(
+        attempts.map((a) => [
+          a.id,
+          a.maxScore && a.maxScore > 0 ? (a.score ?? 0) / a.maxScore : 0,
+        ]),
+      );
+
+      return questions.map((q) => {
+        const questionAnswers = answers.filter((a) => a.questionId === q.id);
+        const times = questionAnswers.map((a) => a.timeSpentSecs);
+        const scores = questionAnswers.map((a) =>
+          q.points > 0 ? (a.pointsAwarded / q.points) * 100 : 0,
+        );
+        const correctCount = questionAnswers.filter((a) => a.isCorrect).length;
+
+        return {
+          questionId: q.id,
+          prompt: q.prompt,
+          type: q.type,
+          points: q.points,
+          attempts: questionAnswers.length,
+          averageScore: calculateAverage(scores),
+          medianScore: calculateMedian(scores),
+          averageTimeSecs: calculateAverage(times),
+          medianTimeSecs: calculateMedian(times),
+          difficulty: calculateDifficultyIndex(
+            questionAnswers.length,
+            correctCount,
+          ),
+          discrimination: calculateDiscriminationIndex(
+            questionAnswers.map((a) => ({
+              isCorrect: a.isCorrect,
+              totalScorePct: attemptsByScorePct.get(a.attemptId) ?? 0,
+            })),
+          ),
+        };
+      });
+    }),
+
+  /** Test-level insights for a quiz. */
+  getTestInsights: teacherProcedure
+    .input(z.object({ activityId: z.number().int() }))
+    .query(async ({ ctx, input }) => {
+      const [course] = await ctx.db
+        .select({ teacherId: courses.teacherId })
+        .from(activities)
+        .innerJoin(courseSections, eq(activities.sectionId, courseSections.id))
+        .innerJoin(courses, eq(courseSections.courseId, courses.id))
+        .where(eq(activities.id, input.activityId))
+        .limit(1);
+      if (!course) throw new TRPCError({ code: "NOT_FOUND" });
+      assertOwnerOrAdmin(ctx, course.teacherId);
+
+      const [questionCount] = await ctx.db
+        .select({ count: count() })
+        .from(quizQuestions)
+        .where(eq(quizQuestions.quizActivityId, input.activityId));
+
+      const attempts = await ctx.db
+        .select()
+        .from(quizAttempts)
+        .where(
+          and(
+            eq(quizAttempts.quizActivityId, input.activityId),
+            isNotNull(quizAttempts.submittedAt),
+          ),
+        );
+
+      const scores = attempts.map((a) =>
+        a.maxScore && a.maxScore > 0 ? (a.score ?? 0) / a.maxScore : 0,
+      );
+      const durations = attempts
+        .map((a) =>
+          a.submittedAt && a.startedAt
+            ? Math.round(
+                (a.submittedAt.getTime() - a.startedAt.getTime()) / 1000,
+              )
+            : 0,
+        )
+        .filter((d) => d > 0);
+
+      return {
+        questionCount: questionCount?.count ?? 0,
+        attempts: attempts.length,
+        averageScore: calculateAverage(scores) * 100,
+        medianScore: calculateMedian(scores) * 100,
+        p75Score: calculatePercentile(scores, 75) * 100,
+        p90Score: calculatePercentile(scores, 90) * 100,
+        averageTime: formatDurationSecs(calculateAverage(durations)),
+        medianTime: formatDurationSecs(calculateMedian(durations)),
+        scoreDistribution: [0, 20, 40, 60, 80].map((bucket) => ({
+          bucket,
+          count: attempts.filter((a) => {
+            const pct =
+              a.maxScore && a.maxScore > 0 ? (a.score ?? 0) / a.maxScore : 0;
+            const lower = bucket / 100;
+            const upper = (bucket + 20) / 100;
+            return pct >= lower && (bucket === 80 ? pct <= upper : pct < upper);
+          }).length,
+        })),
+      };
     }),
 
   /** Delete a question (teacher). */
@@ -384,10 +557,7 @@ export const quizRouter = createTRPCRouter({
         .where(eq(quizQuestions.id, input.id))
         .limit(1);
       if (!row) throw new TRPCError({ code: "NOT_FOUND" });
-      const role = ctx.session.user.role as string | undefined;
-      if (row.teacherId !== ctx.session.user.id && role !== "admin") {
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
+      assertOwnerOrAdmin(ctx, row.teacherId);
       await ctx.db.delete(quizQuestions).where(eq(quizQuestions.id, input.id));
     }),
 });

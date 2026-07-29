@@ -14,13 +14,15 @@ export default async function ActivityPage({ params }: Props) {
   if (isNaN(id)) notFound();
 
   let activity;
+  let progress;
   try {
-    activity = await api.activity.getById({ id });
+    [activity, progress] = await Promise.all([
+      api.activity.getById({ id }),
+      api.progress.getActivityProgress({ activityId: id }),
+    ]);
   } catch {
     notFound();
   }
-
-  const progress = await api.progress.getActivityProgress({ activityId: id });
 
   // Fetch type-specific content
   let pageContent: { content: string } | null = null;

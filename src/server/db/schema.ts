@@ -1,3 +1,4 @@
+import { relations } from "drizzle-orm";
 import {
   boolean,
   index,
@@ -66,6 +67,10 @@ export const quizQuestionTypeEnum = pgEnum("quiz_question_type", [
   "ordering",
   "essay",
 ]);
+export const sectionDurationModeEnum = pgEnum("section_duration_mode", [
+  "manual",
+  "auto",
+]);
 export const urlOpenModeEnum = pgEnum("url_open_mode", [
   "same_tab",
   "new_tab",
@@ -92,25 +97,6 @@ export type UserRole = (typeof userRoleEnum.enumValues)[number];
 
 // ─── App table factory (applies "pg-drizzle_" prefix) ────────────────────────
 export const createTable = pgTableCreator((name) => `pg-drizzle_${name}`);
-
-// ─── Legacy posts table (T3 scaffold) ────────────────────────────────────────
-export const posts = createTable(
-  "post",
-  (d) => ({
-    id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
-    name: d.varchar({ length: 256 }),
-    createdById: d
-      .varchar({ length: 255 })
-      .notNull()
-      .references(() => user.id),
-    createdAt: d
-      .timestamp({ withTimezone: true })
-      .$defaultFn(() => new Date())
-      .notNull(),
-    updatedAt: d.timestamp({ withTimezone: true }).$onUpdate(() => new Date()),
-  }),
-  (t) => [index("post_created_by_idx").on(t.createdById)],
-);
 
 // ─── Auth tables (no prefix — managed by better-auth) ────────────────────────
 export const user = pgTable("user", {
@@ -251,6 +237,11 @@ export const courseSections = createTable(
     order: d.integer().default(0).notNull(),
     visible: d.boolean().default(true).notNull(),
     gradable: d.boolean().default(true).notNull(),
+    durationMins: d.integer().default(0).notNull(),
+    durationMode: sectionDurationModeEnum("duration_mode")
+      .default("manual")
+      .notNull(),
+    pickCount: d.integer(),
     createdAt: d
       .timestamp({ withTimezone: true })
       .$defaultFn(() => new Date())
@@ -401,6 +392,7 @@ export const quizQuestions = createTable(
     correctAnswer: d.jsonb().$type<unknown>(),
     points: d.integer().default(1).notNull(),
     order: d.integer().default(0).notNull(),
+    recommendedTimeMins: d.integer().default(1).notNull(),
   }),
   (t) => [index("quiz_question_activity_idx").on(t.quizActivityId)],
 );
@@ -445,6 +437,7 @@ export const quizAnswers = createTable(
     answer: d.jsonb().$type<unknown>().notNull(),
     isCorrect: d.boolean(),
     pointsAwarded: d.integer().default(0).notNull(),
+    timeSpentSecs: d.integer().default(0).notNull(),
   }),
   (t) => [index("quiz_answer_attempt_idx").on(t.attemptId)],
 );
@@ -834,6 +827,296 @@ export const platformSettings = createTable(
   (t) => [index("platform_settings_created_idx").on(t.createdAt)],
 );
 
+// ─── Relations ────────────────────────────────────────────────────────────────
+// Enables Drizzle's relational query API (`db.query.<table>.findMany({ with: {...} })`)
+// alongside the existing hand-written joins used throughout the routers.
+
+export const userRelations = relations(user, ({ many }) => ({
+  courses: many(courses),
+  enrollments: many(enrollments),
+  grades: many(grades),
+}));
+
+export const categoriesRelations = relations(categories, ({ one, many }) => ({
+  parent: one(categories, {
+    fields: [categories.parentId],
+    references: [categories.id],
+  }),
+  courses: many(courses),
+}));
+
+export const coursesRelations = relations(courses, ({ one, many }) => ({
+  category: one(categories, {
+    fields: [courses.categoryId],
+    references: [categories.id],
+  }),
+  teacher: one(user, {
+    fields: [courses.teacherId],
+    references: [user.id],
+  }),
+  sections: many(courseSections),
+  sessions: many(courseSessions),
+  gradeCategories: many(gradeCategories),
+  enrollments: many(enrollments),
+  announcements: many(announcements),
+}));
+
+export const courseSectionsRelations = relations(
+  courseSections,
+  ({ one, many }) => ({
+    course: one(courses, {
+      fields: [courseSections.courseId],
+      references: [courses.id],
+    }),
+    activities: many(activities),
+  }),
+);
+
+export const courseSessionsRelations = relations(courseSessions, ({ one }) => ({
+  course: one(courses, {
+    fields: [courseSessions.courseId],
+    references: [courses.id],
+  }),
+}));
+
+export const gradeCategoriesRelations = relations(
+  gradeCategories,
+  ({ one, many }) => ({
+    course: one(courses, {
+      fields: [gradeCategories.courseId],
+      references: [courses.id],
+    }),
+    activities: many(activities),
+    grades: many(grades),
+  }),
+);
+
+export const activitiesRelations = relations(activities, ({ one, many }) => ({
+  section: one(courseSections, {
+    fields: [activities.sectionId],
+    references: [courseSections.id],
+  }),
+  gradeCategory: one(gradeCategories, {
+    fields: [activities.gradeCategoryId],
+    references: [gradeCategories.id],
+  }),
+  grades: many(grades),
+  fileResource: one(fileResources, {
+    fields: [activities.id],
+    references: [fileResources.activityId],
+  }),
+  lessonNode: one(lessonNodes, {
+    fields: [activities.id],
+    references: [lessonNodes.activityId],
+  }),
+  page: one(pages, {
+    fields: [activities.id],
+    references: [pages.activityId],
+  }),
+  quiz: one(quizzes, {
+    fields: [activities.id],
+    references: [quizzes.activityId],
+  }),
+  textMediaBlock: one(textMediaBlocks, {
+    fields: [activities.id],
+    references: [textMediaBlocks.activityId],
+  }),
+  urlResource: one(urlResources, {
+    fields: [activities.id],
+    references: [urlResources.activityId],
+  }),
+  workshop: one(workshops, {
+    fields: [activities.id],
+    references: [workshops.activityId],
+  }),
+}));
+
+export const enrollmentsRelations = relations(enrollments, ({ one }) => ({
+  course: one(courses, {
+    fields: [enrollments.courseId],
+    references: [courses.id],
+  }),
+  user: one(user, {
+    fields: [enrollments.userId],
+    references: [user.id],
+  }),
+}));
+
+export const gradesRelations = relations(grades, ({ one }) => ({
+  activity: one(activities, {
+    fields: [grades.activityId],
+    references: [activities.id],
+  }),
+  user: one(user, {
+    fields: [grades.userId],
+    references: [user.id],
+  }),
+  gradeCategory: one(gradeCategories, {
+    fields: [grades.gradeCategoryId],
+    references: [gradeCategories.id],
+  }),
+}));
+
+export const quizzesRelations = relations(quizzes, ({ one, many }) => ({
+  activity: one(activities, {
+    fields: [quizzes.activityId],
+    references: [activities.id],
+  }),
+  questions: many(quizQuestions),
+}));
+
+export const quizQuestionsRelations = relations(
+  quizQuestions,
+  ({ one, many }) => ({
+    quiz: one(quizzes, {
+      fields: [quizQuestions.quizActivityId],
+      references: [quizzes.activityId],
+    }),
+    answers: many(quizAnswers),
+  }),
+);
+
+export const quizAttemptsRelations = relations(
+  quizAttempts,
+  ({ one, many }) => ({
+    quiz: one(quizzes, {
+      fields: [quizAttempts.quizActivityId],
+      references: [quizzes.activityId],
+    }),
+    user: one(user, {
+      fields: [quizAttempts.userId],
+      references: [user.id],
+    }),
+    answers: many(quizAnswers),
+  }),
+);
+
+export const quizAnswersRelations = relations(quizAnswers, ({ one }) => ({
+  attempt: one(quizAttempts, {
+    fields: [quizAnswers.attemptId],
+    references: [quizAttempts.id],
+  }),
+  question: one(quizQuestions, {
+    fields: [quizAnswers.questionId],
+    references: [quizQuestions.id],
+  }),
+}));
+
+export const wikiPagesRelations = relations(wikiPages, ({ one, many }) => ({
+  activity: one(activities, {
+    fields: [wikiPages.activityId],
+    references: [activities.id],
+  }),
+  author: one(user, {
+    fields: [wikiPages.authorId],
+    references: [user.id],
+  }),
+  revisions: many(wikiRevisions),
+}));
+
+export const wikiRevisionsRelations = relations(wikiRevisions, ({ one }) => ({
+  wikiPage: one(wikiPages, {
+    fields: [wikiRevisions.wikiPageId],
+    references: [wikiPages.id],
+  }),
+  author: one(user, {
+    fields: [wikiRevisions.authorId],
+    references: [user.id],
+  }),
+}));
+
+export const workshopsRelations = relations(workshops, ({ one, many }) => ({
+  activity: one(activities, {
+    fields: [workshops.activityId],
+    references: [activities.id],
+  }),
+  rubrics: many(workshopRubrics),
+  submissions: many(workshopSubmissions),
+}));
+
+export const workshopRubricsRelations = relations(
+  workshopRubrics,
+  ({ one }) => ({
+    workshop: one(workshops, {
+      fields: [workshopRubrics.workshopActivityId],
+      references: [workshops.activityId],
+    }),
+  }),
+);
+
+export const workshopSubmissionsRelations = relations(
+  workshopSubmissions,
+  ({ one, many }) => ({
+    workshop: one(workshops, {
+      fields: [workshopSubmissions.workshopActivityId],
+      references: [workshops.activityId],
+    }),
+    user: one(user, {
+      fields: [workshopSubmissions.userId],
+      references: [user.id],
+    }),
+    assessments: many(workshopAssessments),
+  }),
+);
+
+export const workshopAssessmentsRelations = relations(
+  workshopAssessments,
+  ({ one }) => ({
+    submission: one(workshopSubmissions, {
+      fields: [workshopAssessments.submissionId],
+      references: [workshopSubmissions.id],
+    }),
+    assessor: one(user, {
+      fields: [workshopAssessments.assessorId],
+      references: [user.id],
+    }),
+  }),
+);
+
+export const announcementsRelations = relations(announcements, ({ one }) => ({
+  course: one(courses, {
+    fields: [announcements.courseId],
+    references: [courses.id],
+  }),
+  author: one(user, {
+    fields: [announcements.authorId],
+    references: [user.id],
+  }),
+}));
+
+export const messageThreadsRelations = relations(
+  messageThreads,
+  ({ one, many }) => ({
+    course: one(courses, {
+      fields: [messageThreads.courseId],
+      references: [courses.id],
+    }),
+    creator: one(user, {
+      fields: [messageThreads.createdBy],
+      references: [user.id],
+    }),
+    messages: many(messages),
+  }),
+);
+
+export const messagesRelations = relations(messages, ({ one }) => ({
+  thread: one(messageThreads, {
+    fields: [messages.threadId],
+    references: [messageThreads.id],
+  }),
+  author: one(user, {
+    fields: [messages.authorId],
+    references: [user.id],
+  }),
+}));
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(user, {
+    fields: [notifications.userId],
+    references: [user.id],
+  }),
+}));
+
 // ─── Type exports ─────────────────────────────────────────────────────────────
 export type User = typeof user.$inferSelect;
 export type Course = typeof courses.$inferSelect;
@@ -850,5 +1133,3 @@ export type QuizAttempt = typeof quizAttempts.$inferSelect;
 export type WorkshopSubmission = typeof workshopSubmissions.$inferSelect;
 export type PlatformSettings = typeof platformSettings.$inferSelect;
 export type NewPlatformSettings = typeof platformSettings.$inferInsert;
-export type Post = typeof posts.$inferSelect;
-export type NewPost = typeof posts.$inferInsert;

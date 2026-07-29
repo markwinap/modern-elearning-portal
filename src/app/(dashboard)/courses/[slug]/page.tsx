@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 
 import { api } from "~/trpc/server";
 
@@ -9,10 +10,15 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
+// Deduplicates the `getBySlug` call within a single request: tRPC server-caller
+// invocations are not memoized like `fetch()`, so both `generateMetadata` and
+// the page component would otherwise trigger the query twice.
+const getCourseBySlug = cache((slug: string) => api.course.getBySlug({ slug }));
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   try {
-    const course = await api.course.getBySlug({ slug });
+    const course = await getCourseBySlug(slug);
     return {
       title: `${course.title} | Modern E-Learning Portal`,
       description: course.description ?? undefined,
@@ -27,7 +33,7 @@ export default async function CourseDetailPage({ params }: Props) {
 
   let course;
   try {
-    course = await api.course.getBySlug({ slug });
+    course = await getCourseBySlug(slug);
   } catch {
     notFound();
   }

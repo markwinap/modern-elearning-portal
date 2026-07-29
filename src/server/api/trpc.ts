@@ -14,6 +14,8 @@ import { ZodError } from "zod";
 import { auth } from "~/server/better-auth";
 import { db } from "~/server/db";
 
+export { assertOwnerOrAdmin } from "~/server/api/ownership";
+
 /**
  * 1. CONTEXT
  *
@@ -96,8 +98,10 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
 
   const result = await next();
 
-  const end = Date.now();
-  console.log(`[TRPC] ${path} took ${end - start}ms to execute`);
+  if (t._config.isDev) {
+    const end = Date.now();
+    console.log(`[TRPC] ${path} took ${end - start}ms to execute`);
+  }
 
   return result;
 });

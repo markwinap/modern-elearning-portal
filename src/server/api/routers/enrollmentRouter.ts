@@ -3,6 +3,7 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import {
+  assertOwnerOrAdmin,
   createTRPCRouter,
   protectedProcedure,
   teacherProcedure,
@@ -132,10 +133,7 @@ export const enrollmentRouter = createTRPCRouter({
         .from(courses)
         .where(eq(courses.id, input.courseId))
         .limit(1);
-      const role = ctx.session.user.role as string | undefined;
-      if (course?.teacherId !== ctx.session.user.id && role !== "admin") {
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
+      assertOwnerOrAdmin(ctx, course?.teacherId);
       return ctx.db
         .select({
           enrollmentId: enrollments.id,
@@ -182,10 +180,7 @@ export const enrollmentRouter = createTRPCRouter({
         .from(courses)
         .where(eq(courses.id, enrollment.courseId))
         .limit(1);
-      const role = ctx.session.user.role as string | undefined;
-      if (course?.teacherId !== ctx.session.user.id && role !== "admin") {
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
+      assertOwnerOrAdmin(ctx, course?.teacherId);
       await ctx.db
         .update(enrollments)
         .set({ status: input.status })

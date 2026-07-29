@@ -16,6 +16,7 @@ import {
   Typography,
 } from "antd";
 import {
+  ClockCircleOutlined,
   DeleteOutlined,
   EditOutlined,
   PlusOutlined,
@@ -24,6 +25,9 @@ import {
 
 import { api } from "~/trpc/react";
 import { FormModal } from "~/components/ui/form-modal";
+import { formatDurationMins } from "~/lib/insight-utils";
+import { toastMutationOptions } from "~/lib/mutation-utils";
+import { useCrudModal } from "~/lib/use-crud-modal";
 
 const QUESTION_TYPES = [
   { value: "multiple_choice", label: "Multiple Choice" },
@@ -49,6 +53,7 @@ interface Question {
   correctAnswer: unknown;
   points: number;
   order: number;
+  recommendedTimeMins?: number;
 }
 
 interface QuizSettings {
@@ -71,6 +76,7 @@ interface QuestionFormValues {
   points: number;
   options: string;
   correctAnswer?: string;
+  recommendedTimeMins: number;
 }
 
 interface SettingsFormValues {
@@ -86,9 +92,16 @@ export function QuizEditor({
   initialSettings,
   initialQuestions,
 }: Props) {
+  const { data: recommendedDuration } =
+    api.quiz.getRecommendedDuration.useQuery({ activityId });
   const [questions, setQuestions] = useState<Question[]>(initialQuestions);
-  const [questionModalOpen, setQuestionModalOpen] = useState(false);
-  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const {
+    isOpen: questionModalOpen,
+    editing: editingQuestion,
+    openCreate: openCreateQuestionModal,
+    openEdit: openEditQuestionModal,
+    close: closeQuestionModalState,
+  } = useCrudModal<Question>();
   const [questionForm] = Form.useForm<QuestionFormValues>();
   const [settingsForm] = Form.useForm<SettingsFormValues>();
   const { message: messageApi } = App.useApp();
@@ -105,37 +118,43 @@ export function QuizEditor({
       : [];
 
   const upsertQuiz = api.quiz.upsertQuiz.useMutation({
-    onSuccess: () => messageApi.success("Quiz settings saved!"),
-    onError: (err) => messageApi.error(err.message),
+    ...toastMutationOptions({
+      messageApi,
+      successMessage: "Quiz settings saved!",
+    }),
   });
 
   const createQuestion = api.quiz.createQuestion.useMutation({
-    onSuccess: (newQ) => {
-      if (newQ) {
-        setQuestions((prev) => [...prev, newQ]);
-      }
-      void utils.quiz.listQuestions.invalidate({ activityId });
-      closeQuestionModal();
-      messageApi.success("Question added!");
-    },
-    onError: (err) => messageApi.error(err.message),
+    ...toastMutationOptions({
+      messageApi,
+      successMessage: "Question added!",
+      invalidate: () => utils.quiz.listQuestions.invalidate({ activityId }),
+      onSuccess: (newQ) => {
+        if (newQ) {
+          setQuestions((prev) => [...prev, newQ]);
+        }
+        closeQuestionModal();
+      },
+    }),
   });
 
   const updateQuestion = api.quiz.updateQuestion.useMutation({
-    onSuccess: () => {
-      void utils.quiz.listQuestions.invalidate({ activityId });
-      closeQuestionModal();
-      messageApi.success("Question updated!");
-    },
-    onError: (err) => messageApi.error(err.message),
+    ...toastMutationOptions({
+      messageApi,
+      successMessage: "Question updated!",
+      invalidate: () => utils.quiz.listQuestions.invalidate({ activityId }),
+      onSuccess: () => closeQuestionModal(),
+    }),
   });
 
   const deleteQuestion = api.quiz.deleteQuestion.useMutation({
-    onSuccess: (_, variables) => {
-      setQuestions((prev) => prev.filter((q) => q.id !== variables.id));
-      messageApi.success("Question removed.");
-    },
-    onError: (err) => messageApi.error(err.message),
+    ...toastMutationOptions({
+      messageApi,
+      successMessage: "Question removed.",
+      onSuccess: (_data, variables) => {
+        setQuestions((prev) => prev.filter((q) => q.id !== variables.id));
+      },
+    }),
   });
 
   function handleSaveSettings(values: SettingsFormValues) {
@@ -150,14 +169,12 @@ export function QuizEditor({
   }
 
   function closeQuestionModal() {
-    setQuestionModalOpen(false);
-    setEditingQuestion(null);
+    closeQuestionModalState();
     questionForm.resetFields();
     setQuestionType("multiple_choice");
   }
 
   function openEditModal(q: Question) {
-    setEditingQuestion(q);
     const optionsStr = Array.isArray(q.options)
       ? (q.options as string[]).join("\n")
       : "";
@@ -173,9 +190,10 @@ export function QuizEditor({
       points: q.points,
       options: optionsStr,
       correctAnswer: correctAnswerStr,
+      recommendedTimeMins: q.recommendedTimeMins ?? 1,
     });
     setQuestionType(q.type);
-    setQuestionModalOpen(true);
+    openEditQuestionModal(q);
   }
 
   function handleQuestionSubmit(values: QuestionFormValues) {
@@ -207,6 +225,7 @@ export function QuizEditor({
         options,
         correctAnswer,
         points: values.points,
+        recommendedTimeMins: values.recommendedTimeMins,
       });
     } else {
       createQuestion.mutate({
@@ -217,6 +236,7 @@ export function QuizEditor({
         correctAnswer,
         points: values.points,
         order: questions.length,
+        recommendedTimeMins: values.recommendedTimeMins,
       });
     }
   }
@@ -224,6 +244,29 @@ export function QuizEditor({
   return (
     <>
       <Space orientation="vertical" style={{ width: "100%" }} size="middle">
+        {/* Recommended Duration */}
+        {recommendedDuration && recommendedDuration.recommendedMins > 0 && (
+          <Card size="small">
+            <Space>
+              <ClockCircleOutlined />
+              <Typography.Text>
+                Recommended duration (from questions):{" "}
+                <Typography.Text strong>
+                  {formatDurationMins(recommendedDuration.recommendedMins)}
+                </Typography.Text>
+              </Typography.Text>
+              {initialSettings?.timeLimitSecs && (
+                <Typography.Text type="secondary">
+                  | Manual limit:{" "}
+                  {formatDurationMins(
+                    Math.ceil(initialSettings.timeLimitSecs / 60),
+                  )}
+                </Typography.Text>
+              )}
+            </Space>
+          </Card>
+        )}
+
         {/* Settings */}
         <Card title={<Typography.Text strong>Quiz Settings</Typography.Text>}>
           <Form
@@ -287,13 +330,7 @@ export function QuizEditor({
             </Space>
           }
           extra={
-            <Button
-              icon={<PlusOutlined />}
-              onClick={() => {
-                setEditingQuestion(null);
-                setQuestionModalOpen(true);
-              }}
-            >
+            <Button icon={<PlusOutlined />} onClick={openCreateQuestionModal}>
               Add Question
             </Button>
           }
@@ -362,7 +399,11 @@ export function QuizEditor({
         onCancel={closeQuestionModal}
         confirmLoading={createQuestion.isPending || updateQuestion.isPending}
         width={600}
-        initialValues={{ type: "multiple_choice", points: 1 }}
+        initialValues={{
+          type: "multiple_choice",
+          points: 1,
+          recommendedTimeMins: 1,
+        }}
         onFinish={handleQuestionSubmit}
       >
         <Form.Item
@@ -435,6 +476,13 @@ export function QuizEditor({
         )}
         <Form.Item name="points" label="Points" rules={[{ required: true }]}>
           <InputNumber min={1} style={{ width: 120 }} />
+        </Form.Item>
+        <Form.Item
+          name="recommendedTimeMins"
+          label="Recommended Time (minutes)"
+          extra="Estimated time a student should spend on this question."
+        >
+          <InputNumber min={0} style={{ width: 120 }} />
         </Form.Item>
       </FormModal>
 

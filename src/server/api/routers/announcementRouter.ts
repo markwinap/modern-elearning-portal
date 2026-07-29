@@ -3,6 +3,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import {
+  assertOwnerOrAdmin,
   createTRPCRouter,
   protectedProcedure,
   teacherProcedure,
@@ -46,10 +47,7 @@ export const announcementRouter = createTRPCRouter({
         .where(eq(courses.id, input.courseId))
         .limit(1);
       if (!course) throw new TRPCError({ code: "NOT_FOUND" });
-      const role = ctx.session.user.role as string | undefined;
-      if (course.teacherId !== ctx.session.user.id && role !== "admin") {
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
+      assertOwnerOrAdmin(ctx, course.teacherId);
       const [announcement] = await ctx.db
         .insert(announcements)
         .values({ ...input, authorId: ctx.session.user.id })
@@ -102,10 +100,7 @@ export const announcementRouter = createTRPCRouter({
         .where(eq(announcements.id, input.id))
         .limit(1);
       if (!announcement) throw new TRPCError({ code: "NOT_FOUND" });
-      const role = ctx.session.user.role as string | undefined;
-      if (announcement.authorId !== ctx.session.user.id && role !== "admin") {
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
+      assertOwnerOrAdmin(ctx, announcement.authorId);
       await ctx.db.delete(announcements).where(eq(announcements.id, input.id));
     }),
 });

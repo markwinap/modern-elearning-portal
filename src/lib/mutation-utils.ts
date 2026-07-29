@@ -1,20 +1,20 @@
 import type { MessageInstance } from "antd/es/message/interface";
 
-export interface ToastMutationOptions {
+export interface ToastMutationOptions<TData = unknown, TVariables = unknown> {
   messageApi: MessageInstance;
   successMessage: string;
   invalidate?: () => Promise<unknown> | Promise<unknown>[] | void;
-  onSuccess?: () => void;
+  onSuccess?: (data: TData, variables: TVariables) => void;
 }
 
-export function toastMutationOptions({
+export function toastMutationOptions<TData = unknown, TVariables = unknown>({
   messageApi,
   successMessage,
   invalidate,
   onSuccess,
-}: ToastMutationOptions) {
+}: ToastMutationOptions<TData, TVariables>) {
   return {
-    onSuccess: () => {
+    onSuccess: (data: TData, variables: TVariables) => {
       void messageApi.success(successMessage);
       if (invalidate) {
         const inv = invalidate();
@@ -24,7 +24,7 @@ export function toastMutationOptions({
           void inv;
         }
       }
-      onSuccess?.();
+      onSuccess?.(data, variables);
     },
     onError: (error: { message: string }) => {
       void messageApi.error(error.message);

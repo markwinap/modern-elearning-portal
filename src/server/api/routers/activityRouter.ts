@@ -3,6 +3,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import {
+  assertOwnerOrAdmin,
   createTRPCRouter,
   protectedProcedure,
   teacherProcedure,
@@ -87,10 +88,7 @@ export const activityRouter = createTRPCRouter({
         .from(courses)
         .where(eq(courses.id, section.courseId))
         .limit(1);
-      const role = ctx.session.user.role as string | undefined;
-      if (course?.teacherId !== ctx.session.user.id && role !== "admin") {
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
+      assertOwnerOrAdmin(ctx, course?.teacherId);
 
       if (
         input.gradeCategoryId !== undefined &&
@@ -144,10 +142,7 @@ export const activityRouter = createTRPCRouter({
         .from(courses)
         .where(eq(courses.id, courseId))
         .limit(1);
-      const role = ctx.session.user.role as string | undefined;
-      if (course?.teacherId !== ctx.session.user.id && role !== "admin") {
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
+      assertOwnerOrAdmin(ctx, course?.teacherId);
 
       if (data.gradeCategoryId !== undefined && data.gradeCategoryId !== null) {
         const [category] = await ctx.db
@@ -181,10 +176,7 @@ export const activityRouter = createTRPCRouter({
         .from(courses)
         .where(eq(courses.id, courseId))
         .limit(1);
-      const role = ctx.session.user.role as string | undefined;
-      if (course?.teacherId !== ctx.session.user.id && role !== "admin") {
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
+      assertOwnerOrAdmin(ctx, course?.teacherId);
       await ctx.db.delete(activities).where(eq(activities.id, input.id));
     }),
 });

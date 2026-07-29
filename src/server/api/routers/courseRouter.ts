@@ -4,12 +4,24 @@ import { z } from "zod";
 
 import {
   adminProcedure,
+  assertOwnerOrAdmin,
   createTRPCRouter,
   protectedProcedure,
   publicProcedure,
   teacherProcedure,
 } from "~/server/api/trpc";
-import { courseSessions, courses, enrollments, user } from "~/server/db/schema";
+import {
+  activities,
+  courseProgress,
+  courseSections,
+  courseSessions,
+  courses,
+  enrollments,
+  grades,
+  user,
+} from "~/server/db/schema";
+
+import { courseSessionRouter } from "./courseSessionRouter";
 
 const courseInputSchema = z.object({
   title: z.string().min(1).max(256),
@@ -160,13 +172,10 @@ export const courseRouter = createTRPCRouter({
         .where(eq(courses.id, id))
         .limit(1);
       if (!existing) throw new TRPCError({ code: "NOT_FOUND" });
-      const role = ctx.session.user.role as string | undefined;
-      if (existing.teacherId !== ctx.session.user.id && role !== "admin") {
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
+      assertOwnerOrAdmin(ctx, existing.teacherId);
 
       if (data.teacherId && data.teacherId !== existing.teacherId) {
-        if (role !== "admin") {
+        if (ctx.session.user.role !== "admin") {
           throw new TRPCError({
             code: "FORBIDDEN",
             message: "Only admins can reassign course teachers",
@@ -200,10 +209,7 @@ export const courseRouter = createTRPCRouter({
         .where(eq(courses.id, input.id))
         .limit(1);
       if (!existing) throw new TRPCError({ code: "NOT_FOUND" });
-      const role = ctx.session.user.role as string | undefined;
-      if (existing.teacherId !== ctx.session.user.id && role !== "admin") {
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
+      assertOwnerOrAdmin(ctx, existing.teacherId);
       await ctx.db
         .update(courses)
         .set({ status: "published" })
@@ -219,124 +225,7 @@ export const courseRouter = createTRPCRouter({
         .where(eq(courses.id, input.id));
     }),
 
-  listSessions: protectedProcedure
-    .input(z.object({ courseId: z.number().int() }))
-    .query(async ({ ctx, input }) => {
-      return ctx.db
-        .select()
-        .from(courseSessions)
-        .where(eq(courseSessions.courseId, input.courseId))
-        .orderBy(asc(courseSessions.dayOfWeek), asc(courseSessions.startTime));
-    }),
-
-  createSession: teacherProcedure
-    .input(
-      z.object({
-        courseId: z.number().int(),
-        dayOfWeek: z.number().int().min(0).max(6),
-        startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-        endDate: z
-          .string()
-          .regex(/^\d{4}-\d{2}-\d{2}$/)
-          .optional(),
-        startTime: z.string().regex(/^\d{2}:\d{2}(?::\d{2})?$/),
-        endTime: z.string().regex(/^\d{2}:\d{2}(?::\d{2})?$/),
-        location: z.string().optional(),
-        classroom: z.string().optional(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const [course] = await ctx.db
-        .select({ teacherId: courses.teacherId })
-        .from(courses)
-        .where(eq(courses.id, input.courseId))
-        .limit(1);
-      if (!course) throw new TRPCError({ code: "NOT_FOUND" });
-      const role = ctx.session.user.role as string | undefined;
-      if (course.teacherId !== ctx.session.user.id && role !== "admin") {
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
-      const [session] = await ctx.db
-        .insert(courseSessions)
-        .values({
-          courseId: input.courseId,
-          dayOfWeek: input.dayOfWeek,
-          startDate: input.startDate,
-          endDate: input.endDate,
-          startTime: input.startTime,
-          endTime: input.endTime,
-          location: input.location,
-          classroom: input.classroom,
-        })
-        .returning();
-      return session;
-    }),
-
-  updateSession: teacherProcedure
-    .input(
-      z.object({
-        id: z.number().int(),
-        dayOfWeek: z.number().int().min(0).max(6),
-        startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-        endDate: z
-          .string()
-          .regex(/^\d{4}-\d{2}-\d{2}$/)
-          .optional(),
-        startTime: z.string().regex(/^\d{2}:\d{2}(?::\d{2})?$/),
-        endTime: z.string().regex(/^\d{2}:\d{2}(?::\d{2})?$/),
-        location: z.string().optional(),
-        classroom: z.string().optional(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const { id, ...data } = input;
-      const [existing] = await ctx.db
-        .select({ courseId: courseSessions.courseId })
-        .from(courseSessions)
-        .where(eq(courseSessions.id, id))
-        .limit(1);
-      if (!existing) throw new TRPCError({ code: "NOT_FOUND" });
-      const [course] = await ctx.db
-        .select({ teacherId: courses.teacherId })
-        .from(courses)
-        .where(eq(courses.id, existing.courseId))
-        .limit(1);
-      if (!course) throw new TRPCError({ code: "NOT_FOUND" });
-      const role = ctx.session.user.role as string | undefined;
-      if (course.teacherId !== ctx.session.user.id && role !== "admin") {
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
-      const [session] = await ctx.db
-        .update(courseSessions)
-        .set(data)
-        .where(eq(courseSessions.id, id))
-        .returning();
-      return session;
-    }),
-
-  deleteSession: teacherProcedure
-    .input(z.object({ id: z.number().int() }))
-    .mutation(async ({ ctx, input }) => {
-      const [existing] = await ctx.db
-        .select({ courseId: courseSessions.courseId })
-        .from(courseSessions)
-        .where(eq(courseSessions.id, input.id))
-        .limit(1);
-      if (!existing) throw new TRPCError({ code: "NOT_FOUND" });
-      const [course] = await ctx.db
-        .select({ teacherId: courses.teacherId })
-        .from(courses)
-        .where(eq(courses.id, existing.courseId))
-        .limit(1);
-      if (!course) throw new TRPCError({ code: "NOT_FOUND" });
-      const role = ctx.session.user.role as string | undefined;
-      if (course.teacherId !== ctx.session.user.id && role !== "admin") {
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
-      await ctx.db
-        .delete(courseSessions)
-        .where(eq(courseSessions.id, input.id));
-    }),
+  session: courseSessionRouter,
 
   getEnrollmentCount: protectedProcedure
     .input(z.object({ courseId: z.number().int() }))
@@ -346,6 +235,75 @@ export const courseRouter = createTRPCRouter({
         .from(enrollments)
         .where(eq(enrollments.courseId, input.courseId));
       return result?.count ?? 0;
+    }),
+
+  /** Course-level insights: enrollment, completion, progress, and grades. */
+  getCourseInsights: protectedProcedure
+    .input(z.object({ courseId: z.number().int() }))
+    .query(async ({ ctx, input }) => {
+      const [course] = await ctx.db
+        .select({ teacherId: courses.teacherId })
+        .from(courses)
+        .where(eq(courses.id, input.courseId))
+        .limit(1);
+      if (!course) throw new TRPCError({ code: "NOT_FOUND" });
+      assertOwnerOrAdmin(ctx, course.teacherId);
+
+      const [enrollmentResult] = await ctx.db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(enrollments)
+        .where(eq(enrollments.courseId, input.courseId));
+      const enrollmentCount = enrollmentResult?.count ?? 0;
+
+      const progressRows = await ctx.db
+        .select({
+          progressPct: courseProgress.progressPct,
+          completedAt: courseProgress.completedAt,
+        })
+        .from(courseProgress)
+        .where(eq(courseProgress.courseId, input.courseId));
+      const completedCount = progressRows.filter(
+        (r) => r.completedAt != null,
+      ).length;
+      const averageProgress =
+        progressRows.length > 0
+          ? progressRows.reduce((sum, r) => sum + r.progressPct, 0) /
+            progressRows.length
+          : 0;
+
+      const gradeRows = await ctx.db
+        .select({ percentage: grades.percentage })
+        .from(grades)
+        .innerJoin(activities, eq(grades.activityId, activities.id))
+        .innerJoin(courseSections, eq(activities.sectionId, courseSections.id))
+        .where(eq(courseSections.courseId, input.courseId));
+      const gradePercentages = gradeRows
+        .map((g) => g.percentage)
+        .filter((p): p is number => p != null);
+      const averageGrade =
+        gradePercentages.length > 0
+          ? gradePercentages.reduce((sum, p) => sum + p, 0) /
+            gradePercentages.length
+          : 0;
+
+      const gradeDistribution = [0, 20, 40, 60, 80].map((bucket) => ({
+        bucket,
+        count: gradePercentages.filter((p) => {
+          const lower = bucket;
+          const upper = bucket + 20;
+          return p >= lower && (bucket === 80 ? p <= upper : p < upper);
+        }).length,
+      }));
+
+      return {
+        enrollmentCount,
+        completedCount,
+        completionRate:
+          enrollmentCount > 0 ? completedCount / enrollmentCount : 0,
+        averageProgress,
+        averageGrade,
+        gradeDistribution,
+      };
     }),
 
   listAll: adminProcedure

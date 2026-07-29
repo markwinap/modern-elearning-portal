@@ -119,7 +119,7 @@ export const workshopRouter = createTRPCRouter({
   listSubmissions: protectedProcedure
     .input(z.object({ workshopActivityId: z.number().int() }))
     .query(async ({ ctx, input }) => {
-      const role = ctx.session.user.role as string | undefined;
+      const role = ctx.session.user.role;
       if (role === "teacher" || role === "admin") {
         return ctx.db
           .select()

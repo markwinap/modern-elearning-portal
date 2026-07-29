@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import {
+  assertOwnerOrAdmin,
   createTRPCRouter,
   protectedProcedure,
   teacherProcedure,
@@ -49,10 +50,7 @@ export const lessonRouter = createTRPCRouter({
         .from(courses)
         .where(eq(courses.id, section.courseId))
         .limit(1);
-      const role = ctx.session.user.role as string | undefined;
-      if (course?.teacherId !== ctx.session.user.id && role !== "admin") {
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
+      assertOwnerOrAdmin(ctx, course?.teacherId);
       await ctx.db
         .insert(lessonNodes)
         .values({ activityId: input.activityId, graph: input.graph })

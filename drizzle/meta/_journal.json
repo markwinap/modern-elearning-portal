@@ -50,6 +50,20 @@
       "when": 1784170902030,
       "tag": "0006_certain_young_avengers",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1785298940436,
+      "tag": "0007_add_section_duration_and_quiz_insights_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1785304113397,
+      "tag": "0008_magical_valkyrie",
+      "breakpoints": true
     }
   ]
 }

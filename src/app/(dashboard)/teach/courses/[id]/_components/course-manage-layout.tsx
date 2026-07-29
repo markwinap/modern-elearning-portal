@@ -3,13 +3,14 @@
 import type { ReactNode } from "react";
 import { Breadcrumb, Button, Menu, Typography, theme } from "antd";
 import {
-  EditOutlined,
+  BarChartOutlined,
   BookOutlined,
+  EditOutlined,
   EyeOutlined,
+  MessageOutlined,
+  NotificationOutlined,
   TeamOutlined,
   TrophyOutlined,
-  NotificationOutlined,
-  MessageOutlined,
 } from "@ant-design/icons";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -62,6 +63,11 @@ const NAV_ITEMS = (id: number) => [
     key: "discussions",
     label: <Link href={`/teach/courses/${id}/discussions`}>Discussions</Link>,
     icon: <MessageOutlined />,
+  },
+  {
+    key: "insights",
+    label: <Link href={`/teach/courses/${id}/insights`}>Insights</Link>,
+    icon: <BarChartOutlined />,
   },
 ];
 

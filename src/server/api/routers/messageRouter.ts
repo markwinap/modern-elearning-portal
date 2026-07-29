@@ -2,7 +2,11 @@ import { TRPCError } from "@trpc/server";
 import { asc, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import {
+  assertOwnerOrAdmin,
+  createTRPCRouter,
+  protectedProcedure,
+} from "~/server/api/trpc";
 import {
   courses,
   messageThreads,
@@ -128,10 +132,7 @@ export const messageRouter = createTRPCRouter({
         .where(eq(messages.id, input.messageId))
         .limit(1);
       if (!msg) throw new TRPCError({ code: "NOT_FOUND" });
-      const role = ctx.session.user.role as string | undefined;
-      if (msg.authorId !== ctx.session.user.id && role !== "admin") {
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
+      assertOwnerOrAdmin(ctx, msg.authorId);
       await ctx.db.delete(messages).where(eq(messages.id, input.messageId));
     }),
 });

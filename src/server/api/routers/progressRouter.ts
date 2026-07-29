@@ -58,7 +58,7 @@ export const progressRouter = createTRPCRouter({
           });
         }
 
-        const role = ctx.session.user.role as string | undefined;
+        const role = ctx.session.user.role;
         const isTeacherOrAdmin = role === "teacher" || role === "admin";
 
         if (!isTeacherOrAdmin) {

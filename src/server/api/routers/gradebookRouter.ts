@@ -7,7 +7,9 @@ import {
   computeFinalGrade,
   percentageToLetter,
 } from "~/lib/grade-utils";
+import { type db } from "~/server/db";
 import {
+  assertOwnerOrAdmin,
   createTRPCRouter,
   protectedProcedure,
   teacherProcedure,
@@ -23,44 +25,80 @@ import {
   user,
 } from "~/server/db/schema";
 
+type DB = typeof db;
+
+/** IDs of gradable activities within a course (gradable section + gradable activity). */
+async function getGradableActivityIds(database: DB, courseId: number) {
+  const rows = await database
+    .select({ id: activities.id })
+    .from(activities)
+    .innerJoin(courseSections, eq(activities.sectionId, courseSections.id))
+    .where(
+      and(
+        eq(courseSections.courseId, courseId),
+        eq(courseSections.gradable, true),
+        eq(activities.gradable, true),
+      ),
+    );
+  return rows.map((a) => a.id);
+}
+
+/** Columns shared by getMyGrades/getCourseGrades — extended per-query with viewer-specific fields. */
+const baseGradeRowFields = {
+  id: grades.id,
+  activityId: grades.activityId,
+  userId: grades.userId,
+  gradeCategoryId: grades.gradeCategoryId,
+  rawScore: grades.rawScore,
+  maxScore: grades.maxScore,
+  percentage: grades.percentage,
+  letterGrade: grades.letterGrade,
+  feedback: grades.feedback,
+  isAutoGraded: grades.isAutoGraded,
+  gradedAt: grades.gradedAt,
+  gradedById: grades.gradedById,
+  activityTitle: activities.title,
+  activityType: activities.type,
+  sectionTitle: courseSections.title,
+  gradeCategoryName: gradeCategories.name,
+};
+
+/** Flattens a {grade, activity, section, category} join row into the shared grade summary shape. */
+function mapGradeSummaryRow(g: {
+  grade: typeof grades.$inferSelect;
+  activity: typeof activities.$inferSelect;
+  section: typeof courseSections.$inferSelect;
+  category: typeof gradeCategories.$inferSelect | null;
+}) {
+  return {
+    id: g.grade.id,
+    activityId: g.grade.activityId,
+    gradeCategoryId: g.grade.gradeCategoryId,
+    rawScore: g.grade.rawScore,
+    maxScore: g.grade.maxScore,
+    percentage: g.grade.percentage,
+    letterGrade: g.grade.letterGrade,
+    feedback: g.grade.feedback,
+    isAutoGraded: g.grade.isAutoGraded,
+    gradedAt: g.grade.gradedAt,
+    gradedById: g.grade.gradedById,
+    activityTitle: g.activity.title,
+    activityType: g.activity.type,
+    sectionTitle: g.section.title,
+    gradeCategoryName: g.category?.name ?? null,
+  };
+}
+
 export const gradebookRouter = createTRPCRouter({
   /** Get all grades for a student in a course. */
   getMyGrades: protectedProcedure
     .input(z.object({ courseId: z.number().int() }))
     .query(async ({ ctx, input }) => {
-      const courseActivities = await ctx.db
-        .select({ id: activities.id })
-        .from(activities)
-        .innerJoin(courseSections, eq(activities.sectionId, courseSections.id))
-        .where(
-          and(
-            eq(courseSections.courseId, input.courseId),
-            eq(courseSections.gradable, true),
-            eq(activities.gradable, true),
-          ),
-        );
-      const activityIds = courseActivities.map((a) => a.id);
+      const activityIds = await getGradableActivityIds(ctx.db, input.courseId);
       if (activityIds.length === 0) return [];
 
       return ctx.db
-        .select({
-          id: grades.id,
-          activityId: grades.activityId,
-          userId: grades.userId,
-          gradeCategoryId: grades.gradeCategoryId,
-          rawScore: grades.rawScore,
-          maxScore: grades.maxScore,
-          percentage: grades.percentage,
-          letterGrade: grades.letterGrade,
-          feedback: grades.feedback,
-          isAutoGraded: grades.isAutoGraded,
-          gradedAt: grades.gradedAt,
-          gradedById: grades.gradedById,
-          activityTitle: activities.title,
-          activityType: activities.type,
-          sectionTitle: courseSections.title,
-          gradeCategoryName: gradeCategories.name,
-        })
+        .select(baseGradeRowFields)
         .from(grades)
         .innerJoin(activities, eq(grades.activityId, activities.id))
         .innerJoin(courseSections, eq(activities.sectionId, courseSections.id))
@@ -86,44 +124,15 @@ export const gradebookRouter = createTRPCRouter({
         .from(courses)
         .where(eq(courses.id, input.courseId))
         .limit(1);
-      const role = ctx.session.user.role as string | undefined;
-      if (course?.teacherId !== ctx.session.user.id && role !== "admin") {
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
-      const courseActivities = await ctx.db
-        .select({ id: activities.id })
-        .from(activities)
-        .innerJoin(courseSections, eq(activities.sectionId, courseSections.id))
-        .where(
-          and(
-            eq(courseSections.courseId, input.courseId),
-            eq(courseSections.gradable, true),
-            eq(activities.gradable, true),
-          ),
-        );
-      if (courseActivities.length === 0) return [];
-      const activityIds = courseActivities.map((a) => a.id);
+      assertOwnerOrAdmin(ctx, course?.teacherId);
+      const activityIds = await getGradableActivityIds(ctx.db, input.courseId);
+      if (activityIds.length === 0) return [];
 
       return ctx.db
         .select({
-          id: grades.id,
-          activityId: grades.activityId,
-          userId: grades.userId,
+          ...baseGradeRowFields,
           userName: user.name,
           userEmail: user.email,
-          gradeCategoryId: grades.gradeCategoryId,
-          rawScore: grades.rawScore,
-          maxScore: grades.maxScore,
-          percentage: grades.percentage,
-          letterGrade: grades.letterGrade,
-          feedback: grades.feedback,
-          isAutoGraded: grades.isAutoGraded,
-          gradedAt: grades.gradedAt,
-          gradedById: grades.gradedById,
-          activityTitle: activities.title,
-          activityType: activities.type,
-          sectionTitle: courseSections.title,
-          gradeCategoryName: gradeCategories.name,
         })
         .from(grades)
         .innerJoin(activities, eq(grades.activityId, activities.id))
@@ -173,10 +182,7 @@ export const gradebookRouter = createTRPCRouter({
         });
       }
 
-      const role = ctx.session.user.role as string | undefined;
-      if (activity.teacherId !== ctx.session.user.id && role !== "admin") {
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
+      assertOwnerOrAdmin(ctx, activity.teacherId);
 
       if (!activity.sectionGradable || !activity.activityGradable) {
         throw new TRPCError({
@@ -361,23 +367,7 @@ export const gradebookRouter = createTRPCRouter({
         finalPercentage,
         letterGrade,
         breakdown,
-        grades: courseGrades.map((g) => ({
-          id: g.grade.id,
-          activityId: g.grade.activityId,
-          gradeCategoryId: g.grade.gradeCategoryId,
-          rawScore: g.grade.rawScore,
-          maxScore: g.grade.maxScore,
-          percentage: g.grade.percentage,
-          letterGrade: g.grade.letterGrade,
-          feedback: g.grade.feedback,
-          isAutoGraded: g.grade.isAutoGraded,
-          gradedAt: g.grade.gradedAt,
-          gradedById: g.grade.gradedById,
-          activityTitle: g.activity.title,
-          activityType: g.activity.type,
-          sectionTitle: g.section.title,
-          gradeCategoryName: g.category?.name ?? null,
-        })),
+        grades: courseGrades.map(mapGradeSummaryRow),
       };
     });
 
@@ -393,10 +383,7 @@ export const gradebookRouter = createTRPCRouter({
         .from(courses)
         .where(eq(courses.id, input.courseId))
         .limit(1);
-      const role = ctx.session.user.role as string | undefined;
-      if (course?.teacherId !== ctx.session.user.id && role !== "admin") {
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
+      assertOwnerOrAdmin(ctx, course?.teacherId);
 
       const [categoryRows, eligibleStudents, gradeRows, activityRows] =
         await Promise.all([
@@ -491,23 +478,7 @@ export const gradebookRouter = createTRPCRouter({
           finalPercentage,
           letterGrade,
           breakdown,
-          grades: studentGrades.map((g) => ({
-            id: g.grade.id,
-            activityId: g.grade.activityId,
-            gradeCategoryId: g.grade.gradeCategoryId,
-            rawScore: g.grade.rawScore,
-            maxScore: g.grade.maxScore,
-            percentage: g.grade.percentage,
-            letterGrade: g.grade.letterGrade,
-            feedback: g.grade.feedback,
-            isAutoGraded: g.grade.isAutoGraded,
-            gradedAt: g.grade.gradedAt,
-            gradedById: g.grade.gradedById,
-            activityTitle: g.activity.title,
-            activityType: g.activity.type,
-            sectionTitle: g.section.title,
-            gradeCategoryName: g.category?.name ?? null,
-          })),
+          grades: studentGrades.map(mapGradeSummaryRow),
         };
       });
 
@@ -552,10 +523,7 @@ export const gradebookRouter = createTRPCRouter({
         .from(courses)
         .where(eq(courses.id, input.courseId))
         .limit(1);
-      const role = ctx.session.user.role as string | undefined;
-      if (course?.teacherId !== ctx.session.user.id && role !== "admin") {
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
+      assertOwnerOrAdmin(ctx, course?.teacherId);
       const existing = await ctx.db
         .select({ weight: gradeCategories.weight })
         .from(gradeCategories)
@@ -603,10 +571,7 @@ export const gradebookRouter = createTRPCRouter({
         .from(courses)
         .where(eq(courses.id, category.courseId))
         .limit(1);
-      const role = ctx.session.user.role as string | undefined;
-      if (course?.teacherId !== ctx.session.user.id && role !== "admin") {
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
+      assertOwnerOrAdmin(ctx, course?.teacherId);
       if (input.weight !== undefined) {
         const siblingRows = await ctx.db
           .select({ id: gradeCategories.id, weight: gradeCategories.weight })
@@ -647,10 +612,7 @@ export const gradebookRouter = createTRPCRouter({
         .from(courses)
         .where(eq(courses.id, category.courseId))
         .limit(1);
-      const role = ctx.session.user.role as string | undefined;
-      if (course?.teacherId !== ctx.session.user.id && role !== "admin") {
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
+      assertOwnerOrAdmin(ctx, course?.teacherId);
       await ctx.db
         .delete(gradeCategories)
         .where(eq(gradeCategories.id, input.id));

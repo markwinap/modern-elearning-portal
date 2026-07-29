@@ -89,7 +89,7 @@ declare -a IGNORE_PATTERNS=(
   "src/server/better-auth/index.ts"   # 33-byte re-export
   "src/trpc/query-client.ts"          # boilerplate TanStack config
   "src/server/db/index.ts"            # just drizzle(conn, {schema}) — no useful context
-  "src/server/api/routers/post.ts"    # T3 scaffold placeholder, not real app code
+  "src/server/api/routers/postRouter.ts" # T3 scaffold placeholder, not real app code
   ".npmrc"                            # single-line shamefully-hoist
 
   # Next.js API route handlers — just thin wrappers, no logic

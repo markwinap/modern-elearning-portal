@@ -9,7 +9,6 @@ import { lessonRouter } from "~/server/api/routers/lessonRouter";
 import { messageRouter } from "~/server/api/routers/messageRouter";
 import { notificationRouter } from "~/server/api/routers/notificationRouter";
 import { pageRouter } from "~/server/api/routers/pageRouter";
-import { postRouter } from "~/server/api/routers/post";
 import { progressRouter } from "~/server/api/routers/progressRouter";
 import { quizRouter } from "~/server/api/routers/quizRouter";
 import { sectionRouter } from "~/server/api/routers/sectionRouter";
@@ -22,7 +21,6 @@ import { workshopRouter } from "~/server/api/routers/workshopRouter";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
 export const appRouter = createTRPCRouter({
-  post: postRouter,
   user: userRouter,
   category: categoryRouter,
   course: courseRouter,

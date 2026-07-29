@@ -1,13 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import {
+  DndContext,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   Button,
-  Collapse,
+  Card,
+  Drawer,
   Empty,
   Form,
   Input,
-  Modal,
+  InputNumber,
+  Radio,
   Select,
   Skeleton,
   Space,
@@ -17,7 +33,14 @@ import {
   theme,
   App,
 } from "antd";
-import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  HolderOutlined,
+  SettingOutlined,
+  ClockCircleOutlined,
+} from "@ant-design/icons";
 
 import Link from "next/link";
 
@@ -26,11 +49,22 @@ import { ActivityBadge } from "~/components/ui/activity-badge";
 import { ActivityIcon } from "~/components/ui/activity-icon";
 import { FormModal } from "~/components/ui/form-modal";
 import { toastMutationOptions } from "~/lib/mutation-utils";
+import { formatDurationMins } from "~/lib/insight-utils";
 import { ACTIVITY_TYPES, type ActivityType } from "~/lib/activity-types";
 
 interface Props {
   courseId: number;
 }
+
+type SectionWithDuration = {
+  id: number;
+  title: string;
+  visible: boolean;
+  gradable: boolean;
+  durationMins: number;
+  durationMode: "manual" | "auto";
+  pickCount: number | null;
+};
 
 function ActivityList({
   sectionId,
@@ -186,40 +220,58 @@ function ActivityList({
   );
 }
 
-export function SectionBuilder({ courseId }: Props) {
-  const { message: messageApi, modal } = App.useApp();
-  const [addSectionOpen, setAddSectionOpen] = useState(false);
-  const [editSection, setEditSection] = useState<{
-    id: number;
+function SectionDurationLabel({
+  section,
+  autoDuration,
+}: {
+  section: SectionWithDuration;
+  autoDuration: number;
+}) {
+  const effective =
+    section.durationMode === "auto" ? autoDuration : section.durationMins;
+  return (
+    <Space size={4}>
+      <ClockCircleOutlined />
+      <Typography.Text type="secondary">
+        {formatDurationMins(effective)}
+        {section.durationMode === "auto" && " (auto)"}
+      </Typography.Text>
+    </Space>
+  );
+}
+
+function SectionSettingsDrawer({
+  section,
+  open,
+  onClose,
+  courseId,
+  autoDuration,
+}: {
+  section: SectionWithDuration | null;
+  open: boolean;
+  onClose: () => void;
+  courseId: number;
+  autoDuration: number;
+}) {
+  const { message: messageApi } = App.useApp();
+  const [form] = Form.useForm<{
     title: string;
-    gradable: boolean;
-  } | null>(null);
-  const [form] = Form.useForm<{ title: string; gradable?: boolean }>();
+    durationMode: "manual" | "auto";
+    durationMins: number | null;
+    pickCount: number | null;
+  }>();
   const utils = api.useUtils();
-  const { token } = theme.useToken();
-
-  const { data: sections = [], isLoading } = api.section.listByCourse.useQuery({
-    courseId,
-  });
-
-  const createSection = api.section.create.useMutation({
-    ...toastMutationOptions({
-      messageApi,
-      successMessage: "Section added!",
-      invalidate: () => utils.section.listByCourse.invalidate({ courseId }),
-      onSuccess: () => {
-        setAddSectionOpen(false);
-        form.resetFields();
-      },
-    }),
-  });
 
   const updateSection = api.section.update.useMutation({
     ...toastMutationOptions({
       messageApi,
-      successMessage: "Section updated!",
-      invalidate: () => utils.section.listByCourse.invalidate({ courseId }),
-      onSuccess: () => setEditSection(null),
+      successMessage: "Section settings saved!",
+      invalidate: () => {
+        void utils.section.listByCourse.invalidate({ courseId });
+        void utils.section.getCourseDuration.invalidate({ courseId });
+        void utils.section.getAutoDurations.invalidate({ courseId });
+      },
+      onSuccess: () => onClose(),
     }),
   });
 
@@ -227,102 +279,375 @@ export function SectionBuilder({ courseId }: Props) {
     ...toastMutationOptions({
       messageApi,
       successMessage: "Section deleted.",
+      invalidate: () => {
+        void utils.section.listByCourse.invalidate({ courseId });
+        void utils.section.getCourseDuration.invalidate({ courseId });
+        void utils.section.getAutoDurations.invalidate({ courseId });
+      },
+    }),
+  });
+
+  const durationMode =
+    Form.useWatch("durationMode", form) ?? section?.durationMode ?? "manual";
+
+  const handleFinish = (values: {
+    title: string;
+    durationMode: "manual" | "auto";
+    durationMins: number | null;
+    pickCount: number | null;
+  }) => {
+    if (!section) return;
+    updateSection.mutate({
+      id: section.id,
+      title: values.title,
+      durationMode: values.durationMode,
+      durationMins:
+        values.durationMode === "auto" ? undefined : (values.durationMins ?? 0),
+      pickCount: values.pickCount,
+    });
+  };
+
+  return (
+    <Drawer
+      title="Section Settings"
+      open={open}
+      onClose={onClose}
+      width={420}
+      footer={
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <Button
+            danger
+            icon={<DeleteOutlined />}
+            loading={deleteSection.isPending}
+            onClick={() => {
+              if (section) deleteSection.mutate({ id: section.id });
+            }}
+          >
+            Delete section
+          </Button>
+          <Button
+            type="primary"
+            loading={updateSection.isPending}
+            onClick={() => form.submit()}
+          >
+            Save
+          </Button>
+        </div>
+      }
+    >
+      {section && (
+        <Form
+          form={form}
+          layout="vertical"
+          initialValues={{
+            title: section.title,
+            durationMode: section.durationMode,
+            durationMins:
+              section.durationMode === "auto"
+                ? autoDuration
+                : section.durationMins,
+            pickCount: section.pickCount,
+          }}
+          onFinish={handleFinish}
+        >
+          <Form.Item name="title" label="Name" rules={[{ required: true }]}>
+            <Input />
+          </Form.Item>
+
+          <Form.Item label="Duration mode">
+            <Form.Item name="durationMode" noStyle>
+              <Radio.Group>
+                <Radio.Button value="manual">Manual</Radio.Button>
+                <Radio.Button value="auto">Auto</Radio.Button>
+              </Radio.Group>
+            </Form.Item>
+            {durationMode === "auto" && (
+              <Typography.Text type="secondary" style={{ marginLeft: 12 }}>
+                Recommended: {formatDurationMins(autoDuration)}
+              </Typography.Text>
+            )}
+          </Form.Item>
+
+          {durationMode === "manual" && (
+            <Form.Item name="durationMins" label="Duration (minutes)">
+              <InputNumber min={0} style={{ width: "100%" }} />
+            </Form.Item>
+          )}
+
+          <Form.Item
+            name="pickCount"
+            label="Randomly pick questions"
+            extra="If set, each attempt randomly selects this many questions from the section's quizzes."
+          >
+            <InputNumber
+              min={0}
+              placeholder="All questions"
+              style={{ width: "100%" }}
+            />
+          </Form.Item>
+        </Form>
+      )}
+    </Drawer>
+  );
+}
+
+function SortableSectionCard({
+  section,
+  courseId,
+  isExpanded,
+  onToggle,
+  onOpenSettings,
+  autoDuration,
+}: {
+  section: SectionWithDuration;
+  courseId: number;
+  isExpanded: boolean;
+  onToggle: () => void;
+  onOpenSettings: () => void;
+  autoDuration: number;
+}) {
+  const { token } = theme.useToken();
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: section.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    marginBottom: 12,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+      <Card
+        size="small"
+        styles={{
+          body: {
+            padding: 0,
+          },
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            padding: "12px 16px",
+            cursor: "pointer",
+            background: isExpanded ? token.colorFillAlter : undefined,
+          }}
+          onClick={onToggle}
+        >
+          <span
+            {...listeners}
+            style={{ cursor: "grab", color: token.colorTextSecondary }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <HolderOutlined />
+          </span>
+          <Typography.Text strong style={{ flex: 1 }}>
+            {section.title}
+          </Typography.Text>
+          <Space size={8}>
+            {!section.visible && <Tag>Hidden</Tag>}
+            {!section.gradable && <Tag color="orange">Not gradable</Tag>}
+            <SectionDurationLabel
+              section={section}
+              autoDuration={autoDuration}
+            />
+            <Button
+              type="text"
+              size="small"
+              icon={<SettingOutlined />}
+              title="Section settings"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenSettings();
+              }}
+            />
+          </Space>
+        </div>
+        {isExpanded && (
+          <div style={{ padding: "0 16px 16px" }}>
+            <ActivityList sectionId={section.id} courseId={courseId} />
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+export function SectionBuilder({ courseId }: Props) {
+  const { message: messageApi, modal } = App.useApp();
+  const [addSectionOpen, setAddSectionOpen] = useState(false);
+  const [expandedSection, setExpandedSection] = useState<number | null>(null);
+  const [settingsSection, setSettingsSection] =
+    useState<SectionWithDuration | null>(null);
+  const [form] = Form.useForm<{ title: string; gradable?: boolean }>();
+  const utils = api.useUtils();
+  const { token } = theme.useToken();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 5 },
+    }),
+  );
+
+  const { data: sections = [], isLoading } = api.section.listByCourse.useQuery({
+    courseId,
+  });
+
+  const { data: autoDurations = new Map<number, number>() } =
+    api.section.getAutoDurations.useQuery({ courseId });
+
+  const { data: totalDuration = 0 } = api.section.getCourseDuration.useQuery({
+    courseId,
+  });
+
+  const createSection = api.section.create.useMutation({
+    ...toastMutationOptions({
+      messageApi,
+      successMessage: "Section added!",
+      invalidate: () => {
+        void utils.section.listByCourse.invalidate({ courseId });
+        void utils.section.getCourseDuration.invalidate({ courseId });
+        void utils.section.getAutoDurations.invalidate({ courseId });
+      },
+      onSuccess: () => {
+        setAddSectionOpen(false);
+        form.resetFields();
+      },
+    }),
+  });
+
+  const reorderSections = api.section.reorder.useMutation({
+    ...toastMutationOptions({
+      messageApi,
+      successMessage: "Section order updated!",
       invalidate: () => utils.section.listByCourse.invalidate({ courseId }),
     }),
   });
 
-  const collapseItems = sections.map((sec) => ({
-    key: String(sec.id),
-    label: (
-      <Space>
-        <Typography.Text strong>{sec.title}</Typography.Text>
-        {!sec.visible && <Tag>Hidden</Tag>}
-        {!sec.gradable && <Tag color="orange">Not gradable</Tag>}
-        <Button
-          type="text"
-          size="small"
-          icon={<EditOutlined />}
-          onClick={(e) => {
-            e.stopPropagation();
-            setEditSection({
-              id: sec.id,
-              title: sec.title,
-              gradable: sec.gradable,
-            });
-          }}
-        />
-        <Button
-          type="text"
-          danger
-          size="small"
-          icon={<DeleteOutlined />}
-          loading={deleteSection.isPending}
-          onClick={(e) => {
-            e.stopPropagation();
-            modal.confirm({
-              title: "Delete section?",
-              content: `"${sec.title}" and all its activities will be permanently removed.`,
-              okText: "Delete",
-              okButtonProps: { danger: true },
-              onOk: () => deleteSection.mutate({ id: sec.id }),
-            });
-          }}
-        />
-      </Space>
-    ),
-    children: <ActivityList sectionId={sec.id} courseId={courseId} />,
-  }));
+  const sectionIds = useMemo(() => sections.map((s) => s.id), [sections]);
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = sections.findIndex((s) => s.id === active.id);
+    const newIndex = sections.findIndex((s) => s.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = [...sections];
+    const [moved] = reordered.splice(oldIndex, 1);
+    reordered.splice(newIndex, 0, moved!);
+
+    reorderSections.mutate({
+      courseId,
+      order: reordered.map((s, index) => ({ id: s.id, order: index })),
+    });
+  };
 
   return (
     <>
-      {isLoading ? (
-        <Space orientation="vertical" style={{ width: "100%" }}>
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "10px 16px",
-                borderRadius: 6,
-                background: token.colorFillAlter,
-                border: `1px solid ${token.colorBorderSecondary}`,
-              }}
+      <Space
+        orientation="vertical"
+        size="large"
+        style={{ width: "100%", marginBottom: 16 }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 16,
+          }}
+        >
+          <Typography.Title level={5} style={{ margin: 0 }}>
+            Sections ({sections.length})
+          </Typography.Title>
+          <Space>
+            <ClockCircleOutlined />
+            <Typography.Text strong>
+              Total duration: {formatDurationMins(totalDuration)}
+            </Typography.Text>
+          </Space>
+        </div>
+
+        {isLoading ? (
+          <Space orientation="vertical" style={{ width: "100%" }}>
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "10px 16px",
+                  borderRadius: 6,
+                  background: token.colorFillAlter,
+                  border: `1px solid ${token.colorBorderSecondary}`,
+                }}
+              >
+                <Skeleton.Input active size="small" style={{ flex: 1 }} />
+                <Skeleton.Button active size="small" />
+                <Skeleton.Button active size="small" />
+              </div>
+            ))}
+          </Space>
+        ) : sections.length === 0 ? (
+          <Empty description="No sections yet" style={{ marginBottom: 16 }}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => setAddSectionOpen(true)}
             >
-              <Skeleton.Input active size="small" style={{ flex: 1 }} />
-              <Skeleton.Button active size="small" />
-              <Skeleton.Button active size="small" />
-            </div>
-          ))}
-        </Space>
-      ) : sections.length === 0 ? (
-        <Empty description="No sections yet" style={{ marginBottom: 16 }}>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setAddSectionOpen(true)}
+              Add First Section
+            </Button>
+          </Empty>
+        ) : (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
           >
-            Add First Section
-          </Button>
-        </Empty>
-      ) : (
-        <>
-          <Collapse
-            items={collapseItems}
-            defaultActiveKey={sections[0] ? [String(sections[0].id)] : []}
-          />
-          <Button
-            type="dashed"
-            block
-            icon={<PlusOutlined />}
-            style={{ marginTop: 16 }}
-            onClick={() => setAddSectionOpen(true)}
-          >
-            Add Section
-          </Button>
-        </>
-      )}
+            <SortableContext
+              items={sectionIds}
+              strategy={verticalListSortingStrategy}
+            >
+              {sections.map((sec) => (
+                <SortableSectionCard
+                  key={sec.id}
+                  section={sec as SectionWithDuration}
+                  courseId={courseId}
+                  isExpanded={expandedSection === sec.id}
+                  onToggle={() =>
+                    setExpandedSection((current) =>
+                      current === sec.id ? null : sec.id,
+                    )
+                  }
+                  onOpenSettings={() => setSettingsSection(sec)}
+                  autoDuration={autoDurations.get(sec.id) ?? 0}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
+        )}
+
+        <Button
+          type="dashed"
+          block
+          icon={<PlusOutlined />}
+          onClick={() => setAddSectionOpen(true)}
+        >
+          Add Section
+        </Button>
+      </Space>
 
       <FormModal
         form={form}
@@ -359,43 +684,15 @@ export function SectionBuilder({ courseId }: Props) {
         </Form.Item>
       </FormModal>
 
-      {/* Edit section modal */}
-      <Modal
-        title="Edit Section"
-        open={!!editSection}
-        onCancel={() => setEditSection(null)}
-        onOk={() => {
-          if (editSection)
-            updateSection.mutate({
-              id: editSection.id,
-              title: editSection.title,
-              gradable: editSection.gradable,
-            });
-        }}
-        confirmLoading={updateSection.isPending}
-      >
-        <Space orientation="vertical" style={{ width: "100%" }}>
-          <Input
-            value={editSection?.title ?? ""}
-            onChange={(e) =>
-              setEditSection((s) =>
-                s ? { ...s, title: e.target.value } : null,
-              )
-            }
-          />
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Switch
-              checked={editSection?.gradable ?? true}
-              checkedChildren="Gradable"
-              unCheckedChildren="Not gradable"
-              onChange={(checked) =>
-                setEditSection((s) => (s ? { ...s, gradable: checked } : null))
-              }
-            />
-            <Typography.Text>Gradable</Typography.Text>
-          </div>
-        </Space>
-      </Modal>
+      <SectionSettingsDrawer
+        section={settingsSection}
+        open={settingsSection != null}
+        onClose={() => setSettingsSection(null)}
+        courseId={courseId}
+        autoDuration={
+          settingsSection ? (autoDurations.get(settingsSection.id) ?? 0) : 0
+        }
+      />
     </>
   );
 }
