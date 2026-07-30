@@ -1,4 +1,11 @@
+import "dotenv/config";
+
 import { defineConfig, devices } from "@playwright/test";
+
+// Saved storage state (session cookies) from e2e/auth.setup.ts, reused by
+// authenticated tests so they don't need to sign in themselves.
+const teacherAuthFile = "e2e/.auth/teacher.json";
+const studentAuthFile = "e2e/.auth/student.json";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -13,8 +20,20 @@ export default defineConfig({
   },
   projects: [
     {
+      name: "setup",
+      testMatch: /auth\.setup\.ts/,
+    },
+    {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      testIgnore: "student/**",
+      use: { ...devices["Desktop Chrome"], storageState: teacherAuthFile },
+      dependencies: ["setup"],
+    },
+    {
+      name: "chromium-student",
+      testMatch: "student/**",
+      use: { ...devices["Desktop Chrome"], storageState: studentAuthFile },
+      dependencies: ["setup"],
     },
   ],
   webServer: {

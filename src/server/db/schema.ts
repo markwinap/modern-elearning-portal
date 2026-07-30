@@ -390,6 +390,7 @@ export const quizQuestions = createTable(
     prompt: d.text().notNull(),
     options: d.jsonb().$type<unknown[]>(),
     correctAnswer: d.jsonb().$type<unknown>(),
+    allowMultiple: d.boolean().default(false).notNull(),
     points: d.integer().default(1).notNull(),
     order: d.integer().default(0).notNull(),
     recommendedTimeMins: d.integer().default(1).notNull(),

@@ -46,6 +46,7 @@ export default async function ActivityPage({ params }: Props) {
       type: string;
       prompt: string;
       options: unknown;
+      allowMultiple: boolean;
       points: number;
       order: number;
     }>;
@@ -61,7 +62,20 @@ export default async function ActivityPage({ params }: Props) {
       api.quiz.getQuiz({ activityId: id }),
       api.quiz.listQuestions({ activityId: id }),
     ]);
-    quizContent = { quiz, questions };
+    // Strip the correct answer before sending question data to the client —
+    // students should never receive it ahead of grading.
+    quizContent = {
+      quiz,
+      questions: questions.map((q) => ({
+        id: q.id,
+        type: q.type,
+        prompt: q.prompt,
+        options: q.options,
+        allowMultiple: q.allowMultiple,
+        points: q.points,
+        order: q.order,
+      })),
+    };
   } else if (activity.type === "text_media") {
     textMediaContent = await api.textMedia.getByActivity({ activityId: id });
   }

@@ -6,7 +6,6 @@ import { useEffect } from "react";
 import { Alert, Button, Card, Space, Tag, Typography, message } from "antd";
 import { CheckCircleOutlined } from "@ant-design/icons";
 
-
 import { FileViewer } from "./file-viewer";
 import { PageViewer } from "./page-viewer";
 import { QuizTaker } from "./quiz-taker";
@@ -42,6 +41,7 @@ interface Props {
       type: string;
       prompt: string;
       options: unknown;
+      allowMultiple: boolean;
       points: number;
       order: number;
     }>;
@@ -50,15 +50,27 @@ interface Props {
   initialProgress: { status: string; completedAt: Date | null } | null;
 }
 
-export function ActivityDispatcher({ activity,   pageContent,   fileContent,   quizContent,   textMediaContent,   initialProgress, }: Props) {
+export function ActivityDispatcher({
+  activity,
+  pageContent,
+  fileContent,
+  quizContent,
+  textMediaContent,
+  initialProgress,
+}: Props) {
   const trpc = useTRPC();
   const [messageApi, contextHolder] = message.useMessage();
   const queryClient = useQueryClient();
 
-  const markActivity = useMutation(trpc.progress.markActivity.mutationOptions({
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: trpc.progress.getActivityProgress.queryKey() }),
-    onError: (err) => messageApi.error(err.message),
-  }));
+  const markActivity = useMutation(
+    trpc.progress.markActivity.mutationOptions({
+      onSuccess: () =>
+        queryClient.invalidateQueries({
+          queryKey: trpc.progress.getActivityProgress.queryKey(),
+        }),
+      onError: (err) => messageApi.error(err.message),
+    }),
+  );
 
   const isCompleted = initialProgress?.status === "completed";
 

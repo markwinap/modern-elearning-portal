@@ -64,6 +64,13 @@
       "when": 1785304113397,
       "tag": "0008_magical_valkyrie",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1785382902458,
+      "tag": "0009_first_moon_knight",
+      "breakpoints": true
     }
   ]
 }

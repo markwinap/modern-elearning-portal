@@ -2,11 +2,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "~/trpc/react";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Alert,
   Button,
   Card,
+  Checkbox,
   Descriptions,
   Input,
   Progress,
@@ -23,7 +24,6 @@ import {
   CloseCircleOutlined,
 } from "@ant-design/icons";
 
-
 interface QuizConfig {
   timeLimitSecs: number | null;
   maxAttempts: number | null;
@@ -37,8 +37,33 @@ interface Question {
   type: string;
   prompt: string;
   options: unknown;
+  allowMultiple: boolean;
   points: number;
   order: number;
+}
+
+// Deterministic PRNG so a shuffled order stays stable across re-renders and
+// when a student resumes an in-progress attempt.
+function mulberry32(seed: number) {
+  let state = seed | 0;
+  return function random() {
+    state = (state + 0x6d2b79f5) | 0;
+    let t = Math.imul(state ^ (state >>> 15), 1 | state);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function seededShuffle<T>(items: T[], seed: number): T[] {
+  const random = mulberry32(seed);
+  const result = [...items];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    const temp = result[i]!;
+    result[i] = result[j]!;
+    result[j] = temp;
+  }
+  return result;
 }
 
 interface Props {
@@ -64,7 +89,13 @@ interface QuizResult {
   feedback: FeedbackItem[] | null;
 }
 
-export function QuizTaker({ activityId,   quiz,   questions,   initialProgress: _initialProgress,   onComplete, }: Props) {
+export function QuizTaker({
+  activityId,
+  quiz,
+  questions,
+  initialProgress: _initialProgress,
+  onComplete,
+}: Props) {
   const trpc = useTRPC();
   const [messageApi, contextHolder] = message.useMessage();
   const { token } = theme.useToken();
@@ -76,7 +107,31 @@ export function QuizTaker({ activityId,   quiz,   questions,   initialProgress: 
   const answersRef = useRef<AnswerMap>({});
   answersRef.current = answers;
 
-  const { data: attempts } = useQuery(trpc.quiz.getMyAttempts.queryOptions({ activityId }));
+  // Shuffle question order and, for multiple-choice questions, option order.
+  // Seeded by the attempt id so the order stays stable for the duration of
+  // an attempt (including on resume/reload) but varies between attempts.
+  const displayQuestions = useMemo(() => {
+    if (!attemptId || !quiz?.shuffleQuestions) return questions;
+    return seededShuffle(questions, attemptId);
+  }, [attemptId, quiz?.shuffleQuestions, questions]);
+
+  const optionsByQuestionId = useMemo(() => {
+    const map = new Map<number, string[]>();
+    for (const q of questions) {
+      const opts = Array.isArray(q.options) ? (q.options as string[]) : [];
+      map.set(
+        q.id,
+        attemptId && quiz?.shuffleAnswers && q.type === "multiple_choice"
+          ? seededShuffle(opts, attemptId + q.id)
+          : opts,
+      );
+    }
+    return map;
+  }, [questions, attemptId, quiz?.shuffleAnswers]);
+
+  const { data: attempts } = useQuery(
+    trpc.quiz.getMyAttempts.queryOptions({ activityId }),
+  );
   const hasInProgress = attempts?.some((a) => a.submittedAt === null) ?? false;
   const submittedCount =
     attempts?.filter((a) => a.submittedAt !== null).length ?? 0;
@@ -87,27 +142,35 @@ export function QuizTaker({ activityId,   quiz,   questions,   initialProgress: 
     : Math.max(0, maxAttempts - submittedCount);
   const canStart = unlimited || hasInProgress || (remainingAttempts ?? 0) > 0;
 
-  const startAttempt = useMutation(trpc.quiz.startAttempt.mutationOptions({
-    onSuccess: (attempt) => {
-      if (attempt) {
-        setAttemptId(attempt.id);
-        setAnswers({});
-        setResult(null);
-        setTimeLeft(null);
-      }
-      void queryClient.invalidateQueries({ queryKey: trpc.quiz.getMyAttempts.queryKey({ activityId }) });
-    },
-    onError: (err) => messageApi.error(err.message),
-  }));
+  const startAttempt = useMutation(
+    trpc.quiz.startAttempt.mutationOptions({
+      onSuccess: (attempt) => {
+        if (attempt) {
+          setAttemptId(attempt.id);
+          setAnswers({});
+          setResult(null);
+          setTimeLeft(null);
+        }
+        void queryClient.invalidateQueries({
+          queryKey: trpc.quiz.getMyAttempts.queryKey({ activityId }),
+        });
+      },
+      onError: (err) => messageApi.error(err.message),
+    }),
+  );
 
-  const submitAttempt = useMutation(trpc.quiz.submitAttempt.mutationOptions({
-    onSuccess: (res) => {
-      setResult(res);
-      onComplete();
-      void queryClient.invalidateQueries({ queryKey: trpc.quiz.getMyAttempts.queryKey({ activityId }) });
-    },
-    onError: (err) => messageApi.error(err.message),
-  }));
+  const submitAttempt = useMutation(
+    trpc.quiz.submitAttempt.mutationOptions({
+      onSuccess: (res) => {
+        setResult(res);
+        onComplete();
+        void queryClient.invalidateQueries({
+          queryKey: trpc.quiz.getMyAttempts.queryKey({ activityId }),
+        });
+      },
+      onError: (err) => messageApi.error(err.message),
+    }),
+  );
 
   function handleSubmit() {
     if (!attemptId) return;
@@ -220,7 +283,7 @@ export function QuizTaker({ activityId,   quiz,   questions,   initialProgress: 
             <Typography.Title level={4} style={{ margin: 0 }}>
               Answer Review
             </Typography.Title>
-            {questions.map((q, index) => {
+            {displayQuestions.map((q, index) => {
               const fb = result.feedback!.find((f) => f.questionId === q.id);
               if (!fb) return null;
               return (
@@ -261,7 +324,9 @@ export function QuizTaker({ activityId,   quiz,   questions,   initialProgress: 
                           <strong>
                             {typeof fb.correctAnswer === "string"
                               ? fb.correctAnswer
-                              : JSON.stringify(fb.correctAnswer)}
+                              : Array.isArray(fb.correctAnswer)
+                                ? (fb.correctAnswer as string[]).join(", ")
+                                : JSON.stringify(fb.correctAnswer)}
                           </strong>
                         </span>
                       }
@@ -376,7 +441,7 @@ export function QuizTaker({ activityId,   quiz,   questions,   initialProgress: 
             }
           />
         )}
-        {questions.map((q, index) => (
+        {displayQuestions.map((q, index) => (
           <Card
             key={q.id}
             title={
@@ -395,7 +460,28 @@ export function QuizTaker({ activityId,   quiz,   questions,   initialProgress: 
               {q.prompt}
             </Typography.Text>
 
-            {(q.type === "multiple_choice" || q.type === "true_false") && (
+            {q.type === "multiple_choice" && q.allowMultiple && (
+              <Checkbox.Group
+                value={(answers[q.id] as string[]) ?? []}
+                onChange={(checked) =>
+                  setAnswers((prev) => ({
+                    ...prev,
+                    [q.id]: checked,
+                  }))
+                }
+              >
+                <Space orientation="vertical">
+                  {(optionsByQuestionId.get(q.id) ?? []).map((opt, i) => (
+                    <Checkbox key={i} value={opt}>
+                      {opt}
+                    </Checkbox>
+                  ))}
+                </Space>
+              </Checkbox.Group>
+            )}
+
+            {((q.type === "multiple_choice" && !q.allowMultiple) ||
+              q.type === "true_false") && (
               <Radio.Group
                 value={answers[q.id]}
                 onChange={(e) =>
@@ -415,13 +501,11 @@ export function QuizTaker({ activityId,   quiz,   questions,   initialProgress: 
                           False
                         </Radio>,
                       ]
-                    : Array.isArray(q.options)
-                      ? (q.options as string[]).map((opt, i) => (
-                          <Radio key={i} value={opt}>
-                            {opt}
-                          </Radio>
-                        ))
-                      : null}
+                    : (optionsByQuestionId.get(q.id) ?? []).map((opt, i) => (
+                        <Radio key={i} value={opt}>
+                          {opt}
+                        </Radio>
+                      ))}
                 </Space>
               </Radio.Group>
             )}

@@ -60,6 +60,11 @@ pnpm dev                # http://localhost:3000
 | `pnpm db:migrate`                         | Apply migrations (production)                 |
 | `pnpm db:push`                            | Push schema changes directly (development)    |
 | `pnpm db:studio`                          | Open Drizzle Studio                           |
+| `pnpm test`                               | Run unit tests (Vitest)                       |
+| `pnpm test:watch`                         | Run unit tests in watch mode                  |
+| `pnpm test:e2e:install`                   | Download Playwright browser binaries          |
+| `pnpm test:e2e`                           | Run end-to-end tests (Playwright)             |
+| `pnpm test:e2e:ui`                        | Run end-to-end tests in Playwright's UI mode  |
 
 ## Environment Variables
 
@@ -70,6 +75,44 @@ See [`.env.example`](.env.example) for the full list. Required variables:
 - `BETTER_AUTH_GITHUB_CLIENT_ID` / `BETTER_AUTH_GITHUB_CLIENT_SECRET` — optional GitHub OAuth
 - `TAVILY_API_KEY` — optional, for Tavily MCP
 - `OPENWEBUI_API_KEY` — optional, for Open WebUI
+- `E2E_TEACHER_EMAIL` / `E2E_TEACHER_PASSWORD` and `E2E_STUDENT_EMAIL` / `E2E_STUDENT_PASSWORD` — optional, only needed to run authenticated Playwright e2e tests (see [Testing](#testing))
+
+## Testing
+
+Unit tests use Vitest; end-to-end tests use Playwright.
+
+```bash
+# Unit tests
+pnpm test               # run once
+pnpm test:watch         # watch mode
+
+# End-to-end tests
+pnpm test:e2e:install   # one-time: download the Playwright browser binary
+pnpm test:e2e           # run headless
+pnpm test:e2e:ui        # run in Playwright's interactive UI mode
+```
+
+### Authenticated e2e tests
+
+Most e2e tests need a signed-in session. `e2e/auth.setup.ts` runs before the
+rest of the suite, signs in as a teacher and a student, and saves each
+session to `e2e/.auth/*.json` (gitignored — never commit these) so individual
+tests don't need to log in themselves.
+
+Add these credentials to your `.env` (see `.env.example`) for accounts that
+already exist in your database:
+
+```bash
+E2E_TEACHER_EMAIL="teacher@example.com"
+E2E_TEACHER_PASSWORD="..."
+E2E_STUDENT_EMAIL="student@example.com"
+E2E_STUDENT_PASSWORD="..."
+```
+
+Specs run authenticated based on location:
+
+- `e2e/**/*.spec.ts` (default) — runs as the teacher, via the `chromium` project
+- `e2e/student/**/*.spec.ts` — runs as the student, via the `chromium-student` project
 
 ## Project Structure
 

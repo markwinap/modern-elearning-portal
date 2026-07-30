@@ -44,3 +44,11 @@ yarn-error.log*
 
 # idea files
 .idea.opencode/openwebui-openapi.json
+
+# playwright mcp
+.playwright-mcp
+
+# playwright test artifacts (includes saved login sessions — never commit these)
+/playwright-report
+/test-results
+/e2e/.auth

@@ -100,6 +100,7 @@ export const quizRouter = createTRPCRouter({
         prompt: z.string().min(1),
         options: z.array(z.unknown()).optional(),
         correctAnswer: z.unknown().optional(),
+        allowMultiple: z.boolean().default(false),
         points: z.number().int().default(1),
         order: z.number().int().default(0),
         recommendedTimeMins: z.number().int().min(0).default(1),
@@ -209,9 +210,17 @@ export const quizRouter = createTRPCRouter({
 
       const maxScore = questions.reduce((s, q) => s + q.points, 0);
 
-      // Normalize boolean true/false to strings so "true" (string) matches true (boolean) in JSONB
-      const normalizeForGrading = (v: unknown): unknown =>
-        typeof v === "boolean" ? String(v) : v;
+      // Normalize boolean true/false to strings so "true" (string) matches true (boolean) in JSONB,
+      // and sort arrays so multi-answer (checkbox) questions grade order-independently.
+      const normalizeForGrading = (v: unknown): unknown => {
+        if (typeof v === "boolean") return String(v);
+        if (Array.isArray(v)) {
+          return (v as unknown[])
+            .map((item) => (typeof item === "boolean" ? String(item) : item))
+            .sort((a, b) => String(a).localeCompare(String(b)));
+        }
+        return v;
+      };
 
       // Grade answers sequentially to safely accumulate score
       let score = 0;
@@ -351,6 +360,7 @@ export const quizRouter = createTRPCRouter({
         prompt: z.string().min(1),
         options: z.array(z.unknown()).optional(),
         correctAnswer: z.unknown().optional(),
+        allowMultiple: z.boolean().default(false),
         points: z.number().int().min(1),
         recommendedTimeMins: z.number().int().min(0).optional(),
       }),
@@ -373,6 +383,7 @@ export const quizRouter = createTRPCRouter({
           prompt: input.prompt,
           options: input.options ?? null,
           correctAnswer: input.correctAnswer ?? null,
+          allowMultiple: input.allowMultiple,
           points: input.points,
           recommendedTimeMins: input.recommendedTimeMins,
         })

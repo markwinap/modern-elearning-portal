@@ -1,0 +1,1 @@
+ALTER TABLE "pg-drizzle_quiz_question" ADD COLUMN "allowMultiple" boolean DEFAULT false NOT NULL;

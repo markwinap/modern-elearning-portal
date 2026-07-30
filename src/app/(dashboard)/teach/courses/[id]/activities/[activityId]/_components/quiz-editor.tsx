@@ -52,6 +52,7 @@ interface Question {
   prompt: string;
   options: unknown;
   correctAnswer: unknown;
+  allowMultiple: boolean;
   points: number;
   order: number;
   recommendedTimeMins?: number;
@@ -76,7 +77,8 @@ interface QuestionFormValues {
   prompt: string;
   points: number;
   options: string;
-  correctAnswer?: string;
+  correctAnswer?: string | string[];
+  allowMultiple?: boolean;
   recommendedTimeMins: number;
 }
 
@@ -109,6 +111,7 @@ export function QuizEditor({
   const [settingsForm] = Form.useForm<SettingsFormValues>();
   const { message: messageApi } = App.useApp();
   const [questionType, setQuestionType] = useState("multiple_choice");
+  const [allowMultiple, setAllowMultiple] = useState(false);
   const queryClient = useQueryClient();
 
   const watchedOptions = Form.useWatch<string>("options", questionForm);
@@ -157,7 +160,14 @@ export function QuizEditor({
           queryClient.invalidateQueries({
             queryKey: trpc.quiz.listQuestions.queryKey({ activityId }),
           }),
-        onSuccess: () => closeQuestionModal(),
+        onSuccess: (updated) => {
+          if (updated) {
+            setQuestions((prev) =>
+              prev.map((q) => (q.id === updated.id ? updated : q)),
+            );
+          }
+          closeQuestionModal();
+        },
       }),
     }),
   );
@@ -189,14 +199,18 @@ export function QuizEditor({
     closeQuestionModalState();
     questionForm.resetFields();
     setQuestionType("multiple_choice");
+    setAllowMultiple(false);
   }
 
   function openEditModal(q: Question) {
     const optionsStr = Array.isArray(q.options)
       ? (q.options as string[]).join("\n")
       : "";
-    const correctAnswerStr =
-      typeof q.correctAnswer === "string"
+    const correctAnswerValue: string | string[] | undefined = Array.isArray(
+      q.correctAnswer,
+    )
+      ? (q.correctAnswer as string[])
+      : typeof q.correctAnswer === "string"
         ? q.correctAnswer
         : q.correctAnswer != null
           ? JSON.stringify(q.correctAnswer)
@@ -206,10 +220,12 @@ export function QuizEditor({
       prompt: q.prompt,
       points: q.points,
       options: optionsStr,
-      correctAnswer: correctAnswerStr,
+      correctAnswer: correctAnswerValue,
+      allowMultiple: q.allowMultiple,
       recommendedTimeMins: q.recommendedTimeMins ?? 1,
     });
     setQuestionType(q.type);
+    setAllowMultiple(q.allowMultiple);
     openEditQuestionModal(q);
   }
 
@@ -230,9 +246,13 @@ export function QuizEditor({
       | "ordering"
       | "essay";
     const correctAnswer =
-      AUTO_ASSESSED_TYPES.has(values.type) && values.correctAnswer
+      AUTO_ASSESSED_TYPES.has(values.type) &&
+      values.correctAnswer &&
+      values.correctAnswer.length > 0
         ? values.correctAnswer
         : undefined;
+    const allowMultipleValue =
+      values.type === "multiple_choice" ? !!values.allowMultiple : false;
 
     if (editingQuestion) {
       updateQuestion.mutate({
@@ -241,6 +261,7 @@ export function QuizEditor({
         prompt: values.prompt,
         options,
         correctAnswer,
+        allowMultiple: allowMultipleValue,
         points: values.points,
         recommendedTimeMins: values.recommendedTimeMins,
       });
@@ -251,6 +272,7 @@ export function QuizEditor({
         prompt: values.prompt,
         options,
         correctAnswer,
+        allowMultiple: allowMultipleValue,
         points: values.points,
         order: questions.length,
         recommendedTimeMins: values.recommendedTimeMins,
@@ -316,11 +338,19 @@ export function QuizEditor({
                 style={{ width: 200 }}
               />
             </Form.Item>
-            <Form.Item name="shuffleQuestions" valuePropName="checked">
+            <Form.Item
+              name="shuffleQuestions"
+              valuePropName="checked"
+              extra="Randomizes the order questions are presented in for each attempt"
+            >
               <Checkbox>Shuffle questions</Checkbox>
             </Form.Item>
-            <Form.Item name="shuffleAnswers" valuePropName="checked">
-              <Checkbox>Shuffle answers</Checkbox>
+            <Form.Item
+              name="shuffleAnswers"
+              valuePropName="checked"
+              extra="Randomizes the order of answer options for multiple choice questions"
+            >
+              <Checkbox>Shuffle answer options</Checkbox>
             </Form.Item>
             <Form.Item name="showFeedback" valuePropName="checked">
               <Checkbox>Show feedback after submission</Checkbox>
@@ -380,6 +410,9 @@ export function QuizEditor({
                       </Typography.Text>
                       <Space size="small">
                         <Tag color="blue">{q.type.replace("_", " ")}</Tag>
+                        {q.type === "multiple_choice" && q.allowMultiple && (
+                          <Tag color="purple">multi-select</Tag>
+                        )}
                         <Typography.Text type="secondary">
                           {q.points} pt{q.points !== 1 ? "s" : ""}
                         </Typography.Text>
@@ -432,7 +465,9 @@ export function QuizEditor({
             options={[...QUESTION_TYPES]}
             onChange={(v) => {
               setQuestionType(v as string);
+              setAllowMultiple(false);
               questionForm.setFieldValue("correctAnswer", undefined);
+              questionForm.setFieldValue("allowMultiple", false);
             }}
           />
         </Form.Item>
@@ -457,14 +492,35 @@ export function QuizEditor({
           </Form.Item>
         )}
         {questionType === "multiple_choice" && (
+          <Form.Item name="allowMultiple" valuePropName="checked">
+            <Checkbox
+              onChange={(e) => {
+                setAllowMultiple(e.target.checked);
+                questionForm.setFieldValue("correctAnswer", undefined);
+              }}
+            >
+              Allow multiple correct answers (students select via checkboxes)
+            </Checkbox>
+          </Form.Item>
+        )}
+        {questionType === "multiple_choice" && (
           <Form.Item
             name="correctAnswer"
             label="Correct Answer"
-            extra="Must match one of the options above exactly"
+            extra={
+              allowMultiple
+                ? "Select every option that counts as correct"
+                : "Must match one of the options above exactly"
+            }
           >
             <Select
+              mode={allowMultiple ? "multiple" : undefined}
               options={parsedOptions.map((o) => ({ value: o, label: o }))}
-              placeholder="Select correct option"
+              placeholder={
+                allowMultiple
+                  ? "Select correct options"
+                  : "Select correct option"
+              }
               allowClear
               notFoundContent="Enter options above first"
             />

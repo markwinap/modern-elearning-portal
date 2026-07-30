@@ -53,6 +53,7 @@ export default async function ActivityEditorPage({ params }: Props) {
     prompt: string;
     options: unknown;
     correctAnswer: unknown;
+    allowMultiple: boolean;
     points: number;
     order: number;
   }> | null = null;

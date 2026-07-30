@@ -6,7 +6,6 @@ import { Alert, Card, Select, Space, Switch, Typography } from "antd";
 import { ArrowLeftOutlined } from "@ant-design/icons";
 import Link from "next/link";
 
-
 import { ActivityBadge } from "~/components/ui/activity-badge";
 import { FileEditor } from "./file-editor";
 import { PageEditor } from "./page-editor";
@@ -53,22 +52,38 @@ interface Props {
     prompt: string;
     options: unknown;
     correctAnswer: unknown;
+    allowMultiple: boolean;
     points: number;
     order: number;
   }> | null;
 }
 
-export function ActivityEditor({ activity,   courseId,   pageContent,   fileContent,   urlContent,   textMediaContent,   quizSettings,   quizQuestions, }: Props) {
+export function ActivityEditor({
+  activity,
+  courseId,
+  pageContent,
+  fileContent,
+  urlContent,
+  textMediaContent,
+  quizSettings,
+  quizQuestions,
+}: Props) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
-  const { data: categories = [] } = useQuery(trpc.gradebook.listCategories.queryOptions({
-    courseId,
-  }));
-  const updateActivity = useMutation(trpc.activity.update.mutationOptions({
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: trpc.activity.getById.queryKey({ id: activity.id }) });
-    },
-  }));
+  const { data: categories = [] } = useQuery(
+    trpc.gradebook.listCategories.queryOptions({
+      courseId,
+    }),
+  );
+  const updateActivity = useMutation(
+    trpc.activity.update.mutationOptions({
+      onSuccess: () => {
+        void queryClient.invalidateQueries({
+          queryKey: trpc.activity.getById.queryKey({ id: activity.id }),
+        });
+      },
+    }),
+  );
 
   return (
     <Space orientation="vertical" style={{ width: "100%" }} size="large">
