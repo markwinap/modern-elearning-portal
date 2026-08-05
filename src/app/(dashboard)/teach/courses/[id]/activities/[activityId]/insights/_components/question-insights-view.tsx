@@ -109,7 +109,7 @@ export function QuestionInsightsView({ activityId }: Props) {
   ];
 
   return (
-    <Space direction="vertical" size="large" style={{ width: "100%" }}>
+    <Space orientation="vertical" size="large" style={{ width: "100%" }}>
       <Typography.Title level={4}>Quiz Insights</Typography.Title>
 
       {/* Test-level summary */}

@@ -50,14 +50,14 @@ export const teacherNavItems: MenuProps["items"] = [
     label: <Link href="/dashboard">Dashboard</Link>,
   },
   {
-    key: "/courses",
+    key: "/teach",
     icon: <BookOutlined />,
-    label: <Link href="/courses">My Courses</Link>,
+    label: <Link href="/teach">My Courses</Link>,
   },
   {
-    key: "/teacher/courses/create",
+    key: "/teach/courses/new",
     icon: <PlusOutlined />,
-    label: <Link href="/teacher/courses/create">Create Course</Link>,
+    label: <Link href="/teach/courses/new">Create Course</Link>,
   },
   {
     key: "/messages",

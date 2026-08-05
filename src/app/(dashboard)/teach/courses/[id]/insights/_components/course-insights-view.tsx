@@ -4,22 +4,25 @@ import { useTRPC } from "~/trpc/react";
 
 import { Card, Col, Progress, Row, Space, Statistic, Typography } from "antd";
 
-
 interface Props {
   courseId: number;
 }
 
 export function CourseInsightsView({ courseId }: Props) {
   const trpc = useTRPC();
-  const { data: insights, isLoading } = useQuery(trpc.course.getCourseInsights.queryOptions({
-    courseId,
-  }));
-  const { data: totalDuration = 0 } = useQuery(trpc.section.getCourseDuration.queryOptions({
-    courseId,
-  }));
+  const { data: insights, isLoading } = useQuery(
+    trpc.course.getCourseInsights.queryOptions({
+      courseId,
+    }),
+  );
+  const { data: totalDuration = 0 } = useQuery(
+    trpc.section.getCourseDuration.queryOptions({
+      courseId,
+    }),
+  );
 
   return (
-    <Space direction="vertical" size="large" style={{ width: "100%" }}>
+    <Space orientation="vertical" size="large" style={{ width: "100%" }}>
       <Typography.Title level={4}>Course Insights</Typography.Title>
 
       <Row gutter={[16, 16]}>

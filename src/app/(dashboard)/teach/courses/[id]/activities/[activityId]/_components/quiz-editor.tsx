@@ -457,7 +457,7 @@ export function QuizEditor({
               <Alert
                 type="warning"
                 showIcon
-                message="Small question pool"
+                title="Small question pool"
                 description="For best anti-cheating results, add at least twice as many questions as the per-attempt limit so students cannot trivially leak the full answer key."
                 style={{ marginBottom: 16 }}
               />
@@ -536,7 +536,7 @@ export function QuizEditor({
         footer={null}
       >
         {previewQuestion && (
-          <Space direction="vertical" style={{ width: "100%" }}>
+          <Space orientation="vertical" style={{ width: "100%" }}>
             <Typography.Text strong style={{ display: "block" }}>
               {previewQuestion.prompt}
             </Typography.Text>
@@ -548,7 +548,7 @@ export function QuizEditor({
               </Typography.Text>
             </Space>
             {previewQuestion.type === "true_false" && (
-              <Space direction="vertical">
+              <Space orientation="vertical">
                 <Tag>True</Tag>
                 <Tag>False</Tag>
               </Space>
@@ -556,7 +556,7 @@ export function QuizEditor({
             {Array.isArray(previewQuestion.options) &&
               previewQuestion.options.length > 0 &&
               previewQuestion.type !== "true_false" && (
-                <Space direction="vertical">
+                <Space orientation="vertical">
                   {(previewQuestion.options as string[]).map((opt, i) => (
                     <Tag key={i}>{opt}</Tag>
                   ))}

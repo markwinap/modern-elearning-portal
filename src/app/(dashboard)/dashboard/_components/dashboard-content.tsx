@@ -238,7 +238,7 @@ export function DashboardContent({ userName, stats, courses, recent }: Props) {
                           </Link>
                         }
                         description={
-                          <Space direction="vertical" size={0}>
+                          <Space orientation="vertical" size={0}>
                             <Typography.Text type="secondary">
                               {item.courseTitle}
                             </Typography.Text>

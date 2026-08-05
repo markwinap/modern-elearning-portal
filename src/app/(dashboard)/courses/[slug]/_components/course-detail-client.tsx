@@ -183,7 +183,7 @@ export function CourseDetailClient({ course, enrollment }: Props) {
                 />
               )}
               {isEnrolled ? (
-                <Space direction="vertical" style={{ width: "100%" }}>
+                <Space orientation="vertical" style={{ width: "100%" }}>
                   <Link href={`/courses/${course.slug}/learn`}>
                     <Button type="primary" size="large" block>
                       Continue Learning

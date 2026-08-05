@@ -346,7 +346,7 @@ function SectionSettingsDrawer({
       title="Section Settings"
       open={open}
       onClose={onClose}
-      width={420}
+      size={420}
       footer={
         <div style={{ display: "flex", justifyContent: "space-between" }}>
           <Button
