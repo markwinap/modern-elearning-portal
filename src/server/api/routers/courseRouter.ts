@@ -124,13 +124,29 @@ export const courseRouter = createTRPCRouter({
       return { ...course, sessions };
     }),
 
-  getMyCourses: teacherProcedure.query(async ({ ctx }) => {
-    return ctx.db
-      .select()
-      .from(courses)
-      .where(eq(courses.teacherId, ctx.session.user.id))
-      .orderBy(desc(courses.createdAt));
-  }),
+  getTeacherCourses: teacherProcedure
+    .input(z.object({ onlyMine: z.boolean().default(false) }))
+    .query(async ({ ctx, input }) => {
+      const conditions = [];
+      if (input.onlyMine) {
+        conditions.push(eq(courses.teacherId, ctx.session.user.id));
+      }
+      return ctx.db
+        .select({
+          id: courses.id,
+          title: courses.title,
+          slug: courses.slug,
+          status: courses.status,
+          createdAt: courses.createdAt,
+          teacherId: courses.teacherId,
+          coverImageUrl: courses.coverImageUrl,
+          teacherName: user.name,
+        })
+        .from(courses)
+        .leftJoin(user, eq(courses.teacherId, user.id))
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .orderBy(desc(courses.createdAt));
+    }),
 
   getMyCoursesSummary: protectedProcedure.query(async ({ ctx }) => {
     return ctx.db

@@ -4,29 +4,30 @@ import { expect, test } from "@playwright/test";
 // (see e2e/auth.setup.ts and playwright.config.ts).
 //
 // Regression coverage for the sidebar nav pointing to broken/wrong routes
-// (see src/lib/nav-config.tsx): "Create Course" used to link to the
-// non-existent `/teacher/courses/create`, and "My Courses" used to link to
-// the student browse page `/courses` instead of the teacher's own course
-// list at `/teach`.
+// (see src/lib/nav-config.tsx): the "All Courses" link should lead to the
+// teacher course list at `/teach`, and the "New Course" button on that page
+// should lead to the create course form.
 test.describe("teacher sidebar navigation", () => {
-  test("Create Course link navigates to the create course form", async ({
+  test("All Courses link navigates to the teacher course list", async ({
     page,
   }) => {
     await page.goto("/dashboard");
-    await page.getByRole("link", { name: "Create Course" }).click();
+    await page.getByRole("link", { name: "All Courses" }).click();
+
+    await expect(page).toHaveURL(/\/teach$/);
+    await expect(
+      page.getByRole("heading", { name: "All Courses" }),
+    ).toBeVisible();
+  });
+
+  test("New Course button navigates to the create course form", async ({
+    page,
+  }) => {
+    await page.goto("/teach");
+    await page.getByRole("button", { name: "New Course" }).click();
 
     await expect(page).toHaveURL(/\/teach\/courses\/new$/);
     await expect(page.getByLabel("Course Title")).toBeVisible();
-  });
-
-  test("My Courses link navigates to the teacher's own course list", async ({
-    page,
-  }) => {
-    await page.goto("/dashboard");
-    await page.getByRole("link", { name: "My Courses" }).click();
-
-    await expect(page).toHaveURL(/\/teach$/);
-    await expect(page.getByText("My Courses")).toBeVisible();
   });
 });
 

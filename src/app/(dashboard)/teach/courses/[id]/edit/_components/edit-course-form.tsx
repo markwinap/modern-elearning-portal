@@ -73,29 +73,41 @@ export function EditCourseForm({ course, categories, teachers }: Props) {
   const { message } = App.useApp();
   const queryClient = useQueryClient();
 
-  const updateCourse = useMutation(trpc.course.update.mutationOptions({
-    onSuccess: () => {
-      void message.success("Course updated!");
-      void queryClient.invalidateQueries({ queryKey: trpc.course.getMyCourses.queryKey() });
-    },
-    onError: (err) => void message.error(err.message),
-  }));
+  const updateCourse = useMutation(
+    trpc.course.update.mutationOptions({
+      onSuccess: () => {
+        void message.success("Course updated!");
+        void queryClient.invalidateQueries({
+          queryKey: trpc.course.getTeacherCourses.queryKey({ onlyMine: false }),
+        });
+      },
+      onError: (err) => void message.error(err.message),
+    }),
+  );
 
-  const publishCourse = useMutation(trpc.course.publish.mutationOptions({
-    onSuccess: () => {
-      void message.success("Course published!");
-      void queryClient.invalidateQueries({ queryKey: trpc.course.getMyCourses.queryKey() });
-    },
-    onError: (err) => void message.error(err.message),
-  }));
+  const publishCourse = useMutation(
+    trpc.course.publish.mutationOptions({
+      onSuccess: () => {
+        void message.success("Course published!");
+        void queryClient.invalidateQueries({
+          queryKey: trpc.course.getTeacherCourses.queryKey({ onlyMine: false }),
+        });
+      },
+      onError: (err) => void message.error(err.message),
+    }),
+  );
 
-  const archiveCourse = useMutation(trpc.course.archive.mutationOptions({
-    onSuccess: () => {
-      void message.success("Course archived.");
-      void queryClient.invalidateQueries({ queryKey: trpc.course.getMyCourses.queryKey() });
-    },
-    onError: (err) => void message.error(err.message),
-  }));
+  const archiveCourse = useMutation(
+    trpc.course.archive.mutationOptions({
+      onSuccess: () => {
+        void message.success("Course archived.");
+        void queryClient.invalidateQueries({
+          queryKey: trpc.course.getTeacherCourses.queryKey({ onlyMine: false }),
+        });
+      },
+      onError: (err) => void message.error(err.message),
+    }),
+  );
 
   return (
     <>

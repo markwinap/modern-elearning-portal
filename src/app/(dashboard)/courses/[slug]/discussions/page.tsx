@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { api } from "~/trpc/server";
+import { getSession } from "~/server/better-auth/server";
 import { DiscussionsPanel } from "~/app/(dashboard)/teach/courses/[id]/discussions/_components/discussions-panel";
 
 interface Props {
@@ -16,8 +17,14 @@ export default async function CourseDiscussionsPage({
 }: Props) {
   const { slug } = await params;
   const course = await api.course.getBySlug({ slug });
-  const enrollment = await api.enrollment.isEnrolled({ courseId: course.id });
-  if (enrollment?.status !== "active") notFound();
+  const session = await getSession();
+  const isTeacherOrAdmin =
+    course.teacherId === session?.user.id || session?.user.role === "admin";
+
+  if (!isTeacherOrAdmin) {
+    const enrollment = await api.enrollment.isEnrolled({ courseId: course.id });
+    if (enrollment?.status !== "active") notFound();
+  }
 
   const search = await searchParams;
   const rawThreadId = search?.threadId;

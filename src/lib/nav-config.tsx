@@ -5,7 +5,6 @@ import {
   BookOutlined,
   DashboardOutlined,
   MessageOutlined,
-  PlusOutlined,
   SettingOutlined,
   TeamOutlined,
   TrophyOutlined,
@@ -52,12 +51,7 @@ export const teacherNavItems: MenuProps["items"] = [
   {
     key: "/teach",
     icon: <BookOutlined />,
-    label: <Link href="/teach">My Courses</Link>,
-  },
-  {
-    key: "/teach/courses/new",
-    icon: <PlusOutlined />,
-    label: <Link href="/teach/courses/new">Create Course</Link>,
+    label: <Link href="/teach">All Courses</Link>,
   },
   {
     key: "/messages",

@@ -83,7 +83,7 @@ export function CourseManageLayout({ course, courseId, children }: Props) {
     <div>
       <Breadcrumb
         items={[
-          { title: <Link href="/teach">My Courses</Link> },
+          { title: <Link href="/teach">All Courses</Link> },
           { title: course.title },
         ]}
         style={{ marginBottom: 12 }}
