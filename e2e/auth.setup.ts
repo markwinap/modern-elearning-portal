@@ -22,12 +22,27 @@ async function signInAndSave(
     );
   }
 
-  await page.goto("/login");
-  await page.getByRole("textbox", { name: "Email" }).fill(email);
-  await page.getByRole("textbox", { name: "Password" }).fill(password);
-  await page.getByRole("button", { name: "Sign In" }).click();
+  const response = await page.request.post(
+    "http://localhost:3000/api/auth/sign-in/email",
+    {
+      data: { email, password },
+      headers: {
+        Origin: "http://localhost:3000",
+        Referer: "http://localhost:3000/login",
+      },
+    },
+  );
 
-  // Sign-in redirects away from /login once the session cookie is set.
+  if (!response.ok()) {
+    const body = await response.text().catch(() => "unknown");
+    throw new Error(
+      `Sign-in for ${email} failed with status ${response.status()}: ${body}`,
+    );
+  }
+
+  // The Set-Cookie header is stored in the shared context, so visiting the
+  // dashboard confirms the session is active before saving the storage state.
+  await page.goto("/dashboard");
   await expect(page).not.toHaveURL(/\/login$/);
 
   await page.context().storageState({ path: storagePath });

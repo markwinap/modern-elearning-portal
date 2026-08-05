@@ -1,15 +1,38 @@
 "use client";
 
 import type { ReactNode } from "react";
+import Link from "next/link";
 import {
   BookOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
   TrophyOutlined,
 } from "@ant-design/icons";
-import { Card, Col, Row, Typography } from "antd";
+import { Card, Col, List, Progress, Row, Space, Typography } from "antd";
 
 import { StatsCard } from "~/components/ui/stats-card";
+
+interface CourseSummary {
+  courseId: number;
+  title: string;
+  slug: string | null;
+  coverImageUrl: string | null;
+  status: string;
+  progressPct: number;
+  completedAt: Date | null;
+}
+
+interface ActivitySummary {
+  id: number;
+  activityId: number;
+  status: string;
+  firstViewedAt: Date | null;
+  completedAt: Date | null;
+  timeSpentSecs: number;
+  activityTitle: string;
+  courseTitle: string;
+  courseSlug: string | null;
+}
 
 interface Props {
   userName: string | null | undefined;
@@ -35,6 +58,8 @@ interface Props {
         enrollments: number;
         completedActivities: number;
       };
+  courses: CourseSummary[];
+  recent: ActivitySummary[];
 }
 
 interface DashboardCard {
@@ -45,7 +70,15 @@ interface DashboardCard {
   color: "primary" | "success" | "warning" | "error";
 }
 
-export function DashboardContent({ userName, stats }: Props) {
+function formatDuration(secs: number) {
+  const m = Math.floor(secs / 60);
+  const h = Math.floor(m / 60);
+  if (h > 0) return `${h}h ${m % 60}m`;
+  if (m > 0) return `${m}m`;
+  return `${secs}s`;
+}
+
+export function DashboardContent({ userName, stats, courses, recent }: Props) {
   const cards: DashboardCard[] =
     stats.role === "student"
       ? [
@@ -150,22 +183,83 @@ export function DashboardContent({ userName, stats }: Props) {
         ))}
       </Row>
 
-      <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
-        <Col xs={24} lg={16}>
-          <Card title="My Courses" style={{ minHeight: 240 }}>
-            <Typography.Text type="secondary">
-              You are not enrolled in any courses yet.
-            </Typography.Text>
-          </Card>
-        </Col>
-        <Col xs={24} lg={8}>
-          <Card title="Recent Activity" style={{ minHeight: 240 }}>
-            <Typography.Text type="secondary">
-              No recent activity.
-            </Typography.Text>
-          </Card>
-        </Col>
-      </Row>
+      {stats.role === "student" && (
+        <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
+          <Col xs={24} lg={16}>
+            <Card title="My Courses" style={{ minHeight: 240 }}>
+              {courses.length === 0 ? (
+                <Typography.Text type="secondary">
+                  You are not enrolled in any courses yet.
+                </Typography.Text>
+              ) : (
+                <List
+                  dataSource={courses}
+                  renderItem={(course) => (
+                    <List.Item>
+                      <List.Item.Meta
+                        title={
+                          <Link
+                            href={`/courses/${course.slug ?? course.courseId}`}
+                          >
+                            {course.title}
+                          </Link>
+                        }
+                        description={
+                          <Progress percent={course.progressPct} size="small" />
+                        }
+                      />
+                    </List.Item>
+                  )}
+                />
+              )}
+            </Card>
+          </Col>
+          <Col xs={24} lg={8}>
+            <Card title="Recent Activity" style={{ minHeight: 240 }}>
+              {recent.length === 0 ? (
+                <Typography.Text type="secondary">
+                  No recent activity.
+                </Typography.Text>
+              ) : (
+                <List
+                  dataSource={recent}
+                  renderItem={(item) => (
+                    <List.Item>
+                      <List.Item.Meta
+                        title={
+                          <Link
+                            href={
+                              item.courseSlug
+                                ? `/courses/${item.courseSlug}/learn/${item.activityId}`
+                                : "#"
+                            }
+                          >
+                            {item.activityTitle}
+                          </Link>
+                        }
+                        description={
+                          <Space direction="vertical" size={0}>
+                            <Typography.Text type="secondary">
+                              {item.courseTitle}
+                            </Typography.Text>
+                            <Typography.Text type="secondary">
+                              {item.status === "completed"
+                                ? "Completed"
+                                : "In progress"}
+                              {" · "}
+                              {formatDuration(item.timeSpentSecs)}
+                            </Typography.Text>
+                          </Space>
+                        }
+                      />
+                    </List.Item>
+                  )}
+                />
+              )}
+            </Card>
+          </Col>
+        </Row>
+      )}
     </div>
   );
 }

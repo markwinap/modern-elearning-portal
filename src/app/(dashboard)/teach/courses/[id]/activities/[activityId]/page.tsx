@@ -43,9 +43,17 @@ export default async function ActivityEditorPage({ params }: Props) {
   let quizSettings: {
     timeLimitSecs: number | null;
     maxAttempts: number;
+    questionsPerAttempt: number | null;
+    oneQuestionAtATime: boolean;
     shuffleQuestions: boolean;
     shuffleAnswers: boolean;
     showFeedback: boolean;
+    feedbackMode:
+      | "immediate"
+      | "after_last_attempt"
+      | "after_due_date"
+      | "never";
+    availableUntil: Date | null;
   } | null = null;
   let quizQuestions: Array<{
     id: number;

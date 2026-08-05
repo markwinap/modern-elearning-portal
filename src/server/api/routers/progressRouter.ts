@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
@@ -8,6 +8,7 @@ import {
   activityProgress,
   courseProgress,
   courseSections,
+  courses,
   enrollments,
 } from "~/server/db/schema";
 
@@ -37,7 +38,7 @@ export const progressRouter = createTRPCRouter({
             set: {
               status: input.status,
               completedAt: input.status === "completed" ? new Date() : null,
-              timeSpentSecs: input.timeSpentSecs ?? 0,
+              timeSpentSecs: sql`${activityProgress.timeSpentSecs} + ${input.timeSpentSecs ?? 0}`,
             },
           });
 
@@ -181,6 +182,30 @@ export const progressRouter = createTRPCRouter({
         )
         .limit(1);
       return row ?? null;
+    }),
+
+  getMyRecentActivity: protectedProcedure
+    .input(z.object({ limit: z.number().int().min(1).max(20).default(5) }))
+    .query(async ({ ctx, input }) => {
+      return ctx.db
+        .select({
+          id: activityProgress.id,
+          activityId: activityProgress.activityId,
+          status: activityProgress.status,
+          firstViewedAt: activityProgress.firstViewedAt,
+          completedAt: activityProgress.completedAt,
+          timeSpentSecs: activityProgress.timeSpentSecs,
+          activityTitle: activities.title,
+          courseTitle: courses.title,
+          courseSlug: courses.slug,
+        })
+        .from(activityProgress)
+        .innerJoin(activities, eq(activityProgress.activityId, activities.id))
+        .innerJoin(courseSections, eq(activities.sectionId, courseSections.id))
+        .innerJoin(courses, eq(courseSections.courseId, courses.id))
+        .where(eq(activityProgress.userId, ctx.session.user.id))
+        .orderBy(desc(activityProgress.firstViewedAt))
+        .limit(input.limit);
     }),
 
   updateCourseProgress: protectedProcedure

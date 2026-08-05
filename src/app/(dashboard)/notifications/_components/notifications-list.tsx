@@ -16,6 +16,7 @@ import {
 } from "antd";
 import Link from "next/link";
 
+import { DeleteOutlined } from "@ant-design/icons";
 import { PageHeader } from "~/components/ui/page-header";
 
 interface NotificationItem {
@@ -94,18 +95,22 @@ function toTemplate(item: NotificationItem): NotificationTemplate {
     return {
       title: "Grade posted",
       body: `${scoreLabel} ${courseTitle}`,
-      href: courseSlug ? `/courses/${courseSlug}` : undefined,
-      hrefLabel: "Open course",
+      href: "/grades",
+      hrefLabel: "My Grades",
     };
   }
 
   if (item.type === "discussion_message") {
     const subject = getString(payload.subject) ?? "Discussion thread";
+    const threadId = getNumber(payload.threadId);
     return {
       title: "New discussion message",
       body: `New reply in "${subject}" for ${courseTitle}.`,
-      href: courseSlug ? `/courses/${courseSlug}` : undefined,
-      hrefLabel: "Open course",
+      href:
+        courseSlug && threadId !== undefined
+          ? `/courses/${courseSlug}/discussions?threadId=${threadId}`
+          : undefined,
+      hrefLabel: "View thread",
     };
   }
 
@@ -118,45 +123,154 @@ function toTemplate(item: NotificationItem): NotificationTemplate {
 export function NotificationsList({ initialNotifications }: Props) {
   const trpc = useTRPC();
   const [unreadOnly, setUnreadOnly] = useState(false);
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const queryClient = useQueryClient();
   const { token } = theme.useToken();
 
-  const { data: notifications = initialNotifications, isLoading } =
-    useQuery(trpc.notification.getMyNotifications.queryOptions(
+  const { data: notifications = initialNotifications, isLoading } = useQuery(
+    trpc.notification.getMyNotifications.queryOptions(
       { unreadOnly },
       {
         placeholderData: (previousData) => previousData ?? initialNotifications,
         refetchInterval: 20_000,
       },
-    ));
+    ),
+  );
 
-  const markRead = useMutation(trpc.notification.markRead.mutationOptions({
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: trpc.notification.getMyNotifications.queryKey() }),
-        queryClient.invalidateQueries({ queryKey: trpc.notification.getUnreadCount.queryKey() }),
-      ]);
-    },
-    onError: (error) => {
-      message.error(error.message);
-    },
-  }));
+  const markRead = useMutation(
+    trpc.notification.markRead.mutationOptions({
+      onSuccess: async () => {
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: trpc.notification.getMyNotifications.queryKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.notification.getUnreadCount.queryKey(),
+          }),
+        ]);
+      },
+      onError: (error) => {
+        message.error(error.message);
+      },
+    }),
+  );
 
-  const markAllRead = useMutation(trpc.notification.markAllRead.mutationOptions({
-    onSuccess: async () => {
-      message.success("All notifications marked as read.");
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: trpc.notification.getMyNotifications.queryKey() }),
-        queryClient.invalidateQueries({ queryKey: trpc.notification.getUnreadCount.queryKey() }),
-      ]);
-    },
-    onError: (error) => {
-      message.error(error.message);
-    },
-  }));
+  const markAllRead = useMutation(
+    trpc.notification.markAllRead.mutationOptions({
+      onSuccess: async () => {
+        message.success("All notifications marked as read.");
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: trpc.notification.getMyNotifications.queryKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.notification.getUnreadCount.queryKey(),
+          }),
+        ]);
+      },
+      onError: (error) => {
+        message.error(error.message);
+      },
+    }),
+  );
+
+  const deleteNotification = useMutation(
+    trpc.notification.delete.mutationOptions({
+      onMutate: async ({ id }) => {
+        const queryKey = trpc.notification.getMyNotifications.queryKey();
+        await queryClient.cancelQueries({ queryKey });
+        const previous =
+          queryClient.getQueryData<NotificationItem[]>(queryKey) ??
+          notifications;
+        const removed = previous.find((n) => n.id === id);
+        queryClient.setQueryData<NotificationItem[]>(queryKey, (old) =>
+          (old ?? previous).filter((n) => n.id !== id),
+        );
+        const previousUnreadCount = queryClient.getQueryData<number>(
+          trpc.notification.getUnreadCount.queryKey(),
+        );
+        if (removed && !removed.readAt) {
+          queryClient.setQueryData<number>(
+            trpc.notification.getUnreadCount.queryKey(),
+            (old) => Math.max(0, (old ?? previousUnreadCount ?? 0) - 1),
+          );
+        }
+        return { previous, previousUnreadCount };
+      },
+      onError: (error, _variables, context) => {
+        if (context?.previous) {
+          queryClient.setQueryData(
+            trpc.notification.getMyNotifications.queryKey(),
+            context.previous,
+          );
+        }
+        if (context?.previousUnreadCount !== undefined) {
+          queryClient.setQueryData(
+            trpc.notification.getUnreadCount.queryKey(),
+            context.previousUnreadCount,
+          );
+        }
+        message.error(error.message);
+      },
+      onSettled: async () => {
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: trpc.notification.getMyNotifications.queryKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.notification.getUnreadCount.queryKey(),
+          }),
+        ]);
+      },
+    }),
+  );
+
+  const deleteAllRead = useMutation(
+    trpc.notification.deleteAllRead.mutationOptions({
+      onMutate: async () => {
+        const queryKey = trpc.notification.getMyNotifications.queryKey();
+        await queryClient.cancelQueries({ queryKey });
+        const previous =
+          queryClient.getQueryData<NotificationItem[]>(queryKey) ??
+          notifications;
+        queryClient.setQueryData<NotificationItem[]>(queryKey, (old) =>
+          (old ?? previous).filter((n) => !n.readAt),
+        );
+        const previousUnreadCount = queryClient.getQueryData<number>(
+          trpc.notification.getUnreadCount.queryKey(),
+        );
+        return { previous, previousUnreadCount };
+      },
+      onError: (error, _variables, context) => {
+        if (context?.previous) {
+          queryClient.setQueryData(
+            trpc.notification.getMyNotifications.queryKey(),
+            context.previous,
+          );
+        }
+        if (context?.previousUnreadCount !== undefined) {
+          queryClient.setQueryData(
+            trpc.notification.getUnreadCount.queryKey(),
+            context.previousUnreadCount,
+          );
+        }
+        message.error(error.message);
+      },
+      onSettled: async () => {
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: trpc.notification.getMyNotifications.queryKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.notification.getUnreadCount.queryKey(),
+          }),
+        ]);
+      },
+    }),
+  );
 
   const unreadCount = notifications.filter((item) => !item.readAt).length;
+  const readCount = notifications.filter((item) => item.readAt).length;
 
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
@@ -178,6 +292,22 @@ export function NotificationsList({ initialNotifications }: Props) {
                 disabled={unreadCount === 0}
               >
                 Mark all read
+              </Button>
+              <Button
+                danger
+                icon={<DeleteOutlined />}
+                onClick={() =>
+                  modal.confirm({
+                    title: "Clear read notifications?",
+                    content:
+                      "All notifications marked as read will be permanently removed.",
+                    onOk: () => deleteAllRead.mutate(),
+                  })
+                }
+                loading={deleteAllRead.isPending}
+                disabled={readCount === 0}
+              >
+                Clear read
               </Button>
             </Space>
           }
@@ -218,6 +348,21 @@ export function NotificationsList({ initialNotifications }: Props) {
                         Mark read
                       </Button>
                     ) : null,
+                    <Button
+                      key="delete"
+                      type="link"
+                      danger
+                      icon={<DeleteOutlined />}
+                      onClick={() =>
+                        deleteNotification.mutate({ id: notification.id })
+                      }
+                      loading={
+                        deleteNotification.isPending &&
+                        deleteNotification.variables?.id === notification.id
+                      }
+                    >
+                      Delete
+                    </Button>,
                   ]}
                 >
                   <List.Item.Meta

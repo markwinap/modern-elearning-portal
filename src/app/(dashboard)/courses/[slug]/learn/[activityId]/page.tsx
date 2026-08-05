@@ -37,9 +37,17 @@ export default async function ActivityPage({ params }: Props) {
     quiz: {
       timeLimitSecs: number | null;
       maxAttempts: number | null;
+      questionsPerAttempt: number | null;
+      oneQuestionAtATime: boolean;
       shuffleQuestions: boolean;
       shuffleAnswers: boolean;
       showFeedback: boolean;
+      feedbackMode:
+        | "immediate"
+        | "after_last_attempt"
+        | "after_due_date"
+        | "never";
+      availableUntil: Date | null;
     } | null;
     questions: Array<{
       id: number;

@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import {
@@ -9,6 +9,7 @@ import {
 } from "~/server/api/trpc";
 import {
   courses,
+  enrollments,
   messageThreads,
   messages,
   notifications,
@@ -25,6 +26,29 @@ export const messageRouter = createTRPCRouter({
         .where(eq(messageThreads.courseId, input.courseId))
         .orderBy(desc(messageThreads.createdAt));
     }),
+
+  /** List threads across all courses the user is enrolled in. */
+  listMyThreads: protectedProcedure.query(async ({ ctx }) => {
+    return ctx.db
+      .select({
+        id: messageThreads.id,
+        courseId: messageThreads.courseId,
+        subject: messageThreads.subject,
+        createdBy: messageThreads.createdBy,
+        createdAt: messageThreads.createdAt,
+        courseTitle: courses.title,
+      })
+      .from(messageThreads)
+      .innerJoin(courses, eq(messageThreads.courseId, courses.id))
+      .innerJoin(
+        enrollments,
+        and(
+          eq(enrollments.courseId, courses.id),
+          eq(enrollments.userId, ctx.session.user.id),
+        ),
+      )
+      .orderBy(desc(messageThreads.createdAt));
+  }),
 
   /** Create a new thread. */
   createThread: protectedProcedure

@@ -63,7 +63,6 @@ export function ThemeProvider({ children, fontFamily }: ThemeProviderProps) {
             fontFamily,
           },
           algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
-          cssVar: { key: "modern-elearning-portal" },
         }}
       >
         <App>{children}</App>

@@ -1,4 +1,4 @@
-import { and, count, desc, eq, isNull } from "drizzle-orm";
+import { and, count, desc, eq, isNotNull, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
@@ -51,6 +51,30 @@ export const notificationRouter = createTRPCRouter({
         and(
           eq(notifications.userId, ctx.session.user.id),
           isNull(notifications.readAt),
+        ),
+      );
+  }),
+
+  delete: protectedProcedure
+    .input(z.object({ id: z.number().int() }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db
+        .delete(notifications)
+        .where(
+          and(
+            eq(notifications.id, input.id),
+            eq(notifications.userId, ctx.session.user.id),
+          ),
+        );
+    }),
+
+  deleteAllRead: protectedProcedure.mutation(async ({ ctx }) => {
+    await ctx.db
+      .delete(notifications)
+      .where(
+        and(
+          eq(notifications.userId, ctx.session.user.id),
+          isNotNull(notifications.readAt),
         ),
       );
   }),

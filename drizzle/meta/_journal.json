@@ -71,6 +71,13 @@
       "when": 1785382902458,
       "tag": "0009_first_moon_knight",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1785783323314,
+      "tag": "0010_clever_mercury",
+      "breakpoints": true
     }
   ]
 }

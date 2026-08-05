@@ -41,9 +41,17 @@ interface Props {
   quizSettings: {
     timeLimitSecs: number | null;
     maxAttempts: number;
+    questionsPerAttempt: number | null;
+    oneQuestionAtATime: boolean;
     shuffleQuestions: boolean;
     shuffleAnswers: boolean;
     showFeedback: boolean;
+    feedbackMode:
+      | "immediate"
+      | "after_last_attempt"
+      | "after_due_date"
+      | "never";
+    availableUntil: Date | null;
   } | null;
   textMediaContent: { content: string } | null;
   quizQuestions: Array<{
@@ -115,10 +123,12 @@ export function ActivityEditor({
             allowClear
             style={{ width: 280 }}
             value={activity.gradeCategoryId}
-            options={categories.map((cat) => ({
-              value: cat.id,
-              label: `${cat.name} (${cat.weight}%)`,
-            }))}
+            options={categories.map(
+              (cat: { id: number; name: string; weight: number }) => ({
+                value: cat.id,
+                label: `${cat.name} (${cat.weight}%)`,
+              }),
+            )}
             onChange={(value) =>
               updateActivity.mutate({
                 id: activity.id,

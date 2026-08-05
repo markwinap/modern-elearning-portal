@@ -67,6 +67,12 @@ export const quizQuestionTypeEnum = pgEnum("quiz_question_type", [
   "ordering",
   "essay",
 ]);
+export const quizFeedbackModeEnum = pgEnum("quiz_feedback_mode", [
+  "immediate",
+  "after_last_attempt",
+  "after_due_date",
+  "never",
+]);
 export const sectionDurationModeEnum = pgEnum("section_duration_mode", [
   "manual",
   "auto",
@@ -372,9 +378,15 @@ export const quizzes = createTable("quiz", (d) => ({
     .references(() => activities.id, { onDelete: "cascade" }),
   timeLimitSecs: d.integer(),
   maxAttempts: d.integer().default(1).notNull(),
+  questionsPerAttempt: d.integer(),
+  oneQuestionAtATime: d.boolean().default(false).notNull(),
   shuffleQuestions: d.boolean().default(false).notNull(),
   shuffleAnswers: d.boolean().default(false).notNull(),
   showFeedback: d.boolean().default(true).notNull(),
+  feedbackMode: quizFeedbackModeEnum("feedback_mode")
+    .default("immediate")
+    .notNull(),
+  availableUntil: d.timestamp({ withTimezone: true }),
   updatedAt: d.timestamp({ withTimezone: true }).$onUpdate(() => new Date()),
 }));
 
@@ -417,6 +429,7 @@ export const quizAttempts = createTable(
     submittedAt: d.timestamp({ withTimezone: true }),
     score: d.integer(),
     maxScore: d.integer(),
+    questionIds: d.jsonb().$type<number[]>(),
   }),
   (t) => [
     index("quiz_attempt_activity_user_idx").on(t.quizActivityId, t.userId),

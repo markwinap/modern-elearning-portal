@@ -1,6 +1,7 @@
 "use client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "~/trpc/react";
+import { seededShuffle } from "~/lib/quiz-utils";
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import {
@@ -27,9 +28,13 @@ import {
 interface QuizConfig {
   timeLimitSecs: number | null;
   maxAttempts: number | null;
+  questionsPerAttempt: number | null;
+  oneQuestionAtATime: boolean;
   shuffleQuestions: boolean;
   shuffleAnswers: boolean;
   showFeedback: boolean;
+  feedbackMode: "immediate" | "after_last_attempt" | "after_due_date" | "never";
+  availableUntil: Date | null;
 }
 
 interface Question {
@@ -42,28 +47,110 @@ interface Question {
   order: number;
 }
 
-// Deterministic PRNG so a shuffled order stays stable across re-renders and
-// when a student resumes an in-progress attempt.
-function mulberry32(seed: number) {
-  let state = seed | 0;
-  return function random() {
-    state = (state + 0x6d2b79f5) | 0;
-    let t = Math.imul(state ^ (state >>> 15), 1 | state);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
+function QuestionCard({
+  question: q,
+  index,
+  value,
+  options,
+  onChange,
+}: {
+  question: Question;
+  index: number;
+  value: unknown;
+  options: string[];
+  onChange: (value: unknown) => void;
+}) {
+  return (
+    <Card
+      key={q.id}
+      title={
+        <Space>
+          <Tag color="blue">Q{index + 1}</Tag>
+          <span>
+            {q.points} pt{q.points !== 1 ? "s" : ""}
+          </span>
+        </Space>
+      }
+    >
+      <Typography.Text
+        strong
+        style={{ display: "block", marginBottom: 12, fontSize: 15 }}
+      >
+        {q.prompt}
+      </Typography.Text>
 
-function seededShuffle<T>(items: T[], seed: number): T[] {
-  const random = mulberry32(seed);
-  const result = [...items];
-  for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(random() * (i + 1));
-    const temp = result[i]!;
-    result[i] = result[j]!;
-    result[j] = temp;
-  }
-  return result;
+      {options.length > 0 &&
+        (q.type === "matching" ||
+          q.type === "ordering" ||
+          q.type === "fill_blank") && (
+          <Space wrap style={{ marginBottom: 12 }}>
+            {options.map((opt, i) => (
+              <Tag key={i}>{opt}</Tag>
+            ))}
+          </Space>
+        )}
+
+      {q.type === "multiple_choice" && q.allowMultiple && (
+        <Checkbox.Group
+          value={(value as string[]) ?? []}
+          onChange={(checked) => onChange(checked)}
+        >
+          <Space orientation="vertical">
+            {options.map((opt, i) => (
+              <Checkbox key={i} value={opt}>
+                {opt}
+              </Checkbox>
+            ))}
+          </Space>
+        </Checkbox.Group>
+      )}
+
+      {((q.type === "multiple_choice" && !q.allowMultiple) ||
+        q.type === "true_false") && (
+        <Radio.Group
+          value={value}
+          onChange={(e) => onChange(e.target.value as string)}
+        >
+          <Space orientation="vertical">
+            {q.type === "true_false"
+              ? [
+                  <Radio key="true" value="true">
+                    True
+                  </Radio>,
+                  <Radio key="false" value="false">
+                    False
+                  </Radio>,
+                ]
+              : options.map((opt, i) => (
+                  <Radio key={i} value={opt}>
+                    {opt}
+                  </Radio>
+                ))}
+          </Space>
+        </Radio.Group>
+      )}
+
+      {(q.type === "short_answer" ||
+        q.type === "fill_blank" ||
+        q.type === "matching" ||
+        q.type === "ordering") && (
+        <Input
+          placeholder="Your answer…"
+          value={(value as string) ?? ""}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      )}
+
+      {q.type === "essay" && (
+        <Input.TextArea
+          rows={4}
+          placeholder="Write your answer…"
+          value={(value as string) ?? ""}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      )}
+    </Card>
+  );
 }
 
 interface Props {
@@ -71,6 +158,8 @@ interface Props {
   quiz: QuizConfig | null;
   questions: Question[];
   initialProgress: { status: string; completedAt: Date | null } | null;
+  completionType: string;
+  completionGrade: number | null;
   onComplete: () => void;
 }
 
@@ -94,6 +183,8 @@ export function QuizTaker({
   quiz,
   questions,
   initialProgress: _initialProgress,
+  completionType,
+  completionGrade,
   onComplete,
 }: Props) {
   const trpc = useTRPC();
@@ -101,27 +192,39 @@ export function QuizTaker({
   const { token } = theme.useToken();
   const queryClient = useQueryClient();
   const [attemptId, setAttemptId] = useState<number | null>(null);
+  const [attemptQuestionIds, setAttemptQuestionIds] = useState<number[] | null>(
+    null,
+  );
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<AnswerMap>({});
   const [result, setResult] = useState<QuizResult | null>(null);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const answersRef = useRef<AnswerMap>({});
   answersRef.current = answers;
 
-  // Shuffle question order and, for multiple-choice questions, option order.
-  // Seeded by the attempt id so the order stays stable for the duration of
-  // an attempt (including on resume/reload) but varies between attempts.
+  // If the attempt has a sampled subset, use that order. Otherwise shuffle all
+  // questions when the quiz is configured to do so.
   const displayQuestions = useMemo(() => {
+    if (attemptQuestionIds) {
+      const orderMap = new Map(attemptQuestionIds.map((id, i) => [id, i]));
+      return questions
+        .filter((q) => orderMap.has(q.id))
+        .sort((a, b) => (orderMap.get(a.id) ?? 0) - (orderMap.get(b.id) ?? 0));
+    }
     if (!attemptId || !quiz?.shuffleQuestions) return questions;
     return seededShuffle(questions, attemptId);
-  }, [attemptId, quiz?.shuffleQuestions, questions]);
+  }, [attemptQuestionIds, attemptId, quiz?.shuffleQuestions, questions]);
+
+  const hasOptions = (q: Question): boolean =>
+    Array.isArray(q.options) && q.options.length > 0;
 
   const optionsByQuestionId = useMemo(() => {
     const map = new Map<number, string[]>();
     for (const q of questions) {
-      const opts = Array.isArray(q.options) ? (q.options as string[]) : [];
+      const opts = hasOptions(q) ? (q.options as string[]) : [];
       map.set(
         q.id,
-        attemptId && quiz?.shuffleAnswers && q.type === "multiple_choice"
+        attemptId && quiz?.shuffleAnswers && hasOptions(q)
           ? seededShuffle(opts, attemptId + q.id)
           : opts,
       );
@@ -132,9 +235,14 @@ export function QuizTaker({
   const { data: attempts } = useQuery(
     trpc.quiz.getMyAttempts.queryOptions({ activityId }),
   );
-  const hasInProgress = attempts?.some((a) => a.submittedAt === null) ?? false;
+  const hasInProgress =
+    attempts?.some(
+      (a: { submittedAt: Date | null }) => a.submittedAt === null,
+    ) ?? false;
   const submittedCount =
-    attempts?.filter((a) => a.submittedAt !== null).length ?? 0;
+    attempts?.filter(
+      (a: { submittedAt: Date | null }) => a.submittedAt !== null,
+    ).length ?? 0;
   const maxAttempts = quiz?.maxAttempts ?? null;
   const unlimited = maxAttempts === null || maxAttempts === 0;
   const remainingAttempts = unlimited
@@ -142,11 +250,25 @@ export function QuizTaker({
     : Math.max(0, maxAttempts - submittedCount);
   const canStart = unlimited || hasInProgress || (remainingAttempts ?? 0) > 0;
 
+  const inProgressAttempt = attempts?.find(
+    (a: { submittedAt: Date | null; questionIds: number[] | null }) =>
+      a.submittedAt === null,
+  );
+  const inProgressQuestionIds = inProgressAttempt?.questionIds ?? null;
+  const displayQuestionCount =
+    inProgressQuestionIds?.length ??
+    quiz?.questionsPerAttempt ??
+    questions.length;
+
   const startAttempt = useMutation(
     trpc.quiz.startAttempt.mutationOptions({
       onSuccess: (attempt) => {
         if (attempt) {
           setAttemptId(attempt.id);
+          setAttemptQuestionIds(
+            Array.isArray(attempt.questionIds) ? attempt.questionIds : null,
+          );
+          setCurrentQuestionIndex(0);
           setAnswers({});
           setResult(null);
           setTimeLeft(null);
@@ -163,7 +285,14 @@ export function QuizTaker({
     trpc.quiz.submitAttempt.mutationOptions({
       onSuccess: (res) => {
         setResult(res);
-        onComplete();
+        const pct =
+          res.maxScore > 0 ? Math.round((res.score / res.maxScore) * 100) : 0;
+        const threshold =
+          completionType === "grade" ? (completionGrade ?? 70) : 70;
+        const passed = pct >= threshold;
+        if (completionType !== "grade" || passed) {
+          onComplete();
+        }
         void queryClient.invalidateQueries({
           queryKey: trpc.quiz.getMyAttempts.queryKey({ activityId }),
         });
@@ -226,7 +355,8 @@ export function QuizTaker({
       result.maxScore > 0
         ? Math.round((result.score / result.maxScore) * 100)
         : 0;
-    const passed = pct >= 70;
+    const threshold = completionType === "grade" ? (completionGrade ?? 70) : 70;
+    const passed = pct >= threshold;
     return (
       <Space orientation="vertical" style={{ width: "100%" }} size="middle">
         {contextHolder}
@@ -260,7 +390,7 @@ export function QuizTaker({
           </Space>
         </Card>
 
-        {canStart ? (
+        {canStart && (
           <Button
             type="primary"
             size="large"
@@ -269,13 +399,6 @@ export function QuizTaker({
           >
             Try Again
           </Button>
-        ) : (
-          <Alert
-            type="warning"
-            title="No attempts remaining"
-            description={`You have used ${submittedCount} of ${maxAttempts} attempts.`}
-            showIcon
-          />
         )}
 
         {result.feedback && result.feedback.length > 0 && (
@@ -362,7 +485,7 @@ export function QuizTaker({
               {
                 key: "questions",
                 label: "Questions",
-                children: questions.length,
+                children: displayQuestionCount,
               },
               {
                 key: "points",
@@ -441,110 +564,93 @@ export function QuizTaker({
             }
           />
         )}
-        {displayQuestions.map((q, index) => (
-          <Card
-            key={q.id}
-            title={
+        {quiz?.oneQuestionAtATime ? (
+          displayQuestions.length > 0 && (
+            <>
+              <Progress
+                percent={Math.round(
+                  ((currentQuestionIndex + 1) / displayQuestions.length) * 100,
+                )}
+                size="small"
+                format={() =>
+                  `${currentQuestionIndex + 1} / ${displayQuestions.length}`
+                }
+              />
+              <QuestionCard
+                question={displayQuestions[currentQuestionIndex]!}
+                index={currentQuestionIndex}
+                value={answers[displayQuestions[currentQuestionIndex]!.id]}
+                options={
+                  optionsByQuestionId.get(
+                    displayQuestions[currentQuestionIndex]!.id,
+                  ) ?? []
+                }
+                onChange={(answer) =>
+                  setAnswers((prev) => ({
+                    ...prev,
+                    [displayQuestions[currentQuestionIndex]!.id]: answer,
+                  }))
+                }
+              />
               <Space>
-                <Tag color="blue">Q{index + 1}</Tag>
-                <span>
-                  {q.points} pt{q.points !== 1 ? "s" : ""}
-                </span>
+                <Button
+                  disabled={currentQuestionIndex === 0}
+                  onClick={() =>
+                    setCurrentQuestionIndex((i) => Math.max(0, i - 1))
+                  }
+                >
+                  Previous
+                </Button>
+                {currentQuestionIndex >= displayQuestions.length - 1 ? (
+                  <Button
+                    type="primary"
+                    size="large"
+                    loading={submitAttempt.isPending}
+                    onClick={handleSubmit}
+                  >
+                    Submit Quiz
+                  </Button>
+                ) : (
+                  <Button
+                    type="primary"
+                    onClick={() =>
+                      setCurrentQuestionIndex((i) =>
+                        Math.min(displayQuestions.length - 1, i + 1),
+                      )
+                    }
+                  >
+                    Next
+                  </Button>
+                )}
               </Space>
-            }
-          >
-            <Typography.Text
-              strong
-              style={{ display: "block", marginBottom: 12, fontSize: 15 }}
-            >
-              {q.prompt}
-            </Typography.Text>
-
-            {q.type === "multiple_choice" && q.allowMultiple && (
-              <Checkbox.Group
-                value={(answers[q.id] as string[]) ?? []}
-                onChange={(checked) =>
-                  setAnswers((prev) => ({
-                    ...prev,
-                    [q.id]: checked,
-                  }))
-                }
-              >
-                <Space orientation="vertical">
-                  {(optionsByQuestionId.get(q.id) ?? []).map((opt, i) => (
-                    <Checkbox key={i} value={opt}>
-                      {opt}
-                    </Checkbox>
-                  ))}
-                </Space>
-              </Checkbox.Group>
-            )}
-
-            {((q.type === "multiple_choice" && !q.allowMultiple) ||
-              q.type === "true_false") && (
-              <Radio.Group
+            </>
+          )
+        ) : (
+          <>
+            {displayQuestions.map((q, index) => (
+              <QuestionCard
+                key={q.id}
+                question={q}
+                index={index}
                 value={answers[q.id]}
-                onChange={(e) =>
-                  setAnswers((prev) => ({
-                    ...prev,
-                    [q.id]: e.target.value as string,
-                  }))
-                }
-              >
-                <Space orientation="vertical">
-                  {q.type === "true_false"
-                    ? [
-                        <Radio key="true" value="true">
-                          True
-                        </Radio>,
-                        <Radio key="false" value="false">
-                          False
-                        </Radio>,
-                      ]
-                    : (optionsByQuestionId.get(q.id) ?? []).map((opt, i) => (
-                        <Radio key={i} value={opt}>
-                          {opt}
-                        </Radio>
-                      ))}
-                </Space>
-              </Radio.Group>
-            )}
-
-            {(q.type === "short_answer" ||
-              q.type === "fill_blank" ||
-              q.type === "matching" ||
-              q.type === "ordering") && (
-              <Input
-                placeholder="Your answer…"
-                value={(answers[q.id] as string) ?? ""}
-                onChange={(e) =>
-                  setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))
+                options={optionsByQuestionId.get(q.id) ?? []}
+                onChange={(answer) =>
+                  setAnswers((prev) => ({ ...prev, [q.id]: answer }))
                 }
               />
-            )}
+            ))}
 
-            {q.type === "essay" && (
-              <Input.TextArea
-                rows={4}
-                placeholder="Write your answer…"
-                value={(answers[q.id] as string) ?? ""}
-                onChange={(e) =>
-                  setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))
-                }
-              />
-            )}
-          </Card>
-        ))}
-
-        <Button
-          type="primary"
-          size="large"
-          loading={submitAttempt.isPending}
-          onClick={handleSubmit}
-          style={{ marginTop: 8 }}
-        >
-          Submit Quiz
-        </Button>
+            <Button
+              type="primary"
+              size="large"
+              loading={submitAttempt.isPending}
+              onClick={handleSubmit}
+              style={{ marginTop: 8 }}
+            >
+              Submit Quiz
+            </Button>
+          </>
+        )}
       </Space>
     </>
   );

@@ -2,7 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "~/trpc/react";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Avatar,
   Button,
@@ -25,15 +25,16 @@ import {
   UserOutlined,
 } from "@ant-design/icons";
 
-
 interface Props {
-  courseId: number;
+  courseId?: number;
+  initialThreadId?: number;
 }
 
 interface Thread {
   id: number;
   subject: string;
   createdAt: Date;
+  courseTitle?: string | null;
 }
 
 interface Message {
@@ -43,7 +44,7 @@ interface Message {
   sentAt: Date;
 }
 
-export function DiscussionsPanel({ courseId }: Props) {
+export function DiscussionsPanel({ courseId, initialThreadId }: Props) {
   const trpc = useTRPC();
   const [messageApi, contextHolder] = message.useMessage();
   const [activeThread, setActiveThread] = useState<Thread | null>(null);
@@ -53,32 +54,66 @@ export function DiscussionsPanel({ courseId }: Props) {
   const queryClient = useQueryClient();
   const { token } = theme.useToken();
 
-  const { data: threads = [], isLoading: threadsLoading } =
-    useQuery(trpc.message.listByCourse.queryOptions({ courseId }));
+  const { data: courseThreads = [], isLoading: courseLoading } = useQuery(
+    trpc.message.listByCourse.queryOptions(
+      { courseId: courseId! },
+      { enabled: !!courseId },
+    ),
+  );
 
-  const { data: threadMessages = [] } = useQuery(trpc.message.getMessages.queryOptions(
-    { threadId: activeThread?.id ?? 0 },
-    { enabled: !!activeThread },
-  ));
+  const { data: myThreads = [], isLoading: myThreadsLoading } = useQuery(
+    trpc.message.listMyThreads.queryOptions(undefined, {
+      enabled: !courseId,
+    }),
+  );
 
-  const createThread = useMutation(trpc.message.createThread.mutationOptions({
-    onSuccess: (thread) => {
-      void queryClient.invalidateQueries({ queryKey: trpc.message.listByCourse.queryKey({ courseId }) });
-      setNewThreadOpen(false);
-      threadForm.resetFields();
-      setActiveThread(thread ?? null);
-      messageApi.success("Thread created!");
-    },
-    onError: (err) => messageApi.error(err.message),
-  }));
+  const threads: Thread[] = courseId ? courseThreads : myThreads;
+  const threadsLoading = courseLoading || myThreadsLoading;
 
-  const sendMessage = useMutation(trpc.message.sendMessage.mutationOptions({
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: trpc.message.getMessages.queryKey({ threadId: activeThread?.id }) });
-      setReplyText("");
-    },
-    onError: (err) => messageApi.error(err.message),
-  }));
+  const { data: threadMessages = [] } = useQuery(
+    trpc.message.getMessages.queryOptions(
+      { threadId: activeThread?.id ?? 0 },
+      { enabled: !!activeThread },
+    ),
+  );
+
+  useEffect(() => {
+    if (initialThreadId && threads.length > 0) {
+      const found = threads.find((t: Thread) => t.id === initialThreadId);
+      if (found) setActiveThread(found);
+    }
+  }, [initialThreadId, threads]);
+
+  const createThread = useMutation(
+    trpc.message.createThread.mutationOptions({
+      onSuccess: (thread) => {
+        if (courseId) {
+          void queryClient.invalidateQueries({
+            queryKey: trpc.message.listByCourse.queryKey({ courseId }),
+          });
+        }
+        setNewThreadOpen(false);
+        threadForm.resetFields();
+        setActiveThread(thread ?? null);
+        messageApi.success("Thread created!");
+      },
+      onError: (err) => messageApi.error(err.message),
+    }),
+  );
+
+  const sendMessage = useMutation(
+    trpc.message.sendMessage.mutationOptions({
+      onSuccess: () => {
+        void queryClient.invalidateQueries({
+          queryKey: trpc.message.getMessages.queryKey({
+            threadId: activeThread?.id,
+          }),
+        });
+        setReplyText("");
+      },
+      onError: (err) => messageApi.error(err.message),
+    }),
+  );
 
   return (
     <>
@@ -96,13 +131,15 @@ export function DiscussionsPanel({ courseId }: Props) {
           title="Threads"
           size="small"
           extra={
-            <Button
-              size="small"
-              icon={<PlusOutlined />}
-              onClick={() => setNewThreadOpen(true)}
-            >
-              New
-            </Button>
+            courseId ? (
+              <Button
+                size="small"
+                icon={<PlusOutlined />}
+                onClick={() => setNewThreadOpen(true)}
+              >
+                New
+              </Button>
+            ) : null
           }
           styles={{ body: { padding: 0 } }}
         >
@@ -160,6 +197,7 @@ export function DiscussionsPanel({ courseId }: Props) {
                     <br />
                     <Typography.Text type="secondary" style={{ fontSize: 11 }}>
                       {new Date(thread.createdAt).toLocaleDateString()}
+                      {thread.courseTitle ? ` · ${thread.courseTitle}` : ""}
                     </Typography.Text>
                   </div>
                 </List.Item>
@@ -272,9 +310,11 @@ export function DiscussionsPanel({ courseId }: Props) {
         <Form
           form={threadForm}
           layout="vertical"
-          onFinish={(v) =>
-            createThread.mutate({ courseId, subject: v.subject })
-          }
+          onFinish={(v) => {
+            if (courseId) {
+              createThread.mutate({ courseId, subject: v.subject });
+            }
+          }}
         >
           <Form.Item
             name="subject"

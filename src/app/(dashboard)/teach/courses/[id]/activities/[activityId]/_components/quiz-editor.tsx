@@ -4,6 +4,7 @@ import { useTRPC } from "~/trpc/react";
 
 import { useState } from "react";
 import {
+  Alert,
   App,
   Button,
   Card,
@@ -12,6 +13,7 @@ import {
   Form,
   Input,
   InputNumber,
+  Modal,
   Select,
   Space,
   Tag,
@@ -21,6 +23,7 @@ import {
   ClockCircleOutlined,
   DeleteOutlined,
   EditOutlined,
+  EyeOutlined,
   PlusOutlined,
   SaveOutlined,
 } from "@ant-design/icons";
@@ -61,9 +64,13 @@ interface Question {
 interface QuizSettings {
   timeLimitSecs: number | null;
   maxAttempts: number;
+  questionsPerAttempt: number | null;
+  oneQuestionAtATime: boolean;
   shuffleQuestions: boolean;
   shuffleAnswers: boolean;
   showFeedback: boolean;
+  feedbackMode: "immediate" | "after_last_attempt" | "after_due_date" | "never";
+  availableUntil: Date | null;
 }
 
 interface Props {
@@ -85,9 +92,12 @@ interface QuestionFormValues {
 interface SettingsFormValues {
   timeLimitSecs: number | null;
   maxAttempts: number;
+  questionsPerAttempt: number | null;
+  oneQuestionAtATime: boolean;
   shuffleQuestions: boolean;
   shuffleAnswers: boolean;
-  showFeedback: boolean;
+  feedbackMode: "immediate" | "after_last_attempt" | "after_due_date" | "never";
+  availableUntil: string | null;
 }
 
 export function QuizEditor({
@@ -112,7 +122,13 @@ export function QuizEditor({
   const { message: messageApi } = App.useApp();
   const [questionType, setQuestionType] = useState("multiple_choice");
   const [allowMultiple, setAllowMultiple] = useState(false);
+  const [previewQuestion, setPreviewQuestion] = useState<Question | null>(null);
   const queryClient = useQueryClient();
+
+  const watchedQuestionsPerAttempt = Form.useWatch<number | null>(
+    "questionsPerAttempt",
+    settingsForm,
+  );
 
   const watchedOptions = Form.useWatch<string>("options", questionForm);
   const parsedOptions =
@@ -189,10 +205,20 @@ export function QuizEditor({
       activityId,
       timeLimitSecs: values.timeLimitSecs ?? undefined,
       maxAttempts: values.maxAttempts,
+      questionsPerAttempt: values.questionsPerAttempt ?? undefined,
+      oneQuestionAtATime: values.oneQuestionAtATime,
       shuffleQuestions: values.shuffleQuestions,
       shuffleAnswers: values.shuffleAnswers,
-      showFeedback: values.showFeedback,
+      feedbackMode: values.feedbackMode,
+      availableUntil: values.availableUntil
+        ? new Date(values.availableUntil).toISOString()
+        : null,
     });
+  }
+
+  function formatDateForInput(d: Date): string {
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
   function closeQuestionModal() {
@@ -314,9 +340,16 @@ export function QuizEditor({
             initialValues={{
               timeLimitSecs: initialSettings?.timeLimitSecs ?? null,
               maxAttempts: initialSettings?.maxAttempts ?? 1,
+              questionsPerAttempt: initialSettings?.questionsPerAttempt ?? null,
+              oneQuestionAtATime: initialSettings?.oneQuestionAtATime ?? false,
               shuffleQuestions: initialSettings?.shuffleQuestions ?? false,
               shuffleAnswers: initialSettings?.shuffleAnswers ?? false,
-              showFeedback: initialSettings?.showFeedback ?? true,
+              feedbackMode:
+                initialSettings?.feedbackMode ??
+                (initialSettings?.showFeedback ? "immediate" : "never"),
+              availableUntil: initialSettings?.availableUntil
+                ? formatDateForInput(initialSettings.availableUntil)
+                : null,
             }}
             onFinish={handleSaveSettings}
           >
@@ -339,6 +372,24 @@ export function QuizEditor({
               />
             </Form.Item>
             <Form.Item
+              name="questionsPerAttempt"
+              label="Questions Per Attempt (0 = all)"
+              extra="Randomly select this many questions for each attempt"
+            >
+              <InputNumber
+                min={0}
+                placeholder="All questions"
+                style={{ width: 200 }}
+              />
+            </Form.Item>
+            <Form.Item
+              name="oneQuestionAtATime"
+              valuePropName="checked"
+              extra="Show one question at a time with previous/next navigation"
+            >
+              <Checkbox>One question at a time</Checkbox>
+            </Form.Item>
+            <Form.Item
               name="shuffleQuestions"
               valuePropName="checked"
               extra="Randomizes the order questions are presented in for each attempt"
@@ -348,12 +399,30 @@ export function QuizEditor({
             <Form.Item
               name="shuffleAnswers"
               valuePropName="checked"
-              extra="Randomizes the order of answer options for multiple choice questions"
+              extra="Randomizes the order of answer options for multiple choice, matching, ordering, and fill in the blank questions"
             >
               <Checkbox>Shuffle answer options</Checkbox>
             </Form.Item>
-            <Form.Item name="showFeedback" valuePropName="checked">
-              <Checkbox>Show feedback after submission</Checkbox>
+            <Form.Item
+              name="feedbackMode"
+              label="When to show the answer key"
+              rules={[{ required: true }]}
+            >
+              <Select
+                options={[
+                  { value: "immediate", label: "Immediately after submit" },
+                  { value: "after_last_attempt", label: "After last attempt" },
+                  { value: "after_due_date", label: "After due date" },
+                  { value: "never", label: "Never" },
+                ]}
+              />
+            </Form.Item>
+            <Form.Item
+              name="availableUntil"
+              label="Available until"
+              extra="Required for the 'After due date' feedback mode"
+            >
+              <Input type="datetime-local" />
             </Form.Item>
             <Form.Item>
               <Button
@@ -382,6 +451,17 @@ export function QuizEditor({
             </Button>
           }
         >
+          {watchedQuestionsPerAttempt &&
+            watchedQuestionsPerAttempt > 0 &&
+            questions.length < watchedQuestionsPerAttempt * 2 && (
+              <Alert
+                type="warning"
+                showIcon
+                message="Small question pool"
+                description="For best anti-cheating results, add at least twice as many questions as the per-attempt limit so students cannot trivially leak the full answer key."
+                style={{ marginBottom: 16 }}
+              />
+            )}
           {questions.length === 0 ? (
             <Typography.Text type="secondary">
               No questions yet. Add one to get started.
@@ -423,6 +503,13 @@ export function QuizEditor({
                     <Button
                       type="text"
                       size="small"
+                      icon={<EyeOutlined />}
+                      aria-label="Preview question"
+                      onClick={() => setPreviewQuestion(q)}
+                    />
+                    <Button
+                      type="text"
+                      size="small"
                       icon={<EditOutlined />}
                       onClick={() => openEditModal(q)}
                     />
@@ -441,6 +528,50 @@ export function QuizEditor({
           )}
         </Card>
       </Space>
+
+      <Modal
+        title="Question Preview"
+        open={previewQuestion !== null}
+        onCancel={() => setPreviewQuestion(null)}
+        footer={null}
+      >
+        {previewQuestion && (
+          <Space direction="vertical" style={{ width: "100%" }}>
+            <Typography.Text strong style={{ display: "block" }}>
+              {previewQuestion.prompt}
+            </Typography.Text>
+            <Space size="small">
+              <Tag color="blue">{previewQuestion.type.replace("_", " ")}</Tag>
+              <Typography.Text type="secondary">
+                {previewQuestion.points} pt
+                {previewQuestion.points !== 1 ? "s" : ""}
+              </Typography.Text>
+            </Space>
+            {previewQuestion.type === "true_false" && (
+              <Space direction="vertical">
+                <Tag>True</Tag>
+                <Tag>False</Tag>
+              </Space>
+            )}
+            {Array.isArray(previewQuestion.options) &&
+              previewQuestion.options.length > 0 &&
+              previewQuestion.type !== "true_false" && (
+                <Space direction="vertical">
+                  {(previewQuestion.options as string[]).map((opt, i) => (
+                    <Tag key={i}>{opt}</Tag>
+                  ))}
+                </Space>
+              )}
+            {(previewQuestion.type === "short_answer" ||
+              previewQuestion.type === "fill_blank" ||
+              previewQuestion.type === "matching" ||
+              previewQuestion.type === "ordering" ||
+              previewQuestion.type === "essay") && (
+              <Input placeholder="Student answer" disabled value="" />
+            )}
+          </Space>
+        )}
+      </Modal>
 
       <FormModal
         form={questionForm}

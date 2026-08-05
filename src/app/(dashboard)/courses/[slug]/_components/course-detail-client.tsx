@@ -23,6 +23,7 @@ import {
   CalendarOutlined,
   ClockCircleOutlined,
   EnvironmentOutlined,
+  MessageOutlined,
   TeamOutlined,
   UserOutlined,
 } from "@ant-design/icons";
@@ -182,11 +183,18 @@ export function CourseDetailClient({ course, enrollment }: Props) {
                 />
               )}
               {isEnrolled ? (
-                <Link href={`/courses/${course.slug}/learn`}>
-                  <Button type="primary" size="large" block>
-                    Continue Learning
-                  </Button>
-                </Link>
+                <Space direction="vertical" style={{ width: "100%" }}>
+                  <Link href={`/courses/${course.slug}/learn`}>
+                    <Button type="primary" size="large" block>
+                      Continue Learning
+                    </Button>
+                  </Link>
+                  <Link href={`/courses/${course.slug}/discussions`}>
+                    <Button size="large" block icon={<MessageOutlined />}>
+                      Discussions
+                    </Button>
+                  </Link>
+                </Space>
               ) : (
                 <Button
                   type="primary"

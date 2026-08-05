@@ -132,6 +132,30 @@ export const courseRouter = createTRPCRouter({
       .orderBy(desc(courses.createdAt));
   }),
 
+  getMyCoursesSummary: protectedProcedure.query(async ({ ctx }) => {
+    return ctx.db
+      .select({
+        courseId: courses.id,
+        title: courses.title,
+        slug: courses.slug,
+        coverImageUrl: courses.coverImageUrl,
+        status: courses.status,
+        progressPct: sql<number>`coalesce(${courseProgress.progressPct}, 0)`,
+        completedAt: courseProgress.completedAt,
+      })
+      .from(enrollments)
+      .innerJoin(courses, eq(enrollments.courseId, courses.id))
+      .leftJoin(
+        courseProgress,
+        and(
+          eq(courseProgress.courseId, courses.id),
+          eq(courseProgress.userId, ctx.session.user.id),
+        ),
+      )
+      .where(eq(enrollments.userId, ctx.session.user.id))
+      .orderBy(desc(enrollments.enrolledAt));
+  }),
+
   create: teacherProcedure
     .input(courseInputSchema)
     .mutation(async ({ ctx, input }) => {

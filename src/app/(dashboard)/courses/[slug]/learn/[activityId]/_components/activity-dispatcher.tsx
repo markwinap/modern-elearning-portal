@@ -1,8 +1,8 @@
 "use client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useTRPC } from "~/trpc/react";
+import { useTRPC, type RouterOutputs } from "~/trpc/react";
 
-import { useEffect } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button, Card, Space, Tag, Typography, message } from "antd";
 import { CheckCircleOutlined } from "@ant-design/icons";
 
@@ -16,6 +16,8 @@ interface Activity {
   type: string;
   title: string;
   completionType: string;
+  completionGrade: number | null;
+  completionTimeSecs: number | null;
 }
 
 interface Props {
@@ -32,9 +34,17 @@ interface Props {
     quiz: {
       timeLimitSecs: number | null;
       maxAttempts: number | null;
+      questionsPerAttempt: number | null;
+      oneQuestionAtATime: boolean;
       shuffleQuestions: boolean;
       shuffleAnswers: boolean;
       showFeedback: boolean;
+      feedbackMode:
+        | "immediate"
+        | "after_last_attempt"
+        | "after_due_date"
+        | "never";
+      availableUntil: Date | null;
     } | null;
     questions: Array<{
       id: number;
@@ -62,33 +72,96 @@ export function ActivityDispatcher({
   const [messageApi, contextHolder] = message.useMessage();
   const queryClient = useQueryClient();
 
+  const [completed, setCompleted] = useState(
+    initialProgress?.status === "completed",
+  );
+
+  const startTimeRef = useRef(Date.now());
+  const [elapsedSecs, setElapsedSecs] = useState(0);
+
+  // Track how long the student spends in this activity.
+  useEffect(() => {
+    startTimeRef.current = Date.now();
+    setElapsedSecs(0);
+    const interval = setInterval(() => {
+      setElapsedSecs(Math.floor((Date.now() - startTimeRef.current) / 1000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [activity.id]);
+
+  const progressQueryKey = trpc.progress.getActivityProgress.queryKey({
+    activityId: activity.id,
+  });
+
+  type ProgressSnapshot = RouterOutputs["progress"]["getActivityProgress"];
+
   const markActivity = useMutation(
     trpc.progress.markActivity.mutationOptions({
-      onSuccess: () =>
-        queryClient.invalidateQueries({
-          queryKey: trpc.progress.getActivityProgress.queryKey(),
-        }),
-      onError: (err) => messageApi.error(err.message),
+      onMutate: async (input) => {
+        await queryClient.cancelQueries({ queryKey: progressQueryKey });
+        const previous =
+          queryClient.getQueryData<ProgressSnapshot>(progressQueryKey);
+        queryClient.setQueryData<ProgressSnapshot>(progressQueryKey, (old) =>
+          old
+            ? {
+                ...old,
+                status: input.status,
+                completedAt:
+                  input.status === "completed" ? new Date() : old.completedAt,
+                timeSpentSecs:
+                  (old.timeSpentSecs ?? 0) + (input.timeSpentSecs ?? 0),
+              }
+            : old,
+        );
+        if (input.status === "completed") setCompleted(true);
+        return { previous };
+      },
+      onError: (err, input, context) => {
+        if (context?.previous) {
+          queryClient.setQueryData(progressQueryKey, context.previous);
+        }
+        if (input.status === "completed") setCompleted(false);
+        messageApi.error(err.message);
+      },
+      onSettled: () => {
+        void queryClient.invalidateQueries({ queryKey: progressQueryKey });
+      },
     }),
   );
 
-  const isCompleted = initialProgress?.status === "completed";
+  const isCompleted = completed;
 
   // Auto-mark as in_progress when first viewed
   useEffect(() => {
     if (!initialProgress || initialProgress.status === "not_started") {
-      markActivity.mutate({ activityId: activity.id, status: "in_progress" });
+      markActivity.mutate({
+        activityId: activity.id,
+        status: "in_progress",
+        timeSpentSecs: 0,
+      });
     }
     // Only run once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activity.id]);
 
   function handleMarkComplete() {
-    markActivity.mutate(
-      { activityId: activity.id, status: "completed" },
-      { onSuccess: () => void messageApi.success("Marked as complete!") },
-    );
+    markActivity.mutate({
+      activityId: activity.id,
+      status: "completed",
+      timeSpentSecs: elapsedSecs,
+    });
   }
+
+  const canMarkManually = useMemo(() => {
+    if (isCompleted || activity.type === "quiz" || activity.type === "lesson")
+      return false;
+    return (
+      activity.completionType === "view" ||
+      activity.completionType === "submit" ||
+      activity.completionType === "time" ||
+      activity.completionType === "grade"
+    );
+  }, [isCompleted, activity]);
 
   return (
     <>
@@ -112,18 +185,20 @@ export function ActivityDispatcher({
               <Tag icon={<CheckCircleOutlined />} color="success">
                 Completed
               </Tag>
-            ) : (
-              activity.completionType === "view" && (
-                <Button
-                  type="primary"
-                  icon={<CheckCircleOutlined />}
-                  loading={markActivity.isPending}
-                  onClick={handleMarkComplete}
-                >
-                  Mark Complete
-                </Button>
-              )
-            )}
+            ) : canMarkManually ? (
+              <Button
+                type="primary"
+                icon={<CheckCircleOutlined />}
+                loading={markActivity.isPending}
+                disabled={
+                  activity.completionType === "time" &&
+                  elapsedSecs < (activity.completionTimeSecs ?? 0)
+                }
+                onClick={handleMarkComplete}
+              >
+                Mark Complete
+              </Button>
+            ) : null}
           </Space>
         </div>
 
@@ -142,11 +217,22 @@ export function ActivityDispatcher({
             quiz={quizContent.quiz}
             questions={quizContent.questions}
             initialProgress={initialProgress}
+            completionType={activity.completionType}
+            completionGrade={activity.completionGrade}
             onComplete={() =>
-              markActivity.mutate({
-                activityId: activity.id,
-                status: "completed",
-              })
+              markActivity.mutate(
+                {
+                  activityId: activity.id,
+                  status: "completed",
+                  timeSpentSecs: elapsedSecs,
+                },
+                {
+                  onSuccess: () => {
+                    setCompleted(true);
+                    void messageApi.success("Marked as complete!");
+                  },
+                },
+              )
             }
           />
         )}

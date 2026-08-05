@@ -3,6 +3,7 @@ import { and, asc, count, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import { calculatePercentage, percentageToLetter } from "~/lib/grade-utils";
+import { seededShuffle } from "~/lib/quiz-utils";
 import {
   calculateAverage,
   calculateDifficultyIndex,
@@ -49,23 +50,54 @@ export const quizRouter = createTRPCRouter({
         activityId: z.number().int(),
         timeLimitSecs: z.number().int().optional(),
         maxAttempts: z.number().int().optional(),
+        questionsPerAttempt: z.number().int().min(0).optional(),
+        oneQuestionAtATime: z.boolean().default(false),
         shuffleQuestions: z.boolean().default(false),
         shuffleAnswers: z.boolean().default(false),
-        showFeedback: z.boolean().default(true),
+        showFeedback: z.boolean().optional(),
+        feedbackMode: z
+          .enum(["immediate", "after_last_attempt", "after_due_date", "never"])
+          .default("immediate"),
+        availableUntil: z
+          .union([z.string().datetime(), z.date(), z.null()])
+          .optional()
+          .transform((v) =>
+            v ? (typeof v === "string" ? new Date(v) : v) : null,
+          ),
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const effectiveQuestionsPerAttempt =
+        input.questionsPerAttempt && input.questionsPerAttempt > 0
+          ? input.questionsPerAttempt
+          : null;
+      const effectiveShowFeedback =
+        input.showFeedback ?? input.feedbackMode === "immediate";
+
       const [quiz] = await ctx.db
         .insert(quizzes)
-        .values(input)
+        .values({
+          ...input,
+          questionsPerAttempt: effectiveQuestionsPerAttempt,
+          showFeedback: effectiveShowFeedback,
+          availableUntil:
+            input.availableUntil instanceof Date ? input.availableUntil : null,
+        })
         .onConflictDoUpdate({
           target: [quizzes.activityId],
           set: {
             timeLimitSecs: input.timeLimitSecs,
             maxAttempts: input.maxAttempts,
+            questionsPerAttempt: effectiveQuestionsPerAttempt,
+            oneQuestionAtATime: input.oneQuestionAtATime,
             shuffleQuestions: input.shuffleQuestions,
             shuffleAnswers: input.shuffleAnswers,
-            showFeedback: input.showFeedback,
+            showFeedback: effectiveShowFeedback,
+            feedbackMode: input.feedbackMode,
+            availableUntil:
+              input.availableUntil instanceof Date
+                ? input.availableUntil
+                : null,
           },
         })
         .returning();
@@ -116,7 +148,11 @@ export const quizRouter = createTRPCRouter({
     .input(z.object({ activityId: z.number().int() }))
     .mutation(async ({ ctx, input }) => {
       const [quizConfig] = await ctx.db
-        .select({ maxAttempts: quizzes.maxAttempts })
+        .select({
+          maxAttempts: quizzes.maxAttempts,
+          questionsPerAttempt: quizzes.questionsPerAttempt,
+          shuffleQuestions: quizzes.shuffleQuestions,
+        })
         .from(quizzes)
         .where(eq(quizzes.activityId, input.activityId))
         .limit(1);
@@ -159,12 +195,40 @@ export const quizRouter = createTRPCRouter({
         }
       }
 
+      // Build the question subset for this attempt.
+      const allQuestions = await ctx.db
+        .select({ id: quizQuestions.id, order: quizQuestions.order })
+        .from(quizQuestions)
+        .where(eq(quizQuestions.quizActivityId, input.activityId))
+        .orderBy(asc(quizQuestions.order));
+
+      const perAttempt = quizConfig?.questionsPerAttempt ?? null;
+      const total = allQuestions.length;
+      let selectedQuestionIds: number[] | null = null;
+
+      if (perAttempt && perAttempt > 0 && perAttempt < total) {
+        const seed = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
+        const shuffled = seededShuffle(allQuestions, seed);
+        const picked = shuffled.slice(0, perAttempt).map((q) => q.id);
+
+        if (quizConfig?.shuffleQuestions) {
+          selectedQuestionIds = picked;
+        } else {
+          // Keep the teacher-defined order for the selected subset.
+          const pickedSet = new Set(picked);
+          selectedQuestionIds = allQuestions
+            .filter((q) => pickedSet.has(q.id))
+            .map((q) => q.id);
+        }
+      }
+
       const [attempt] = await ctx.db
         .insert(quizAttempts)
         .values({
           quizActivityId: input.activityId,
           userId: ctx.session.user.id,
           startedAt: new Date(),
+          questionIds: selectedQuestionIds,
         })
         .returning();
       return attempt;
@@ -202,13 +266,25 @@ export const quizRouter = createTRPCRouter({
           .from(quizQuestions)
           .where(eq(quizQuestions.quizActivityId, attempt.quizActivityId)),
         ctx.db
-          .select({ showFeedback: quizzes.showFeedback })
+          .select({
+            showFeedback: quizzes.showFeedback,
+            feedbackMode: quizzes.feedbackMode,
+            availableUntil: quizzes.availableUntil,
+            maxAttempts: quizzes.maxAttempts,
+          })
           .from(quizzes)
           .where(eq(quizzes.activityId, attempt.quizActivityId))
           .limit(1),
       ]);
 
-      const maxScore = questions.reduce((s, q) => s + q.points, 0);
+      const attemptQuestionIds = Array.isArray(attempt.questionIds)
+        ? new Set<number>(attempt.questionIds)
+        : null;
+      const activeQuestions = attemptQuestionIds
+        ? questions.filter((q) => attemptQuestionIds.has(q.id))
+        : questions;
+
+      const maxScore = activeQuestions.reduce((s, q) => s + q.points, 0);
 
       // Normalize boolean true/false to strings so "true" (string) matches true (boolean) in JSONB,
       // and sort arrays so multi-answer (checkbox) questions grade order-independently.
@@ -225,7 +301,7 @@ export const quizRouter = createTRPCRouter({
       // Grade answers sequentially to safely accumulate score
       let score = 0;
       const gradedAnswers = input.answers.flatMap(({ questionId, answer }) => {
-        const question = questions.find((q) => q.id === questionId);
+        const question = activeQuestions.find((q) => q.id === questionId);
         if (!question) return [];
         const isCorrect =
           JSON.stringify(normalizeForGrading(answer)) ===
@@ -254,8 +330,35 @@ export const quizRouter = createTRPCRouter({
         .set({ submittedAt: new Date(), score, maxScore })
         .where(eq(quizAttempts.id, input.attemptId));
 
-      const showFeedback = quizConfig?.showFeedback ?? true;
-      const feedback = showFeedback
+      const feedbackMode = quizConfig?.feedbackMode ?? "immediate";
+
+      let showAnswerKey = false;
+      if (feedbackMode === "never") {
+        showAnswerKey = false;
+      } else if (feedbackMode === "immediate") {
+        showAnswerKey = quizConfig?.showFeedback ?? true;
+      } else if (feedbackMode === "after_due_date") {
+        showAnswerKey = quizConfig?.availableUntil
+          ? new Date() > new Date(quizConfig.availableUntil)
+          : false;
+      } else if (feedbackMode === "after_last_attempt" && quizConfig) {
+        const maxAttempts = quizConfig.maxAttempts;
+        if (maxAttempts !== null && maxAttempts !== 0) {
+          const [submittedCount] = await ctx.db
+            .select({ count: count() })
+            .from(quizAttempts)
+            .where(
+              and(
+                eq(quizAttempts.quizActivityId, attempt.quizActivityId),
+                eq(quizAttempts.userId, ctx.session.user.id),
+                isNotNull(quizAttempts.submittedAt),
+              ),
+            );
+          showAnswerKey = Number(submittedCount?.count ?? 0) >= maxAttempts;
+        }
+      }
+
+      const feedback = showAnswerKey
         ? gradedAnswers.map(
             ({ questionId, isCorrect, pointsAwarded, correctAnswer }) => ({
               questionId,
