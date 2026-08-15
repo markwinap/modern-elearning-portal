@@ -20,15 +20,52 @@ A full-stack, type-safe learning management system for students, teachers, and a
 
 ## Features
 
-- Role-based dashboards and workflows for students, teachers, and administrators
-- Hierarchical course categories and a searchable course catalog
-- Enrollments with self-enrollment, access keys, manual enrollment, and waitlists
-- Eight activity types: File, Lesson, Page, Quiz, Text & Media, URL, Wiki, and Workshop
-- End-to-end type-safe API with tRPC v11 and Zod input validation
-- Drizzle ORM schema as the single source of truth for PostgreSQL
-- better-auth authentication with email/password and GitHub OAuth
-- Gradebook, progress tracking, announcements, discussions, and notifications
-- Admin panel for users, courses, categories, and platform settings
+### Authentication & Roles
+
+- better-auth v1.3 authentication with email/password and GitHub OAuth
+- Role-based access for students, teachers, and administrators
+- Protected dashboard and admin route groups with server-side session guards
+
+### Course Catalog & Enrollment
+
+- Hierarchical course categories with parent/child relationships
+- Searchable, paginated course catalog with category filtering
+- Public course detail pages with enrollment status
+- Flexible enrollment modes: open self-enrollment, access-key enrollment, manual enrollment, and waitlists
+- Course scheduling with online/onsite location support and recurring session times
+
+### Course Content & Learning
+
+- Course structure organized into ordered, visible/hidden sections
+- Eight learning activity types: File, Lesson, Page, Quiz, Text & Media, URL, Wiki, and Workshop
+- File resources with upload/download support
+- Rich-text Pages and Text & Media content
+- Branching Lessons stored as node graphs
+- Quizzes with multiple question types, attempts, time limits, shuffling, and feedback modes
+- Wiki pages with versioning and revision history
+- Workshops with submission, peer assessment, rubrics, and weighted teacher/peer grading
+- Activity completion tracking by view, submit, grade, or time spent
+- Student learning view that redirects to the first available activity and tracks progress
+
+### Communication
+
+- Course announcements with pinning
+- Course discussions and direct message threads
+- User notification inbox with read/unread status
+
+### Grading & Progress
+
+- Gradebook with weighted grade categories
+- Per-activity grades with auto-graded and manually graded support
+- Student-facing grade report and course progress summary
+- Teacher insights and recent activity feeds
+
+### Teaching & Administration
+
+- Teacher dashboard to create, edit, and manage courses
+- Course authoring: sections, activities, announcements, discussions, students, and gradebook
+- Admin dashboard with platform statistics
+- User management, course management, category management, and platform settings
 
 ## Quick Start
 

@@ -3,13 +3,17 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTRPC, type RouterOutputs } from "~/trpc/react";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Button, Card, Space, Tag, Typography, message } from "antd";
+import { Button, Card, Space, Tag, Typography, message } from "antd";
 import { CheckCircleOutlined } from "@ant-design/icons";
 
+import { type LessonGraph } from "~/lib/activity-content";
 import { FileViewer } from "./file-viewer";
+import { LessonViewer } from "./lesson-viewer";
 import { PageViewer } from "./page-viewer";
 import { QuizTaker } from "./quiz-taker";
 import { TextMediaViewer } from "./text-media-viewer";
+import { WikiViewer } from "./wiki-viewer";
+import { WorkshopViewer } from "./workshop-viewer";
 
 interface Activity {
   id: number;
@@ -57,6 +61,7 @@ interface Props {
     }>;
   } | null;
   textMediaContent: { content: string } | null;
+  lessonGraph: LessonGraph | null;
   initialProgress: { status: string; completedAt: Date | null } | null;
 }
 
@@ -66,6 +71,7 @@ export function ActivityDispatcher({
   fileContent,
   quizContent,
   textMediaContent,
+  lessonGraph,
   initialProgress,
 }: Props) {
   const trpc = useTRPC();
@@ -153,7 +159,12 @@ export function ActivityDispatcher({
   }
 
   const canMarkManually = useMemo(() => {
-    if (isCompleted || activity.type === "quiz" || activity.type === "lesson")
+    if (
+      isCompleted ||
+      activity.type === "quiz" ||
+      activity.type === "lesson" ||
+      activity.type === "workshop"
+    )
       return false;
     return (
       activity.completionType === "view" ||
@@ -238,14 +249,11 @@ export function ActivityDispatcher({
         )}
 
         {activity.type === "lesson" && (
-          <Card>
-            <Alert
-              type="info"
-              title="Interactive lesson"
-              description="This lesson contains an interactive flow diagram. The full lesson editor and viewer will be available in the teacher experience phase."
-              showIcon
-            />
-          </Card>
+          <LessonViewer
+            graph={lessonGraph}
+            isCompleted={isCompleted}
+            onComplete={handleMarkComplete}
+          />
         )}
 
         {activity.type === "text_media" && (
@@ -260,20 +268,14 @@ export function ActivityDispatcher({
           </Card>
         )}
 
-        {activity.type === "wiki" && (
-          <Card>
-            <Typography.Text type="secondary">
-              Wiki activity viewer coming in Phase 5.
-            </Typography.Text>
-          </Card>
-        )}
+        {activity.type === "wiki" && <WikiViewer activityId={activity.id} />}
 
         {activity.type === "workshop" && (
-          <Card>
-            <Typography.Text type="secondary">
-              Workshop activity viewer coming in Phase 5.
-            </Typography.Text>
-          </Card>
+          <WorkshopViewer
+            activityId={activity.id}
+            isCompleted={isCompleted}
+            onComplete={handleMarkComplete}
+          />
         )}
       </Space>
     </>

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { api } from "~/trpc/server";
+import { type LessonGraph } from "~/lib/activity-content";
 
 import { ActivityDispatcher } from "./_components/activity-dispatcher";
 
@@ -60,6 +61,7 @@ export default async function ActivityPage({ params }: Props) {
     }>;
   } | null = null;
   let textMediaContent: { content: string } | null = null;
+  let lessonGraph: LessonGraph | null = null;
 
   if (activity.type === "page") {
     pageContent = await api.page.getByActivity({ activityId: id });
@@ -86,6 +88,8 @@ export default async function ActivityPage({ params }: Props) {
     };
   } else if (activity.type === "text_media") {
     textMediaContent = await api.textMedia.getByActivity({ activityId: id });
+  } else if (activity.type === "lesson") {
+    lessonGraph = await api.lesson.getGraph({ activityId: id });
   }
 
   return (
@@ -95,6 +99,7 @@ export default async function ActivityPage({ params }: Props) {
       fileContent={fileContent}
       quizContent={quizContent}
       textMediaContent={textMediaContent}
+      lessonGraph={lessonGraph}
       initialProgress={progress}
     />
   );

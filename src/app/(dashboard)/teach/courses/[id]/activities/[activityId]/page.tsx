@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { api } from "~/trpc/server";
+import { type LessonGraph } from "~/lib/activity-content";
 
 import { ActivityEditor } from "./_components/activity-editor";
 
@@ -66,6 +67,7 @@ export default async function ActivityEditorPage({ params }: Props) {
     order: number;
   }> | null = null;
   let textMediaContent: { content: string } | null = null;
+  let lessonGraph: LessonGraph | null = null;
 
   if (activity.type === "page") {
     pageContent = await api.page.getByActivity({ activityId: actId });
@@ -82,6 +84,8 @@ export default async function ActivityEditorPage({ params }: Props) {
     quizQuestions = questions;
   } else if (activity.type === "text_media") {
     textMediaContent = await api.textMedia.getByActivity({ activityId: actId });
+  } else if (activity.type === "lesson") {
+    lessonGraph = await api.lesson.getGraph({ activityId: actId });
   }
 
   return (
@@ -94,6 +98,7 @@ export default async function ActivityEditorPage({ params }: Props) {
       quizSettings={quizSettings}
       quizQuestions={quizQuestions}
       textMediaContent={textMediaContent}
+      lessonGraph={lessonGraph}
     />
   );
 }

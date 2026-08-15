@@ -2,16 +2,20 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "~/trpc/react";
 
-import { Alert, Card, Select, Space, Switch, Typography } from "antd";
+import { Card, Select, Space, Switch, Typography } from "antd";
 import { ArrowLeftOutlined } from "@ant-design/icons";
 import Link from "next/link";
 
 import { ActivityBadge } from "~/components/ui/activity-badge";
+import { type LessonGraph } from "~/lib/activity-content";
 import { FileEditor } from "./file-editor";
+import { LessonEditor } from "./lesson-editor";
 import { PageEditor } from "./page-editor";
 import { QuizEditor } from "./quiz-editor";
 import { TextMediaEditor } from "./text-media-editor";
 import { UrlEditor } from "./url-editor";
+import { WikiEditor } from "./wiki-editor";
+import { WorkshopEditor } from "./workshop-editor";
 
 interface Activity {
   id: number;
@@ -64,6 +68,7 @@ interface Props {
     points: number;
     order: number;
   }> | null;
+  lessonGraph: LessonGraph | null;
 }
 
 export function ActivityEditor({
@@ -75,6 +80,7 @@ export function ActivityEditor({
   textMediaContent,
   quizSettings,
   quizQuestions,
+  lessonGraph,
 }: Props) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
@@ -169,17 +175,14 @@ export function ActivityEditor({
         />
       )}
 
-      {(activity.type === "lesson" ||
-        activity.type === "wiki" ||
-        activity.type === "workshop") && (
-        <Card>
-          <Alert
-            type="info"
-            showIcon
-            title={`${activity.type.replace("_", " ")} editor`}
-            description="A dedicated editor for this activity type is coming soon."
-          />
-        </Card>
+      {activity.type === "lesson" && (
+        <LessonEditor activityId={activity.id} initialGraph={lessonGraph} />
+      )}
+
+      {activity.type === "wiki" && <WikiEditor activityId={activity.id} />}
+
+      {activity.type === "workshop" && (
+        <WorkshopEditor activityId={activity.id} />
       )}
     </Space>
   );

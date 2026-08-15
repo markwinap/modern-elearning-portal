@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
+import { lessonGraphSchema } from "~/lib/activity-content";
 import {
   assertOwnerOrAdmin,
   createTRPCRouter,
@@ -25,7 +26,9 @@ export const lessonRouter = createTRPCRouter({
         .from(lessonNodes)
         .where(eq(lessonNodes.activityId, input.activityId))
         .limit(1);
-      return row?.graph ?? null;
+      if (!row?.graph) return null;
+      const parsed = lessonGraphSchema.safeParse(row.graph);
+      return parsed.success ? parsed.data : null;
     }),
 
   /** Save the flow graph (teacher). */
@@ -33,7 +36,7 @@ export const lessonRouter = createTRPCRouter({
     .input(
       z.object({
         activityId: z.number().int(),
-        graph: z.record(z.unknown()),
+        graph: lessonGraphSchema,
       }),
     )
     .mutation(async ({ ctx, input }) => {

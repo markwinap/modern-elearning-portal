@@ -1,17 +1,41 @@
-import { and, eq } from "drizzle-orm";
+import { TRPCError } from "@trpc/server";
+import { and, eq, not, notInArray } from "drizzle-orm";
 import { z } from "zod";
 
 import {
+  assertOwnerOrAdmin,
   createTRPCRouter,
   protectedProcedure,
   teacherProcedure,
 } from "~/server/api/trpc";
+import { type db } from "~/server/db";
 import {
+  activities,
+  courseSections,
+  courses,
   workshopAssessments,
   workshopRubrics,
   workshopSubmissions,
   workshops,
 } from "~/server/db/schema";
+
+type DB = typeof db;
+
+async function getCourseTeacherId(database: DB, activityId: number) {
+  const [section] = await database
+    .select({ courseId: courseSections.courseId })
+    .from(activities)
+    .innerJoin(courseSections, eq(activities.sectionId, courseSections.id))
+    .where(eq(activities.id, activityId))
+    .limit(1);
+  if (!section) throw new TRPCError({ code: "NOT_FOUND" });
+  const [course] = await database
+    .select({ teacherId: courses.teacherId })
+    .from(courses)
+    .where(eq(courses.id, section.courseId))
+    .limit(1);
+  return course?.teacherId;
+}
 
 export const workshopRouter = createTRPCRouter({
   /** Get workshop settings. */
@@ -43,6 +67,8 @@ export const workshopRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const teacherId = await getCourseTeacherId(ctx.db, input.activityId);
+      assertOwnerOrAdmin(ctx, teacherId);
       const [workshop] = await ctx.db
         .insert(workshops)
         .values(input)
@@ -85,11 +111,68 @@ export const workshopRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const teacherId = await getCourseTeacherId(
+        ctx.db,
+        input.workshopActivityId,
+      );
+      assertOwnerOrAdmin(ctx, teacherId);
       const [rubric] = await ctx.db
         .insert(workshopRubrics)
         .values(input)
         .returning();
       return rubric;
+    }),
+
+  /** Update a rubric criterion (teacher). */
+  updateRubric: teacherProcedure
+    .input(
+      z.object({
+        id: z.number().int(),
+        criterion: z.string().min(1).optional(),
+        description: z.string().optional(),
+        maxPoints: z.number().int().optional(),
+        order: z.number().int().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const [existing] = await ctx.db
+        .select({ workshopActivityId: workshopRubrics.workshopActivityId })
+        .from(workshopRubrics)
+        .where(eq(workshopRubrics.id, input.id))
+        .limit(1);
+      if (!existing) throw new TRPCError({ code: "NOT_FOUND" });
+      const teacherId = await getCourseTeacherId(
+        ctx.db,
+        existing.workshopActivityId,
+      );
+      assertOwnerOrAdmin(ctx, teacherId);
+      const { id, ...data } = input;
+      const [rubric] = await ctx.db
+        .update(workshopRubrics)
+        .set(data)
+        .where(eq(workshopRubrics.id, id))
+        .returning();
+      return rubric;
+    }),
+
+  /** Delete a rubric criterion (teacher). */
+  deleteRubric: teacherProcedure
+    .input(z.object({ id: z.number().int() }))
+    .mutation(async ({ ctx, input }) => {
+      const [existing] = await ctx.db
+        .select({ workshopActivityId: workshopRubrics.workshopActivityId })
+        .from(workshopRubrics)
+        .where(eq(workshopRubrics.id, input.id))
+        .limit(1);
+      if (!existing) throw new TRPCError({ code: "NOT_FOUND" });
+      const teacherId = await getCourseTeacherId(
+        ctx.db,
+        existing.workshopActivityId,
+      );
+      assertOwnerOrAdmin(ctx, teacherId);
+      await ctx.db
+        .delete(workshopRubrics)
+        .where(eq(workshopRubrics.id, input.id));
     }),
 
   /** Submit work (student). */
@@ -141,6 +224,30 @@ export const workshopRouter = createTRPCRouter({
               input.workshopActivityId,
             ),
             eq(workshopSubmissions.userId, ctx.session.user.id),
+          ),
+        );
+    }),
+
+  /** List peer submissions available for assessment (student). */
+  listPeerSubmissions: protectedProcedure
+    .input(z.object({ workshopActivityId: z.number().int() }))
+    .query(async ({ ctx, input }) => {
+      const alreadyAssessed = ctx.db
+        .select({ submissionId: workshopAssessments.submissionId })
+        .from(workshopAssessments)
+        .where(eq(workshopAssessments.assessorId, ctx.session.user.id));
+
+      return ctx.db
+        .select()
+        .from(workshopSubmissions)
+        .where(
+          and(
+            eq(
+              workshopSubmissions.workshopActivityId,
+              input.workshopActivityId,
+            ),
+            not(eq(workshopSubmissions.userId, ctx.session.user.id)),
+            notInArray(workshopSubmissions.id, alreadyAssessed),
           ),
         );
     }),

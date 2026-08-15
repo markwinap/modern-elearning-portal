@@ -35,6 +35,8 @@ export const enrollmentStatusEnum = pgEnum("enrollment_status", [
   "suspended",
   "completed",
   "waitlisted",
+  "pending",
+  "rejected",
 ]);
 export const enrollmentRoleEnum = pgEnum("enrollment_role", [
   "student",
@@ -636,6 +638,9 @@ export const enrollments = createTable(
       .timestamp({ withTimezone: true })
       .$defaultFn(() => new Date())
       .notNull(),
+    reviewedBy: d.text().references(() => user.id),
+    reviewedAt: d.timestamp({ withTimezone: true }),
+    rejectionReason: d.text(),
     startDate: d.timestamp({ withTimezone: true }),
     endDate: d.timestamp({ withTimezone: true }),
   }),

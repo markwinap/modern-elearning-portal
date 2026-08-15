@@ -1,5 +1,5 @@
 "use client";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "~/trpc/react";
 
 import { useState } from "react";
@@ -68,11 +68,16 @@ interface Course {
 
 interface Props {
   course: Course;
-  enrollment: { id?: number; status: string } | null;
+  enrollment: {
+    id?: number;
+    status: string;
+    rejectionReason: string | null;
+  } | null;
 }
 
 export function CourseDetailClient({ course, enrollment }: Props) {
   const trpc = useTRPC();
+  const queryClient = useQueryClient();
   const router = useRouter();
   const [messageApi, contextHolder] = message.useMessage();
   const { token } = theme.useToken();
@@ -81,11 +86,21 @@ export function CourseDetailClient({ course, enrollment }: Props) {
 
   const enrollMutation = useMutation(
     trpc.enrollment.enroll.mutationOptions({
-      onSuccess: () => {
-        messageApi.success("Enrolled successfully!");
-        router.push(`/courses/${course.slug}/learn`);
+      onSuccess: (data) => {
+        void queryClient.invalidateQueries({
+          queryKey: trpc.enrollment.isEnrolled.queryKey({
+            courseId: course.id,
+          }),
+        });
+        if (data?.status === "active") {
+          void messageApi.success("Enrolled successfully!");
+          void router.push(`/courses/${course.slug}/learn`);
+        } else {
+          void messageApi.success("Enrollment request submitted for approval.");
+          router.refresh();
+        }
       },
-      onError: (err) => messageApi.error(err.message),
+      onError: (err: { message: string }) => messageApi.error(err.message),
     }),
   );
 
@@ -102,8 +117,10 @@ export function CourseDetailClient({ course, enrollment }: Props) {
     setAccessKeyModalOpen(false);
   }
 
-  const isEnrolled = !!enrollment && enrollment.status === "active";
+  const isEnrolled = enrollment?.status === "active";
   const isCompleted = enrollment?.status === "completed";
+  const isPending = enrollment?.status === "pending";
+  const isRejected = enrollment?.status === "rejected";
 
   const dayNames = [
     "Sunday",
@@ -182,6 +199,21 @@ export function CourseDetailClient({ course, enrollment }: Props) {
                   showIcon
                 />
               )}
+              {isPending && (
+                <Alert
+                  title="Enrollment request pending approval"
+                  type="info"
+                  showIcon
+                />
+              )}
+              {isRejected && (
+                <Alert
+                  title="Enrollment request denied"
+                  description={enrollment?.rejectionReason ?? undefined}
+                  type="error"
+                  showIcon
+                />
+              )}
               {isEnrolled ? (
                 <Space orientation="vertical" style={{ width: "100%" }}>
                   <Link href={`/courses/${course.slug}/learn`}>
@@ -202,8 +234,9 @@ export function CourseDetailClient({ course, enrollment }: Props) {
                   block
                   loading={enrollMutation.isPending}
                   onClick={handleEnroll}
+                  disabled={isPending}
                 >
-                  Enroll Now
+                  {isRejected ? "Re-apply" : "Enroll Now"}
                   {course.accessKey ? " (Access Key Required)" : ""}
                 </Button>
               )}

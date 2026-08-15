@@ -7,6 +7,7 @@ import {
   BookOutlined,
   EditOutlined,
   EyeOutlined,
+  MailOutlined,
   MessageOutlined,
   NotificationOutlined,
   TeamOutlined,
@@ -46,6 +47,11 @@ const NAV_ITEMS = (id: number) => [
     key: "students",
     label: <Link href={`/teach/courses/${id}/students`}>Students</Link>,
     icon: <TeamOutlined />,
+  },
+  {
+    key: "enrollments",
+    label: <Link href={`/teach/courses/${id}/enrollments`}>Enrollments</Link>,
+    icon: <MailOutlined />,
   },
   {
     key: "gradebook",
