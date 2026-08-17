@@ -93,6 +93,17 @@ export const settingsDigestFrequencyEnum = pgEnum("settings_digest_frequency", [
   "daily",
   "weekly",
 ]);
+export const userDigestFrequencyEnum = pgEnum("user_digest_frequency", [
+  "off",
+  "daily",
+  "weekly",
+]);
+export const emailLogStatusEnum = pgEnum("email_log_status", [
+  "pending",
+  "sent",
+  "failed",
+  "bounced",
+]);
 
 // ─── User role enum ───────────────────────────────────────────────────────────
 export const userRoleEnum = pgEnum("user_role", [
@@ -807,6 +818,62 @@ export const notifications = createTable(
   (t) => [index("notification_user_read_idx").on(t.userId, t.readAt)],
 );
 
+export const notificationPreferences = createTable(
+  "notification_preference",
+  (d) => ({
+    userId: d
+      .text()
+      .primaryKey()
+      .references(() => user.id, { onDelete: "cascade" }),
+    emailEnabled: d.boolean().notNull().default(true),
+    digestFrequency: userDigestFrequencyEnum("digest_frequency")
+      .notNull()
+      .default("daily"),
+    lastDigestSentAt: d.timestamp({ withTimezone: true }),
+    createdAt: d
+      .timestamp({ withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: d
+      .timestamp({ withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date())
+      .$onUpdate(() => new Date()),
+  }),
+  (t) => [
+    index("notification_preference_digest_idx").on(
+      t.digestFrequency,
+      t.lastDigestSentAt,
+    ),
+  ],
+);
+
+export const emailLogs = createTable(
+  "email_log",
+  (d) => ({
+    id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
+    userId: d.text().references(() => user.id, { onDelete: "set null" }),
+    notificationId: d
+      .integer()
+      .references(() => notifications.id, { onDelete: "set null" }),
+    emailType: d.varchar({ length: 64 }).notNull(),
+    recipientEmail: d.varchar({ length: 255 }).notNull(),
+    subject: d.varchar({ length: 512 }).notNull(),
+    status: emailLogStatusEnum("status").notNull().default("pending"),
+    providerResponse: d.text(),
+    errorMessage: d.text(),
+    createdAt: d
+      .timestamp({ withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    sentAt: d.timestamp({ withTimezone: true }),
+  }),
+  (t) => [
+    index("email_log_user_created_idx").on(t.userId, t.createdAt),
+    index("email_log_status_created_idx").on(t.status, t.createdAt),
+  ],
+);
+
 export const platformSettings = createTable(
   "platform_settings",
   (d) => ({
@@ -826,6 +893,14 @@ export const platformSettings = createTable(
     digestFrequency: settingsDigestFrequencyEnum("digest_frequency")
       .notNull()
       .default("daily"),
+    emailFromAddress: d
+      .varchar({ length: 255 })
+      .notNull()
+      .default("noreply@modern-elearning-portal.local"),
+    emailFromName: d
+      .varchar({ length: 128 })
+      .notNull()
+      .default("Modern E-Learning Portal"),
     sendSystemAnnouncements: d.boolean().notNull().default(true),
     maintenanceMode: d.boolean().notNull().default(false),
     maintenanceMessage: d
@@ -1152,3 +1227,9 @@ export type QuizAttempt = typeof quizAttempts.$inferSelect;
 export type WorkshopSubmission = typeof workshopSubmissions.$inferSelect;
 export type PlatformSettings = typeof platformSettings.$inferSelect;
 export type NewPlatformSettings = typeof platformSettings.$inferInsert;
+export type NotificationPreference =
+  typeof notificationPreferences.$inferSelect;
+export type NewNotificationPreference =
+  typeof notificationPreferences.$inferInsert;
+export type EmailLog = typeof emailLogs.$inferSelect;
+export type NewEmailLog = typeof emailLogs.$inferInsert;

@@ -101,6 +101,10 @@ export function LoginForm() {
         </Form>
 
         <div style={{ textAlign: "center" }}>
+          <Link href="/forgot-password">Forgot password?</Link>
+        </div>
+
+        <div style={{ textAlign: "center" }}>
           <Button
             icon={<span style={{ marginRight: 8 }}>⚡</span>}
             size="large"

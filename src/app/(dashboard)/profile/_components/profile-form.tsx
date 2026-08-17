@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Avatar,
   Button,
@@ -9,7 +11,9 @@ import {
   Form,
   Input,
   Row,
+  Select,
   Space,
+  Switch,
   Tag,
   Typography,
   message,
@@ -18,6 +22,7 @@ import {
 import { LockOutlined, MailOutlined, UserOutlined } from "@ant-design/icons";
 
 import { authClient } from "~/server/better-auth/client";
+import { useTRPC } from "~/trpc/react";
 
 interface User {
   id: string;
@@ -46,6 +51,90 @@ const ROLE_COLORS: Record<string, string> = {
   teacher: "blue",
   student: "green",
 };
+
+const DIGEST_OPTIONS = [
+  { label: "Off", value: "off" },
+  { label: "Daily", value: "daily" },
+  { label: "Weekly", value: "weekly" },
+];
+
+function NotificationPreferencesSection() {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const [emailEnabled, setEmailEnabled] = useState(true);
+  const [digestFrequency, setDigestFrequency] = useState<
+    "off" | "daily" | "weekly"
+  >("daily");
+
+  const { data: preferences, isLoading } = useQuery(
+    trpc.notification.getPreferences.queryOptions(),
+  );
+
+  const updatePreferences = useMutation(
+    trpc.notification.updatePreferences.mutationOptions({
+      onSuccess: async () => {
+        message.success("Notification preferences saved.");
+        await queryClient.invalidateQueries({
+          queryKey: trpc.notification.getPreferences.queryKey(),
+        });
+      },
+      onError: (error) => {
+        message.error(error.message);
+      },
+    }),
+  );
+
+  useEffect(() => {
+    if (preferences) {
+      setEmailEnabled(preferences.emailEnabled);
+      setDigestFrequency(preferences.digestFrequency);
+    }
+  }, [preferences]);
+
+  function handleSave() {
+    updatePreferences.mutate({ emailEnabled, digestFrequency });
+  }
+
+  return (
+    <>
+      <Typography.Title level={5}>Email Notifications</Typography.Title>
+      <Space direction="vertical" style={{ width: "100%" }}>
+        <div>
+          <Switch
+            checked={emailEnabled}
+            onChange={setEmailEnabled}
+            checkedChildren="On"
+            unCheckedChildren="Off"
+          />
+          <Typography.Text style={{ marginLeft: 12 }}>
+            Send me email notifications
+          </Typography.Text>
+        </div>
+
+        <div>
+          <Typography.Text style={{ display: "block", marginBottom: 8 }}>
+            Digest frequency
+          </Typography.Text>
+          <Select
+            value={digestFrequency}
+            onChange={(value) => setDigestFrequency(value)}
+            options={DIGEST_OPTIONS}
+            style={{ width: 200 }}
+            disabled={!emailEnabled}
+          />
+        </div>
+
+        <Button
+          type="primary"
+          onClick={handleSave}
+          loading={updatePreferences.isPending || isLoading}
+        >
+          Save Preferences
+        </Button>
+      </Space>
+    </>
+  );
+}
 
 export function ProfileForm({ user }: Props) {
   const [messageApi, contextHolder] = message.useMessage();
@@ -200,6 +289,10 @@ export function ProfileForm({ user }: Props) {
                 <Button htmlType="submit">Change Password</Button>
               </Form.Item>
             </Form>
+
+            <Divider />
+
+            <NotificationPreferencesSection />
           </Card>
         </Col>
       </Row>

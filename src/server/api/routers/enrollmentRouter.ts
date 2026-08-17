@@ -8,10 +8,10 @@ import {
   protectedProcedure,
   teacherProcedure,
 } from "~/server/api/trpc";
+import { createNotification } from "~/server/lib/notifications";
 import {
   courses,
   enrollments,
-  notifications,
   platformSettings,
   user,
 } from "~/server/db/schema";
@@ -115,7 +115,7 @@ export const enrollmentRouter = createTRPCRouter({
       }
 
       if (course.teacherId !== ctx.session.user.id) {
-        await ctx.db.insert(notifications).values({
+        await createNotification({
           userId: course.teacherId,
           type: requiresApproval ? "enrollment_request" : "course_enrollment",
           payload: {
@@ -227,7 +227,7 @@ export const enrollmentRouter = createTRPCRouter({
         enrollment.userId !== ctx.session.user.id &&
         enrollment.status !== input.status
       ) {
-        await ctx.db.insert(notifications).values({
+        await createNotification({
           userId: enrollment.userId,
           type: "enrollment_status_changed",
           payload: {
@@ -352,7 +352,7 @@ export const enrollmentRouter = createTRPCRouter({
         .returning();
 
       if (updated) {
-        await ctx.db.insert(notifications).values({
+        await createNotification({
           userId: enrollment.userId,
           type: "enrollment_approved",
           payload: {
@@ -417,7 +417,7 @@ export const enrollmentRouter = createTRPCRouter({
         .returning();
 
       if (updated) {
-        await ctx.db.insert(notifications).values({
+        await createNotification({
           userId: enrollment.userId,
           type: "enrollment_rejected",
           payload: {

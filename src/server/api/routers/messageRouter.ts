@@ -7,12 +7,12 @@ import {
   createTRPCRouter,
   protectedProcedure,
 } from "~/server/api/trpc";
+import { createNotification } from "~/server/lib/notifications";
 import {
   courses,
   enrollments,
   messageThreads,
   messages,
-  notifications,
 } from "~/server/db/schema";
 
 export const messageRouter = createTRPCRouter({
@@ -129,7 +129,7 @@ export const messageRouter = createTRPCRouter({
       }
 
       if (thread.createdBy !== ctx.session.user.id) {
-        await ctx.db.insert(notifications).values({
+        await createNotification({
           userId: thread.createdBy,
           type: "discussion_message",
           payload: {

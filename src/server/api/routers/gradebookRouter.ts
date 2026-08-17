@@ -14,6 +14,7 @@ import {
   protectedProcedure,
   teacherProcedure,
 } from "~/server/api/trpc";
+import { createNotification } from "~/server/lib/notifications";
 import {
   activities,
   courses,
@@ -21,7 +22,6 @@ import {
   enrollments,
   gradeCategories,
   grades,
-  notifications,
   user,
 } from "~/server/db/schema";
 
@@ -253,7 +253,7 @@ export const gradebookRouter = createTRPCRouter({
       }
 
       if (input.userId !== ctx.session.user.id) {
-        await ctx.db.insert(notifications).values({
+        await createNotification({
           userId: input.userId,
           type: "grade_posted",
           payload: {

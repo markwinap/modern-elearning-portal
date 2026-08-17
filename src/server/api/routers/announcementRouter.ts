@@ -8,6 +8,7 @@ import {
   protectedProcedure,
   teacherProcedure,
 } from "~/server/api/trpc";
+import { sendNotificationEmail } from "~/server/lib/notifications";
 import {
   announcements,
   courses,
@@ -82,7 +83,13 @@ export const announcementRouter = createTRPCRouter({
         }));
 
       if (recipientValues.length > 0) {
-        await ctx.db.insert(notifications).values(recipientValues);
+        const created = await ctx.db
+          .insert(notifications)
+          .values(recipientValues)
+          .returning();
+        for (const notification of created) {
+          await sendNotificationEmail(notification).catch(() => undefined);
+        }
       }
 
       return announcement;

@@ -15,6 +15,16 @@ export const env = createEnv({
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
+    // Email (Resend). Optional in dev/test; when absent emails are logged to the console.
+    RESEND_API_KEY: z.string().optional(),
+    EMAIL_FROM_ADDRESS: z
+      .string()
+      .email()
+      .optional()
+      .default("noreply@modern-elearning-portal.local"),
+    EMAIL_FROM_NAME: z.string().optional().default("Modern E-Learning Portal"),
+    // Secret used to authorize cron requests (e.g. /api/cron/digest)
+    CRON_SECRET: z.string().optional(),
   },
 
   /**
@@ -39,6 +49,10 @@ export const env = createEnv({
     BLOB_READ_WRITE_TOKEN: process.env.BLOB_READ_WRITE_TOKEN,
     NODE_ENV: process.env.NODE_ENV,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+    RESEND_API_KEY: process.env.RESEND_API_KEY,
+    EMAIL_FROM_ADDRESS: process.env.EMAIL_FROM_ADDRESS,
+    EMAIL_FROM_NAME: process.env.EMAIL_FROM_NAME,
+    CRON_SECRET: process.env.CRON_SECRET,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

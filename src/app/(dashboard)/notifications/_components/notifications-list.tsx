@@ -18,6 +18,10 @@ import Link from "next/link";
 
 import { DeleteOutlined } from "@ant-design/icons";
 import { PageHeader } from "~/components/ui/page-header";
+import {
+  notificationToTemplate,
+  type NotificationType,
+} from "~/lib/notifications";
 
 interface NotificationItem {
   id: number;
@@ -32,92 +36,8 @@ interface Props {
   initialNotifications: NotificationItem[];
 }
 
-interface NotificationTemplate {
-  title: string;
-  body: string;
-  href?: string;
-  hrefLabel?: string;
-}
-
-function getString(value: unknown): string | undefined {
-  return typeof value === "string" && value.length > 0 ? value : undefined;
-}
-
-function getNumber(value: unknown): number | undefined {
-  return typeof value === "number" ? value : undefined;
-}
-
-function toTemplate(item: NotificationItem): NotificationTemplate {
-  const payload = item.payload;
-  const courseSlug = getString(payload.courseSlug);
-  const courseTitle = getString(payload.courseTitle) ?? "this course";
-
-  if (item.type === "announcement_posted") {
-    const title = getString(payload.title) ?? "New announcement";
-    return {
-      title,
-      body: `A new announcement was posted in ${courseTitle}.`,
-      href: courseSlug ? `/courses/${courseSlug}` : undefined,
-      hrefLabel: "Open course",
-    };
-  }
-
-  if (item.type === "course_enrollment") {
-    const courseId = getNumber(payload.courseId);
-    return {
-      title: "New student enrollment",
-      body: `A student enrolled in ${courseTitle}.`,
-      href:
-        courseId !== undefined
-          ? `/teach/courses/${courseId}/students`
-          : "/teach",
-      hrefLabel: "View students",
-    };
-  }
-
-  if (item.type === "enrollment_status_changed") {
-    const newStatus = getString(payload.newStatus) ?? "updated";
-    return {
-      title: "Enrollment status changed",
-      body: `Your enrollment status is now ${newStatus} for ${courseTitle}.`,
-      href: courseSlug ? `/courses/${courseSlug}` : undefined,
-      hrefLabel: "Open course",
-    };
-  }
-
-  if (item.type === "grade_posted") {
-    const rawScore = getNumber(payload.rawScore);
-    const maxScore = getNumber(payload.maxScore);
-    const scoreLabel =
-      rawScore !== undefined && maxScore !== undefined
-        ? `Score: ${rawScore}/${maxScore}.`
-        : "A new grade is available.";
-    return {
-      title: "Grade posted",
-      body: `${scoreLabel} ${courseTitle}`,
-      href: "/grades",
-      hrefLabel: "My Grades",
-    };
-  }
-
-  if (item.type === "discussion_message") {
-    const subject = getString(payload.subject) ?? "Discussion thread";
-    const threadId = getNumber(payload.threadId);
-    return {
-      title: "New discussion message",
-      body: `New reply in "${subject}" for ${courseTitle}.`,
-      href:
-        courseSlug && threadId !== undefined
-          ? `/courses/${courseSlug}/discussions?threadId=${threadId}`
-          : undefined,
-      hrefLabel: "View thread",
-    };
-  }
-
-  return {
-    title: "Notification",
-    body: "You have a new update.",
-  };
+function toTemplate(item: NotificationItem) {
+  return notificationToTemplate(item.type as NotificationType, item.payload);
 }
 
 export function NotificationsList({ initialNotifications }: Props) {

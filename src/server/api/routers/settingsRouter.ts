@@ -10,6 +10,8 @@ const settingsInputSchema = z.object({
   defaultCourseCapacity: z.number().int().min(1).max(100_000),
   defaultEnrollmentMode: z.enum(["open", "approval"]),
   digestFrequency: z.enum(["off", "daily", "weekly"]),
+  emailFromAddress: z.string().email(),
+  emailFromName: z.string().min(1).max(128),
   sendSystemAnnouncements: z.boolean(),
   maintenanceMode: z.boolean(),
   maintenanceMessage: z.string().min(1).max(4_000),
@@ -21,6 +23,8 @@ const defaultSettings = {
   defaultCourseCapacity: 100,
   defaultEnrollmentMode: "open" as const,
   digestFrequency: "daily" as const,
+  emailFromAddress: "noreply@modern-elearning-portal.local",
+  emailFromName: "Modern E-Learning Portal",
   sendSystemAnnouncements: true,
   maintenanceMode: false,
   maintenanceMessage:

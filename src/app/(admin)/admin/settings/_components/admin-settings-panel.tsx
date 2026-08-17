@@ -20,13 +20,14 @@ import {
   theme,
 } from "antd";
 
-
 interface AdminSettingsValues {
   platformName: string;
   supportEmail: string;
   defaultCourseCapacity: number;
   defaultEnrollmentMode: "open" | "approval";
   digestFrequency: "off" | "daily" | "weekly";
+  emailFromAddress: string;
+  emailFromName: string;
   sendSystemAnnouncements: boolean;
   maintenanceMode: boolean;
   maintenanceMessage: string;
@@ -54,16 +55,20 @@ export function AdminSettingsPanel({ settings }: Props) {
   const { token } = theme.useToken();
   const queryClient = useQueryClient();
   const [savedAt, setSavedAt] = useState<string | null>(null);
-  const updateSettings = useMutation(trpc.settings.update.mutationOptions({
-    onSuccess: async () => {
-      setSavedAt(new Date().toLocaleString());
-      message.success("Settings saved.");
-      await queryClient.invalidateQueries({ queryKey: trpc.settings.get.queryKey() });
-    },
-    onError: (error) => {
-      message.error(error.message);
-    },
-  }));
+  const updateSettings = useMutation(
+    trpc.settings.update.mutationOptions({
+      onSuccess: async () => {
+        setSavedAt(new Date().toLocaleString());
+        message.success("Settings saved.");
+        await queryClient.invalidateQueries({
+          queryKey: trpc.settings.get.queryKey(),
+        });
+      },
+      onError: (error) => {
+        message.error(error.message);
+      },
+    }),
+  );
 
   function handleSave(values: AdminSettingsValues) {
     updateSettings.mutate(values);
@@ -195,6 +200,29 @@ export function AdminSettingsPanel({ settings }: Props) {
                 valuePropName="checked"
               >
                 <Switch checkedChildren="On" unCheckedChildren="Off" />
+              </Form.Item>
+
+              <Form.Item
+                label={
+                  <span style={{ color: token.colorText }}>Sender Name</span>
+                }
+                name="emailFromName"
+                rules={[{ required: true, message: "Sender name is required" }]}
+              >
+                <Input placeholder="Modern E-Learning Portal" />
+              </Form.Item>
+
+              <Form.Item
+                label={
+                  <span style={{ color: token.colorText }}>Sender Email</span>
+                }
+                name="emailFromAddress"
+                rules={[
+                  { required: true, message: "Sender email is required" },
+                  { type: "email", message: "Enter a valid email address" },
+                ]}
+              >
+                <Input placeholder="noreply@example.com" />
               </Form.Item>
             </Card>
           </Col>

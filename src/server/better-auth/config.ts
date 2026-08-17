@@ -5,6 +5,21 @@ import { admin } from "better-auth/plugins";
 import { env } from "~/env";
 import { db } from "~/server/db";
 import { account, session, user, verification } from "~/server/db/schema";
+import { sendEmail } from "~/server/lib/email";
+import {
+  renderPasswordResetEmail,
+  renderVerificationEmail,
+} from "~/server/lib/email/templates";
+
+interface EmailCallbackPayload {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  url: string;
+  token?: string;
+}
 
 export const auth = betterAuth({
   baseURL: env.NEXT_PUBLIC_APP_URL,
@@ -14,7 +29,37 @@ export const auth = betterAuth({
     schema: { user, session, account, verification },
   }),
   plugins: [admin({ defaultRole: "student" })],
-  emailAndPassword: { enabled: true },
+  emailAndPassword: {
+    enabled: true,
+    sendVerificationEmail: async ({ user, url }: EmailCallbackPayload) => {
+      const { html, subject, text } = renderVerificationEmail({
+        name: user.name,
+        url,
+      });
+      await sendEmail({
+        emailType: "verification",
+        to: user.email,
+        subject,
+        html,
+        text,
+        userId: user.id,
+      });
+    },
+    sendResetPasswordEmail: async ({ user, url }: EmailCallbackPayload) => {
+      const { html, subject, text } = renderPasswordResetEmail({
+        name: user.name,
+        url,
+      });
+      await sendEmail({
+        emailType: "password_reset",
+        to: user.email,
+        subject,
+        html,
+        text,
+        userId: user.id,
+      });
+    },
+  },
   socialProviders: {
     github: {
       clientId: env.BETTER_AUTH_GITHUB_CLIENT_ID,

@@ -1,19 +1,16 @@
 import { and, count, desc, eq, isNotNull, isNull } from "drizzle-orm";
 import { z } from "zod";
 
+import {
+  NOTIFICATION_TYPES,
+  notificationTypeSchema,
+  type NotificationType,
+} from "~/lib/notifications";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
-import { notifications } from "~/server/db/schema";
+import { notifications, notificationPreferences } from "~/server/db/schema";
 
-export const NOTIFICATION_TYPES = [
-  "announcement_posted",
-  "course_enrollment",
-  "enrollment_status_changed",
-  "grade_posted",
-  "discussion_message",
-] as const;
-
-export const notificationTypeSchema = z.enum(NOTIFICATION_TYPES);
-export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
+export { NOTIFICATION_TYPES, notificationTypeSchema };
+export type { NotificationType };
 
 export const notificationRouter = createTRPCRouter({
   getMyNotifications: protectedProcedure
@@ -91,4 +88,60 @@ export const notificationRouter = createTRPCRouter({
       );
     return result?.count ?? 0;
   }),
+
+  getPreferences: protectedProcedure.query(async ({ ctx }) => {
+    const [existing] = await ctx.db
+      .select()
+      .from(notificationPreferences)
+      .where(eq(notificationPreferences.userId, ctx.session.user.id))
+      .limit(1);
+
+    return (
+      existing ?? {
+        userId: ctx.session.user.id,
+        emailEnabled: true,
+        digestFrequency: "daily" as const,
+        lastDigestSentAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }
+    );
+  }),
+
+  updatePreferences: protectedProcedure
+    .input(
+      z.object({
+        emailEnabled: z.boolean(),
+        digestFrequency: z.enum(["off", "daily", "weekly"]),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const [existing] = await ctx.db
+        .select()
+        .from(notificationPreferences)
+        .where(eq(notificationPreferences.userId, ctx.session.user.id))
+        .limit(1);
+
+      if (existing) {
+        const [updated] = await ctx.db
+          .update(notificationPreferences)
+          .set({
+            emailEnabled: input.emailEnabled,
+            digestFrequency: input.digestFrequency,
+          })
+          .where(eq(notificationPreferences.userId, ctx.session.user.id))
+          .returning();
+        return updated;
+      }
+
+      const [created] = await ctx.db
+        .insert(notificationPreferences)
+        .values({
+          userId: ctx.session.user.id,
+          emailEnabled: input.emailEnabled,
+          digestFrequency: input.digestFrequency,
+        })
+        .returning();
+      return created;
+    }),
 });
