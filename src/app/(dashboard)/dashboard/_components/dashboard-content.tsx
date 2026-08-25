@@ -165,9 +165,9 @@ export function DashboardContent({ userName, stats, courses, recent }: Props) {
 
   return (
     <div>
-      <Typography.Title level={3} style={{ marginBottom: 24 }}>
+      <h1 style={{ marginBottom: 24, fontSize: 30, fontWeight: 600 }}>
         Welcome back, {userName}
-      </Typography.Title>
+      </h1>
 
       <Row gutter={[16, 16]}>
         {cards.map((card) => (

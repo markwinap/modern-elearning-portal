@@ -10,6 +10,12 @@ import {
   unique,
 } from "drizzle-orm/pg-core";
 
+import type {
+  QuizCorrectAnswer,
+  QuizQuestionOptions,
+  QuizStudentAnswer,
+} from "~/lib/quiz";
+
 // ─── Enums ────────────────────────────────────────────────────────────────────
 export const activityTypeEnum = pgEnum("activity_type", [
   "file",
@@ -413,8 +419,8 @@ export const quizQuestions = createTable(
       .references(() => activities.id, { onDelete: "cascade" }),
     type: quizQuestionTypeEnum("type").notNull(),
     prompt: d.text().notNull(),
-    options: d.jsonb().$type<unknown[]>(),
-    correctAnswer: d.jsonb().$type<unknown>(),
+    options: d.jsonb().$type<QuizQuestionOptions>(),
+    correctAnswer: d.jsonb().$type<QuizCorrectAnswer>(),
     allowMultiple: d.boolean().default(false).notNull(),
     points: d.integer().default(1).notNull(),
     order: d.integer().default(0).notNull(),
@@ -461,7 +467,7 @@ export const quizAnswers = createTable(
       .integer()
       .notNull()
       .references(() => quizQuestions.id),
-    answer: d.jsonb().$type<unknown>().notNull(),
+    answer: d.jsonb().$type<QuizStudentAnswer>().notNull(),
     isCorrect: d.boolean(),
     pointsAwarded: d.integer().default(0).notNull(),
     timeSpentSecs: d.integer().default(0).notNull(),
@@ -874,6 +880,26 @@ export const emailLogs = createTable(
   ],
 );
 
+export const auditLogs = createTable(
+  "audit_log",
+  (d) => ({
+    id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
+    actorId: d.text().references(() => user.id, { onDelete: "set null" }),
+    action: d.varchar({ length: 64 }).notNull(),
+    resourceType: d.varchar({ length: 64 }),
+    resourceId: d.text(),
+    metadata: d.jsonb().$type<Record<string, unknown>>().notNull().default({}),
+    ipAddress: d.varchar({ length: 64 }),
+    userAgent: d.text(),
+    createdAt: d.timestamp({ withTimezone: true }).notNull().defaultNow(),
+  }),
+  (t) => [
+    index("audit_log_actor_created_idx").on(t.actorId, t.createdAt),
+    index("audit_log_action_created_idx").on(t.action, t.createdAt),
+    index("audit_log_resource_idx").on(t.resourceType, t.resourceId),
+  ],
+);
+
 export const platformSettings = createTable(
   "platform_settings",
   (d) => ({
@@ -1233,3 +1259,5 @@ export type NewNotificationPreference =
   typeof notificationPreferences.$inferInsert;
 export type EmailLog = typeof emailLogs.$inferSelect;
 export type NewEmailLog = typeof emailLogs.$inferInsert;
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type NewAuditLog = typeof auditLogs.$inferInsert;

@@ -1,4 +1,6 @@
 import { FlatCompat } from "@eslint/eslintrc";
+// @ts-ignore -- no types for this plugin
+import jsxA11y from "eslint-plugin-jsx-a11y";
 import tseslint from "typescript-eslint";
 // @ts-ignore -- no types for this plugin
 import drizzle from "eslint-plugin-drizzle";
@@ -12,6 +14,10 @@ export default tseslint.config(
     ignores: [".next"],
   },
   ...compat.extends("next/core-web-vitals"),
+  {
+    files: ["**/*.tsx", "**/*.jsx"],
+    rules: jsxA11y.flatConfigs.recommended.rules,
+  },
   {
     files: ["**/*.ts", "**/*.tsx"],
     plugins: {

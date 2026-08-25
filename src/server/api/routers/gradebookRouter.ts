@@ -15,6 +15,7 @@ import {
   teacherProcedure,
 } from "~/server/api/trpc";
 import { createNotification } from "~/server/lib/notifications";
+import { logAuditEvent } from "~/server/lib/audit";
 import {
   activities,
   courses,
@@ -269,6 +270,20 @@ export const gradebookRouter = createTRPCRouter({
           },
         });
       }
+
+      await logAuditEvent(ctx, {
+        action: "grade.save",
+        actorId: ctx.session.user.id,
+        resourceType: "grade",
+        resourceId: grade.id,
+        metadata: {
+          activityId: input.activityId,
+          studentId: input.userId,
+          rawScore: input.rawScore,
+          maxScore: input.maxScore,
+          percentage,
+        },
+      });
 
       return grade;
     }),

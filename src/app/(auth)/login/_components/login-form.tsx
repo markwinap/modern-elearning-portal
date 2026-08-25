@@ -44,15 +44,17 @@ export function LoginForm() {
     <Card style={{ width: 400, boxShadow: "0 2px 16px rgba(0,0,0,0.08)" }}>
       <Space orientation="vertical" size={24} style={{ width: "100%" }}>
         <div style={{ textAlign: "center" }}>
-          <Typography.Title level={3} style={{ marginBottom: 4 }}>
+          <h1 style={{ marginBottom: 4, fontSize: 24, fontWeight: 600 }}>
             Sign in to Modern E-Learning Portal
-          </Typography.Title>
+          </h1>
           <Typography.Text type="secondary">
             Don&apos;t have an account? <Link href="/register">Register</Link>
           </Typography.Text>
         </div>
 
-        {error && <Alert title={error} type="error" showIcon />}
+        {error && (
+          <Alert title={error} type="error" showIcon aria-live="assertive" />
+        )}
 
         <Form
           form={form}
@@ -106,7 +108,11 @@ export function LoginForm() {
 
         <div style={{ textAlign: "center" }}>
           <Button
-            icon={<span style={{ marginRight: 8 }}>⚡</span>}
+            icon={
+              <span style={{ marginRight: 8 }} aria-hidden="true">
+                ⚡
+              </span>
+            }
             size="large"
             block
             onClick={() => authClient.signIn.social({ provider: "github" })}

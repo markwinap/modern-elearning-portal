@@ -11,6 +11,8 @@ export const env = createEnv({
     BETTER_AUTH_GITHUB_CLIENT_ID: z.string(),
     BETTER_AUTH_GITHUB_CLIENT_SECRET: z.string(),
     DATABASE_URL: z.string().url(),
+    // Optional test database. Falls back to DATABASE_URL when absent.
+    TEST_DATABASE_URL: z.string().url().optional(),
     BLOB_READ_WRITE_TOKEN: z.string().min(1),
     NODE_ENV: z
       .enum(["development", "test", "production"])
@@ -46,6 +48,7 @@ export const env = createEnv({
     BETTER_AUTH_GITHUB_CLIENT_SECRET:
       process.env.BETTER_AUTH_GITHUB_CLIENT_SECRET,
     DATABASE_URL: process.env.DATABASE_URL,
+    TEST_DATABASE_URL: process.env.TEST_DATABASE_URL,
     BLOB_READ_WRITE_TOKEN: process.env.BLOB_READ_WRITE_TOKEN,
     NODE_ENV: process.env.NODE_ENV,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,

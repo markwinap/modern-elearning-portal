@@ -8,17 +8,17 @@ import { useTheme } from "~/components/theme/theme-context";
 import { getNavItems, type UserRole } from "~/lib/nav-config";
 
 interface AppSiderProps {
-  role: UserRole;
+  userRole: UserRole;
 }
 
-export function AppSider({ role }: AppSiderProps) {
+export function AppSider({ userRole }: AppSiderProps) {
   const pathname = usePathname();
   const { isDark } = useTheme();
   const { token } = theme.useToken();
   const [collapsed, setCollapsed] = useState(false);
 
   const allKeys =
-    getNavItems(role)
+    getNavItems(userRole)
       ?.map((item) => item?.key as string)
       .filter(Boolean) ?? [];
 
@@ -81,7 +81,7 @@ export function AppSider({ role }: AppSiderProps) {
         theme={isDark ? "dark" : "light"}
         mode="inline"
         selectedKeys={[selectedKey]}
-        items={getNavItems(role)}
+        items={getNavItems(userRole)}
         style={{ border: "none", paddingTop: 8 }}
       />
     </Layout.Sider>

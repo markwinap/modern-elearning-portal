@@ -11,8 +11,14 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
+import { RATE_LIMIT_CONFIG } from "~/lib/rate-limit-config";
 import { auth } from "~/server/better-auth";
 import { db } from "~/server/db";
+import {
+  checkRateLimit,
+  getClientIp,
+  getRateLimitKey,
+} from "~/server/lib/rate-limit";
 
 export { assertOwnerOrAdmin } from "~/server/api/ownership";
 
@@ -106,6 +112,35 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
   return result;
 });
 
+function createRateLimitMiddleware(type: keyof typeof RATE_LIMIT_CONFIG) {
+  return t.middleware(async ({ ctx, next }) => {
+    const ip = getClientIp(ctx.headers);
+    const key = getRateLimitKey({
+      type,
+      userId: ctx.session?.user?.id,
+      ip,
+    });
+
+    if (!checkRateLimit(key, RATE_LIMIT_CONFIG[type])) {
+      throw new TRPCError({
+        code: "TOO_MANY_REQUESTS",
+        message: "Rate limit exceeded. Please slow down.",
+      });
+    }
+
+    return next();
+  });
+}
+
+const publicRateLimitMiddleware = createRateLimitMiddleware("public");
+const protectedRateLimitMiddleware = createRateLimitMiddleware("protected");
+
+export const strictRateLimitMiddleware = createRateLimitMiddleware("strict");
+export const quizAttemptRateLimitMiddleware =
+  createRateLimitMiddleware("quizAttempt");
+export const adminMutationRateLimitMiddleware =
+  createRateLimitMiddleware("adminMutation");
+
 /**
  * Public (unauthenticated) procedure
  *
@@ -113,7 +148,56 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
  * guarantee that a user querying is authorized, but you can still access user session data if they
  * are logged in.
  */
-export const publicProcedure = t.procedure.use(timingMiddleware);
+export const publicProcedure = t.procedure
+  .use(timingMiddleware)
+  .use(publicRateLimitMiddleware);
+
+const authMiddleware = t.middleware(({ ctx, next }) => {
+  if (!ctx.session?.user) {
+    throw new TRPCError({ code: "UNAUTHORIZED" });
+  }
+  return next({
+    ctx: {
+      session: { ...ctx.session, user: ctx.session.user },
+    },
+  });
+});
+
+const requireTeacher = t.middleware(({ ctx, next }) => {
+  if (!ctx.session?.user) {
+    throw new TRPCError({ code: "UNAUTHORIZED" });
+  }
+  const role = ctx.session.user.role;
+  if (role !== "teacher" && role !== "admin") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Teacher access required",
+    });
+  }
+  return next({
+    ctx: {
+      session: { ...ctx.session, user: ctx.session.user },
+    },
+  });
+});
+
+const requireAdmin = t.middleware(({ ctx, next }) => {
+  if (!ctx.session?.user) {
+    throw new TRPCError({ code: "UNAUTHORIZED" });
+  }
+  const role = ctx.session.user.role;
+  if (role !== "admin") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Admin access required",
+    });
+  }
+  return next({
+    ctx: {
+      session: { ...ctx.session, user: ctx.session.user },
+    },
+  });
+});
 
 /**
  * Protected (authenticated) procedure — any signed-in user.
@@ -122,59 +206,21 @@ export const publicProcedure = t.procedure.use(timingMiddleware);
  */
 export const protectedProcedure = t.procedure
   .use(timingMiddleware)
-  .use(({ ctx, next }) => {
-    if (!ctx.session?.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED" });
-    }
-    return next({
-      ctx: {
-        session: { ...ctx.session, user: ctx.session.user },
-      },
-    });
-  });
+  .use(authMiddleware)
+  .use(protectedRateLimitMiddleware);
 
 /**
  * Teacher procedure — accessible to users with role "teacher" or "admin".
  */
 export const teacherProcedure = t.procedure
   .use(timingMiddleware)
-  .use(({ ctx, next }) => {
-    if (!ctx.session?.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED" });
-    }
-    const role = ctx.session.user.role;
-    if (role !== "teacher" && role !== "admin") {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "Teacher access required",
-      });
-    }
-    return next({
-      ctx: {
-        session: { ...ctx.session, user: ctx.session.user },
-      },
-    });
-  });
+  .use(requireTeacher)
+  .use(protectedRateLimitMiddleware);
 
 /**
  * Admin procedure — accessible only to users with role "admin".
  */
 export const adminProcedure = t.procedure
   .use(timingMiddleware)
-  .use(({ ctx, next }) => {
-    if (!ctx.session?.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED" });
-    }
-    const role = ctx.session.user.role;
-    if (role !== "admin") {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "Admin access required",
-      });
-    }
-    return next({
-      ctx: {
-        session: { ...ctx.session, user: ctx.session.user },
-      },
-    });
-  });
+  .use(requireAdmin)
+  .use(adminMutationRateLimitMiddleware);

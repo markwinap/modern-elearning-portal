@@ -97,8 +97,9 @@ pnpm dev                # http://localhost:3000
 | `pnpm db:migrate`                         | Apply migrations (production)                 |
 | `pnpm db:push`                            | Push schema changes directly (development)    |
 | `pnpm db:studio`                          | Open Drizzle Studio                           |
-| `pnpm test`                               | Run unit tests (Vitest)                       |
+| `pnpm test`                               | Run unit & integration tests (Vitest)         |
 | `pnpm test:watch`                         | Run unit tests in watch mode                  |
+| `pnpm test:coverage`                      | Run tests and generate a coverage report      |
 | `pnpm test:e2e:install`                   | Download Playwright browser binaries          |
 | `pnpm test:e2e`                           | Run end-to-end tests (Playwright)             |
 | `pnpm test:e2e:ui`                        | Run end-to-end tests in Playwright's UI mode  |
@@ -108,6 +109,7 @@ pnpm dev                # http://localhost:3000
 See [`.env.example`](.env.example) for the full list. Required variables:
 
 - `DATABASE_URL` — PostgreSQL connection string
+- `TEST_DATABASE_URL` — optional; isolated database used by integration tests
 - `BETTER_AUTH_SECRET` — secret for better-auth token signing
 - `BETTER_AUTH_GITHUB_CLIENT_ID` / `BETTER_AUTH_GITHUB_CLIENT_SECRET` — optional GitHub OAuth
 - `TAVILY_API_KEY` — optional, for Tavily MCP
@@ -117,6 +119,51 @@ See [`.env.example`](.env.example) for the full list. Required variables:
 ## Testing
 
 Unit tests use Vitest; end-to-end tests use Playwright.
+
+### Running tests locally
+
+```bash
+# Run the unit and integration test suite
+pnpm test
+
+# Run tests with coverage output to ./coverage
+pnpm test:coverage
+
+# Run e2e tests (requires a running dev server via Playwright's webServer config)
+pnpm test:e2e:install
+pnpm test:e2e
+```
+
+### Integration tests
+
+Router integration tests live in `tests/integration/` and run against a real
+PostgreSQL database. By default they reuse `DATABASE_URL`; you can point them at
+a dedicated test database by setting `TEST_DATABASE_URL` in your `.env` file.
+Factories and cleanup helpers are in `tests/factories.ts` to keep tests
+isolated and deterministic.
+
+### CI
+
+The GitHub Actions workflow (`.github/workflows/ci.yml`) runs lint,
+formatting, type checks, unit/integration tests with coverage, and Playwright
+e2e tests against a PostgreSQL service container on every pull request and
+push to `main`/`master`.
+
+### Accessibility
+
+Accessibility is enforced by `eslint-plugin-jsx-a11y` and automated axe-core
+checks via Playwright in `e2e/accessibility/`. The project also provides:
+
+- A global skip-to-content link in `src/app/layout.tsx`.
+- Visible `:focus-visible` outlines and `prefers-reduced-motion` support in
+  `src/styles/globals.css`.
+- Reusable focus-trap and live-region helpers in `src/lib/a11y.ts`.
+
+Run only the axe-core checks with:
+
+```bash
+pnpm test:e2e e2e/accessibility
+```
 
 ```bash
 # Unit tests

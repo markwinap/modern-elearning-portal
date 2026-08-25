@@ -23,7 +23,7 @@ export function DashboardLayoutShell({
   const { token } = theme.useToken();
   return (
     <Layout style={{ minHeight: "100vh" }}>
-      <AppSider role={role} />
+      <AppSider userRole={role} />
       <Layout style={{ flex: 1 }}>
         <AppHeader
           userName={userName}

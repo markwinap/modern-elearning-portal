@@ -2,6 +2,7 @@ import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
+import { logAuditEvent } from "~/server/lib/audit";
 import { platformSettings } from "~/server/db/schema";
 
 const settingsInputSchema = z.object({
@@ -51,20 +52,31 @@ export const settingsRouter = createTRPCRouter({
         .orderBy(desc(platformSettings.id))
         .limit(1);
 
+      let result: typeof existing | undefined;
+
       if (existing) {
         const [updated] = await ctx.db
           .update(platformSettings)
           .set(input)
           .where(eq(platformSettings.id, existing.id))
           .returning();
-
-        return updated ?? { ...defaultSettings, ...input };
+        result = updated;
+      } else {
+        const [created] = await ctx.db
+          .insert(platformSettings)
+          .values(input)
+          .returning();
+        result = created;
       }
 
-      const [created] = await ctx.db
-        .insert(platformSettings)
-        .values(input)
-        .returning();
-      return created ?? { ...defaultSettings, ...input };
+      await logAuditEvent(ctx, {
+        action: "settings.update",
+        actorId: ctx.session.user.id,
+        resourceType: "platform_settings",
+        resourceId: result?.id ?? 0,
+        metadata: { changes: Object.keys(input) },
+      });
+
+      return result ?? { ...defaultSettings, ...input };
     }),
 });

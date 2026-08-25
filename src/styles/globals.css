@@ -1,5 +1,31 @@
 @import "@uiw/react-md-editor/markdown-editor.css";
 
+html {
+  scroll-behavior: smooth;
+}
+
+:focus-visible {
+  outline: 2px solid #1677ff;
+  outline-offset: 2px;
+}
+
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 8px;
+  z-index: 10000;
+  padding: 8px 16px;
+  background: #1677ff;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 4px;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 8px;
+}
+
 html,
 body {
   padding: 0;
@@ -54,4 +80,43 @@ a {
 
 .skeleton-pulse {
   animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Improve default Ant Design text contrast to meet WCAG 2.2 AA. */
+.ant-typography-secondary,
+.ant-statistic-title {
+  color: #595959 !important;
+}
+
+.ant-tag-success {
+  color: #237804 !important;
+  background-color: #d9f7be !important;
+  border-color: #237804 !important;
+}
+
+.ant-switch .ant-switch-inner-unchecked {
+  color: #262626 !important;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

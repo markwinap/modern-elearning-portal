@@ -3,6 +3,16 @@ import { and, asc, count, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import { calculatePercentage, percentageToLetter } from "~/lib/grade-utils";
+import {
+  gradeAnswer,
+  isValidAnswerForType,
+  isValidCorrectAnswerForType,
+  isValidOptionsForType,
+  quizCorrectAnswerSchema,
+  quizOptionsSchema,
+  quizQuestionTypeSchema,
+  quizStudentAnswerSchema,
+} from "~/lib/quiz";
 import { seededShuffle } from "~/lib/quiz-utils";
 import {
   calculateAverage,
@@ -17,6 +27,7 @@ import {
   assertOwnerOrAdmin,
   createTRPCRouter,
   protectedProcedure,
+  quizAttemptRateLimitMiddleware,
   teacherProcedure,
 } from "~/server/api/trpc";
 import {
@@ -118,25 +129,40 @@ export const quizRouter = createTRPCRouter({
   /** Create a question (teacher). */
   createQuestion: teacherProcedure
     .input(
-      z.object({
-        quizActivityId: z.number().int(),
-        type: z.enum([
-          "multiple_choice",
-          "true_false",
-          "short_answer",
-          "fill_blank",
-          "matching",
-          "ordering",
-          "essay",
-        ]),
-        prompt: z.string().min(1),
-        options: z.array(z.unknown()).optional(),
-        correctAnswer: z.unknown().optional(),
-        allowMultiple: z.boolean().default(false),
-        points: z.number().int().default(1),
-        order: z.number().int().default(0),
-        recommendedTimeMins: z.number().int().min(0).default(1),
-      }),
+      z
+        .object({
+          quizActivityId: z.number().int(),
+          type: quizQuestionTypeSchema,
+          prompt: z.string().min(1),
+          options: quizOptionsSchema.optional(),
+          correctAnswer: quizCorrectAnswerSchema.optional(),
+          allowMultiple: z.boolean().default(false),
+          points: z.number().int().default(1),
+          order: z.number().int().default(0),
+          recommendedTimeMins: z.number().int().min(0).default(1),
+        })
+        .superRefine((data, ctx) => {
+          if (!isValidOptionsForType(data.type, data.options)) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: `Invalid options for question type ${data.type}`,
+              path: ["options"],
+            });
+          }
+          if (
+            !isValidCorrectAnswerForType(
+              data.type,
+              data.correctAnswer,
+              data.options,
+            )
+          ) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: `Invalid correct answer for question type ${data.type}`,
+              path: ["correctAnswer"],
+            });
+          }
+        }),
     )
     .mutation(async ({ ctx, input }) => {
       const [q] = await ctx.db.insert(quizQuestions).values(input).returning();
@@ -145,6 +171,7 @@ export const quizRouter = createTRPCRouter({
 
   /** Start an attempt. */
   startAttempt: protectedProcedure
+    .use(quizAttemptRateLimitMiddleware)
     .input(z.object({ activityId: z.number().int() }))
     .mutation(async ({ ctx, input }) => {
       const [quizConfig] = await ctx.db
@@ -236,13 +263,14 @@ export const quizRouter = createTRPCRouter({
 
   /** Submit an attempt. */
   submitAttempt: protectedProcedure
+    .use(quizAttemptRateLimitMiddleware)
     .input(
       z.object({
         attemptId: z.number().int(),
         answers: z.array(
           z.object({
             questionId: z.number().int(),
-            answer: z.unknown(),
+            answer: quizStudentAnswerSchema,
           }),
         ),
       }),
@@ -286,26 +314,21 @@ export const quizRouter = createTRPCRouter({
 
       const maxScore = activeQuestions.reduce((s, q) => s + q.points, 0);
 
-      // Normalize boolean true/false to strings so "true" (string) matches true (boolean) in JSONB,
-      // and sort arrays so multi-answer (checkbox) questions grade order-independently.
-      const normalizeForGrading = (v: unknown): unknown => {
-        if (typeof v === "boolean") return String(v);
-        if (Array.isArray(v)) {
-          return (v as unknown[])
-            .map((item) => (typeof item === "boolean" ? String(item) : item))
-            .sort((a, b) => String(a).localeCompare(String(b)));
-        }
-        return v;
-      };
-
-      // Grade answers sequentially to safely accumulate score
+      // Grade answers sequentially to safely accumulate score.
       let score = 0;
       const gradedAnswers = input.answers.flatMap(({ questionId, answer }) => {
         const question = activeQuestions.find((q) => q.id === questionId);
         if (!question) return [];
-        const isCorrect =
-          JSON.stringify(normalizeForGrading(answer)) ===
-          JSON.stringify(normalizeForGrading(question.correctAnswer));
+
+        if (!isValidAnswerForType(question.type, answer)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Invalid answer format for ${question.type} question`,
+          });
+        }
+
+        const correctAnswer = question.correctAnswer ?? undefined;
+        const isCorrect = gradeAnswer(correctAnswer, answer);
         if (isCorrect) score += question.points;
         return [
           {
@@ -314,7 +337,7 @@ export const quizRouter = createTRPCRouter({
             answer,
             isCorrect,
             pointsAwarded: isCorrect ? question.points : 0,
-            correctAnswer: question.correctAnswer,
+            correctAnswer: correctAnswer ?? undefined,
           },
         ];
       });
@@ -449,24 +472,39 @@ export const quizRouter = createTRPCRouter({
   /** Update a question (teacher). */
   updateQuestion: teacherProcedure
     .input(
-      z.object({
-        id: z.number().int(),
-        type: z.enum([
-          "multiple_choice",
-          "true_false",
-          "short_answer",
-          "fill_blank",
-          "matching",
-          "ordering",
-          "essay",
-        ]),
-        prompt: z.string().min(1),
-        options: z.array(z.unknown()).optional(),
-        correctAnswer: z.unknown().optional(),
-        allowMultiple: z.boolean().default(false),
-        points: z.number().int().min(1),
-        recommendedTimeMins: z.number().int().min(0).optional(),
-      }),
+      z
+        .object({
+          id: z.number().int(),
+          type: quizQuestionTypeSchema,
+          prompt: z.string().min(1),
+          options: quizOptionsSchema.optional(),
+          correctAnswer: quizCorrectAnswerSchema.optional(),
+          allowMultiple: z.boolean().default(false),
+          points: z.number().int().min(1),
+          recommendedTimeMins: z.number().int().min(0).optional(),
+        })
+        .superRefine((data, ctx) => {
+          if (!isValidOptionsForType(data.type, data.options)) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: `Invalid options for question type ${data.type}`,
+              path: ["options"],
+            });
+          }
+          if (
+            !isValidCorrectAnswerForType(
+              data.type,
+              data.correctAnswer,
+              data.options,
+            )
+          ) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: `Invalid correct answer for question type ${data.type}`,
+              path: ["correctAnswer"],
+            });
+          }
+        }),
     )
     .mutation(async ({ ctx, input }) => {
       const [row] = await ctx.db

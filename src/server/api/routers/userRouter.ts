@@ -8,6 +8,7 @@ import {
   protectedProcedure,
   teacherProcedure,
 } from "~/server/api/trpc";
+import { logAuditEvent } from "~/server/lib/audit";
 import {
   activities,
   activityProgress,
@@ -224,6 +225,14 @@ export const userRouter = createTRPCRouter({
         .update(user)
         .set({ role: input.role })
         .where(eq(user.id, input.userId));
+
+      await logAuditEvent(ctx, {
+        action: "user.setRole",
+        actorId: ctx.session.user.id,
+        resourceType: "user",
+        resourceId: input.userId,
+        metadata: { newRole: input.role },
+      });
     }),
 
   /** Ban a user (admin only). */
@@ -244,6 +253,14 @@ export const userRouter = createTRPCRouter({
           banExpires: input.expiresAt ?? null,
         })
         .where(eq(user.id, input.userId));
+
+      await logAuditEvent(ctx, {
+        action: "user.ban",
+        actorId: ctx.session.user.id,
+        resourceType: "user",
+        resourceId: input.userId,
+        metadata: { reason: input.reason, expiresAt: input.expiresAt },
+      });
     }),
 
   /** Unban a user (admin only). */
@@ -254,6 +271,13 @@ export const userRouter = createTRPCRouter({
         .update(user)
         .set({ banned: false, banReason: null, banExpires: null })
         .where(eq(user.id, input.userId));
+
+      await logAuditEvent(ctx, {
+        action: "user.unban",
+        actorId: ctx.session.user.id,
+        resourceType: "user",
+        resourceId: input.userId,
+      });
     }),
 
   /** Platform-wide stats (admin only). */

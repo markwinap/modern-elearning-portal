@@ -6,9 +6,11 @@ import {
   assertOwnerOrAdmin,
   createTRPCRouter,
   protectedProcedure,
+  strictRateLimitMiddleware,
   teacherProcedure,
 } from "~/server/api/trpc";
 import { createNotification } from "~/server/lib/notifications";
+import { logAuditEvent } from "~/server/lib/audit";
 import {
   courses,
   enrollments,
@@ -18,6 +20,7 @@ import {
 
 export const enrollmentRouter = createTRPCRouter({
   enroll: protectedProcedure
+    .use(strictRateLimitMiddleware)
     .input(
       z.object({
         courseId: z.number().int(),
@@ -362,6 +365,17 @@ export const enrollmentRouter = createTRPCRouter({
             courseTitle: course?.title,
           },
         });
+
+        await logAuditEvent(ctx, {
+          action: "enrollment.approve",
+          actorId: ctx.session.user.id,
+          resourceType: "enrollment",
+          resourceId: updated.id,
+          metadata: {
+            courseId: enrollment.courseId,
+            studentId: enrollment.userId,
+          },
+        });
       }
 
       return updated;
@@ -425,6 +439,18 @@ export const enrollmentRouter = createTRPCRouter({
             courseId: enrollment.courseId,
             courseSlug: course?.slug,
             courseTitle: course?.title,
+            reason: input.reason,
+          },
+        });
+
+        await logAuditEvent(ctx, {
+          action: "enrollment.reject",
+          actorId: ctx.session.user.id,
+          resourceType: "enrollment",
+          resourceId: updated.id,
+          metadata: {
+            courseId: enrollment.courseId,
+            studentId: enrollment.userId,
             reason: input.reason,
           },
         });

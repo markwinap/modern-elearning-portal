@@ -21,7 +21,7 @@ export function AdminLayoutShell({
   const { token } = theme.useToken();
   return (
     <Layout style={{ minHeight: "100vh" }}>
-      <AppSider role="admin" />
+      <AppSider userRole="admin" />
       <Layout style={{ flex: 1 }}>
         <AppHeader
           userName={userName}

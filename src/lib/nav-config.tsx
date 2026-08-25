@@ -5,6 +5,7 @@ import {
   BookOutlined,
   DashboardOutlined,
   MessageOutlined,
+  SafetyOutlined,
   SettingOutlined,
   TeamOutlined,
   TrophyOutlined,
@@ -90,6 +91,11 @@ export const adminNavItems: MenuProps["items"] = [
     key: "/admin/settings",
     icon: <SettingOutlined />,
     label: <Link href="/admin/settings">Settings</Link>,
+  },
+  {
+    key: "/admin/security",
+    icon: <SafetyOutlined />,
+    label: <Link href="/admin/security">Security</Link>,
   },
   {
     key: "/notifications",

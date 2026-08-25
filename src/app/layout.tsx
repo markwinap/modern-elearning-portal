@@ -30,10 +30,15 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className={geist.className}>
+        <a href="#main-content" className="skip-link">
+          Skip to main content
+        </a>
         <TRPCReactProvider>
           <AntdRegistry>
             <ThemeProvider fontFamily={geist.style.fontFamily}>
-              {children}
+              <div id="main-content" tabIndex={-1}>
+                {children}
+              </div>
             </ThemeProvider>
           </AntdRegistry>
         </TRPCReactProvider>

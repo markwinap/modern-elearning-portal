@@ -7,6 +7,7 @@ import { Button, Card, Space, Tag, Typography, message } from "antd";
 import { CheckCircleOutlined } from "@ant-design/icons";
 
 import { type LessonGraph } from "~/lib/activity-content";
+import type { ClientQuizQuestion } from "~/lib/quiz";
 import { FileViewer } from "./file-viewer";
 import { LessonViewer } from "./lesson-viewer";
 import { PageViewer } from "./page-viewer";
@@ -50,15 +51,7 @@ interface Props {
         | "never";
       availableUntil: Date | null;
     } | null;
-    questions: Array<{
-      id: number;
-      type: string;
-      prompt: string;
-      options: unknown;
-      allowMultiple: boolean;
-      points: number;
-      order: number;
-    }>;
+    questions: Array<ClientQuizQuestion>;
   } | null;
   textMediaContent: { content: string } | null;
   lessonGraph: LessonGraph | null;

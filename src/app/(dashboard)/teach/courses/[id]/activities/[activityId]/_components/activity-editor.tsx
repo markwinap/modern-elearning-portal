@@ -8,6 +8,7 @@ import Link from "next/link";
 
 import { ActivityBadge } from "~/components/ui/activity-badge";
 import { type LessonGraph } from "~/lib/activity-content";
+import type { TeacherQuizQuestion } from "~/lib/quiz";
 import { FileEditor } from "./file-editor";
 import { LessonEditor } from "./lesson-editor";
 import { PageEditor } from "./page-editor";
@@ -58,16 +59,7 @@ interface Props {
     availableUntil: Date | null;
   } | null;
   textMediaContent: { content: string } | null;
-  quizQuestions: Array<{
-    id: number;
-    type: string;
-    prompt: string;
-    options: unknown;
-    correctAnswer: unknown;
-    allowMultiple: boolean;
-    points: number;
-    order: number;
-  }> | null;
+  quizQuestions: Array<TeacherQuizQuestion> | null;
   lessonGraph: LessonGraph | null;
 }
 

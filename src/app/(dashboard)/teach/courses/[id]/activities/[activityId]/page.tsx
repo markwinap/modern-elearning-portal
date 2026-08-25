@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { api } from "~/trpc/server";
 import { type LessonGraph } from "~/lib/activity-content";
+import type { TeacherQuizQuestion } from "~/lib/quiz";
 
 import { ActivityEditor } from "./_components/activity-editor";
 
@@ -56,16 +57,7 @@ export default async function ActivityEditorPage({ params }: Props) {
       | "never";
     availableUntil: Date | null;
   } | null = null;
-  let quizQuestions: Array<{
-    id: number;
-    type: string;
-    prompt: string;
-    options: unknown;
-    correctAnswer: unknown;
-    allowMultiple: boolean;
-    points: number;
-    order: number;
-  }> | null = null;
+  let quizQuestions: Array<TeacherQuizQuestion> | null = null;
   let textMediaContent: { content: string } | null = null;
   let lessonGraph: LessonGraph | null = null;
 
@@ -81,7 +73,11 @@ export default async function ActivityEditorPage({ params }: Props) {
       api.quiz.listQuestions({ activityId: actId }),
     ]);
     quizSettings = settings;
-    quizQuestions = questions;
+    quizQuestions = questions.map((q) => ({
+      ...q,
+      options: q.options ?? undefined,
+      correctAnswer: q.correctAnswer ?? undefined,
+    }));
   } else if (activity.type === "text_media") {
     textMediaContent = await api.textMedia.getByActivity({ activityId: actId });
   } else if (activity.type === "lesson") {

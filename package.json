@@ -19,6 +19,7 @@
     "start": "next start",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:install": "playwright install chromium",
@@ -54,6 +55,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@eslint/eslintrc": "^3.3.1",
     "@playwright/test": "^1.62.0",
     "@testing-library/jest-dom": "^7.0.0",
@@ -62,16 +64,18 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^6.0.4",
+    "@vitest/coverage-v8": "^4.1.10",
     "dotenv": "^17.4.2",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9.23.0",
     "eslint-config-next": "^15.2.3",
     "eslint-plugin-drizzle": "^0.2.3",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
     "jsdom": "^30.0.1",
     "prettier": "^3.5.3",
     "typescript": "^5.8.2",
     "typescript-eslint": "^8.27.0",
-    "vitest": "^4.1.10"
+    "vitest": "4.1.10"
   },
   "ct3aMetadata": {
     "initVersion": "7.40.0"

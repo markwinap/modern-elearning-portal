@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import { api } from "~/trpc/server";
 import { type LessonGraph } from "~/lib/activity-content";
+import type { ClientQuizQuestion } from "~/lib/quiz";
 
 import { ActivityDispatcher } from "./_components/activity-dispatcher";
 
@@ -50,15 +51,7 @@ export default async function ActivityPage({ params }: Props) {
         | "never";
       availableUntil: Date | null;
     } | null;
-    questions: Array<{
-      id: number;
-      type: string;
-      prompt: string;
-      options: unknown;
-      allowMultiple: boolean;
-      points: number;
-      order: number;
-    }>;
+    questions: Array<ClientQuizQuestion>;
   } | null = null;
   let textMediaContent: { content: string } | null = null;
   let lessonGraph: LessonGraph | null = null;
@@ -80,7 +73,7 @@ export default async function ActivityPage({ params }: Props) {
         id: q.id,
         type: q.type,
         prompt: q.prompt,
-        options: q.options,
+        options: q.options ?? undefined,
         allowMultiple: q.allowMultiple,
         points: q.points,
         order: q.order,

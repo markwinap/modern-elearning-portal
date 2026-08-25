@@ -2,6 +2,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "~/trpc/react";
 import { seededShuffle } from "~/lib/quiz-utils";
+import type {
+  ClientQuizQuestion,
+  QuizCorrectAnswer,
+  QuizStudentAnswer,
+} from "~/lib/quiz";
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import {
@@ -37,15 +42,7 @@ interface QuizConfig {
   availableUntil: Date | null;
 }
 
-interface Question {
-  id: number;
-  type: string;
-  prompt: string;
-  options: unknown;
-  allowMultiple: boolean;
-  points: number;
-  order: number;
-}
+type Question = ClientQuizQuestion;
 
 function QuestionCard({
   question: q,
@@ -56,9 +53,9 @@ function QuestionCard({
 }: {
   question: Question;
   index: number;
-  value: unknown;
+  value: QuizStudentAnswer;
   options: string[];
-  onChange: (value: unknown) => void;
+  onChange: (value: QuizStudentAnswer) => void;
 }) {
   return (
     <Card
@@ -163,13 +160,13 @@ interface Props {
   onComplete: () => void;
 }
 
-type AnswerMap = Record<number, unknown>;
+type AnswerMap = Record<number, QuizStudentAnswer>;
 
 interface FeedbackItem {
   questionId: number;
   isCorrect: boolean;
   pointsAwarded: number;
-  correctAnswer: unknown;
+  correctAnswer: QuizCorrectAnswer;
 }
 
 interface QuizResult {
@@ -448,7 +445,7 @@ export function QuizTaker({
                             {typeof fb.correctAnswer === "string"
                               ? fb.correctAnswer
                               : Array.isArray(fb.correctAnswer)
-                                ? (fb.correctAnswer as string[]).join(", ")
+                                ? fb.correctAnswer.join(", ")
                                 : JSON.stringify(fb.correctAnswer)}
                           </strong>
                         </span>

@@ -84,6 +84,7 @@ export function CourseCatalog({ initialCourses, categories }: Props) {
 
       <Space size="middle" style={{ marginBottom: 24, flexWrap: "wrap" }}>
         <Input
+          aria-label="Search courses"
           prefix={<SearchOutlined />}
           placeholder="Search courses…"
           value={search}
@@ -95,6 +96,7 @@ export function CourseCatalog({ initialCourses, categories }: Props) {
           allowClear
         />
         <Select
+          aria-label="Filter by category"
           options={categoryOptions}
           value={categoryId ?? 0}
           onChange={(v) => {
@@ -156,8 +158,13 @@ export function CourseCatalog({ initialCourses, categories }: Props) {
                     }
                   >
                     <Typography.Title
-                      level={5}
-                      style={{ marginTop: 0, marginBottom: 4 }}
+                      level={2}
+                      style={{
+                        marginTop: 0,
+                        marginBottom: 4,
+                        fontSize: 16,
+                        lineHeight: 1.4,
+                      }}
                     >
                       {course.title}
                     </Typography.Title>

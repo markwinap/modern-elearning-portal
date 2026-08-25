@@ -473,21 +473,35 @@ function SortableSectionCard({
             alignItems: "center",
             gap: 12,
             padding: "12px 16px",
-            cursor: "pointer",
             background: isExpanded ? token.colorFillAlter : undefined,
           }}
-          onClick={onToggle}
         >
-          <span
-            {...listeners}
-            style={{ cursor: "grab", color: token.colorTextSecondary }}
+          <Button
+            type="text"
+            size="small"
+            aria-label="Drag to reorder section"
             onClick={(e) => e.stopPropagation()}
+            {...listeners}
+            icon={<HolderOutlined />}
+          />
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-expanded={isExpanded}
+            style={{
+              flex: 1,
+              textAlign: "left",
+              background: "transparent",
+              border: "none",
+              padding: 0,
+              margin: 0,
+              cursor: "pointer",
+              font: "inherit",
+              color: "inherit",
+            }}
           >
-            <HolderOutlined />
-          </span>
-          <Typography.Text strong style={{ flex: 1 }}>
-            {section.title}
-          </Typography.Text>
+            <Typography.Text strong>{section.title}</Typography.Text>
+          </button>
           <Space size={8}>
             {!section.visible && <Tag>Hidden</Tag>}
             {!section.gradable && <Tag color="orange">Not gradable</Tag>}

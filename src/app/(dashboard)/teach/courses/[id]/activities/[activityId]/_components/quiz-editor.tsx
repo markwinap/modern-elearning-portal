@@ -32,6 +32,11 @@ import { FormModal } from "~/components/ui/form-modal";
 import { formatDurationMins } from "~/lib/insight-utils";
 import { toastMutationOptions } from "~/lib/mutation-utils";
 import { useCrudModal } from "~/lib/use-crud-modal";
+import {
+  isStringArray,
+  type QuizCorrectAnswer,
+  type QuizQuestionOptions,
+} from "~/lib/quiz";
 
 const QUESTION_TYPES = [
   { value: "multiple_choice", label: "Multiple Choice" },
@@ -53,8 +58,8 @@ interface Question {
   id: number;
   type: string;
   prompt: string;
-  options: unknown;
-  correctAnswer: unknown;
+  options: QuizQuestionOptions;
+  correctAnswer: QuizCorrectAnswer;
   allowMultiple: boolean;
   points: number;
   order: number;
@@ -159,7 +164,14 @@ export function QuizEditor({
           }),
         onSuccess: (newQ) => {
           if (newQ) {
-            setQuestions((prev) => [...prev, newQ]);
+            setQuestions((prev) => [
+              ...prev,
+              {
+                ...newQ,
+                options: newQ.options ?? undefined,
+                correctAnswer: newQ.correctAnswer ?? undefined,
+              },
+            ]);
           }
           closeQuestionModal();
         },
@@ -178,8 +190,13 @@ export function QuizEditor({
           }),
         onSuccess: (updated) => {
           if (updated) {
+            const normalized = {
+              ...updated,
+              options: updated.options ?? undefined,
+              correctAnswer: updated.correctAnswer ?? undefined,
+            };
             setQuestions((prev) =>
-              prev.map((q) => (q.id === updated.id ? updated : q)),
+              prev.map((q) => (q.id === normalized.id ? normalized : q)),
             );
           }
           closeQuestionModal();
@@ -229,13 +246,11 @@ export function QuizEditor({
   }
 
   function openEditModal(q: Question) {
-    const optionsStr = Array.isArray(q.options)
-      ? (q.options as string[]).join("\n")
-      : "";
+    const optionsStr = isStringArray(q.options) ? q.options.join("\n") : "";
     const correctAnswerValue: string | string[] | undefined = Array.isArray(
       q.correctAnswer,
     )
-      ? (q.correctAnswer as string[])
+      ? q.correctAnswer
       : typeof q.correctAnswer === "string"
         ? q.correctAnswer
         : q.correctAnswer != null
@@ -557,9 +572,9 @@ export function QuizEditor({
               previewQuestion.options.length > 0 &&
               previewQuestion.type !== "true_false" && (
                 <Space orientation="vertical">
-                  {(previewQuestion.options as string[]).map((opt, i) => (
-                    <Tag key={i}>{opt}</Tag>
-                  ))}
+                  {previewQuestion.options.map((opt, i) =>
+                    typeof opt === "string" ? <Tag key={i}>{opt}</Tag> : null,
+                  )}
                 </Space>
               )}
             {(previewQuestion.type === "short_answer" ||
