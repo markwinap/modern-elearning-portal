@@ -2,7 +2,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "~/trpc/react";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { saveCourseForOffline } from "~/lib/offline-store";
 import {
   Alert,
   Avatar,
@@ -83,6 +84,15 @@ export function CourseDetailClient({ course, enrollment }: Props) {
   const { token } = theme.useToken();
   const [accessKeyModalOpen, setAccessKeyModalOpen] = useState(false);
   const [accessKeyInput, setAccessKeyInput] = useState("");
+
+  useEffect(() => {
+    void saveCourseForOffline({
+      slug: course.slug,
+      title: course.title,
+      description: course.description,
+      teacherName: course.teacherName,
+    });
+  }, [course.slug, course.title, course.description, course.teacherName]);
 
   const enrollMutation = useMutation(
     trpc.enrollment.enroll.mutationOptions({

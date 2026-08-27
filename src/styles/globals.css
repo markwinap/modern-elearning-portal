@@ -109,6 +109,29 @@ a {
   color: #262626 !important;
 }
 
+/* Mobile-first responsive helpers */
+.mobile-bottom-nav,
+.mobile-menu-toggle {
+  display: flex;
+}
+
+@media (min-width: 768px) {
+  .mobile-bottom-nav,
+  .mobile-menu-toggle {
+    display: none !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .ant-layout-sider {
+    display: none !important;
+  }
+
+  .dashboard-main-content {
+    padding-bottom: 80px !important;
+  }
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;

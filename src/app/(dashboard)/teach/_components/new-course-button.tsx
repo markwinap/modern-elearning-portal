@@ -1,15 +1,18 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { Button } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
-import Link from "next/link";
 
 export function NewCourseButton() {
+  const router = useRouter();
   return (
-    <Link href="/teach/courses/new">
-      <Button type="primary" icon={<PlusOutlined />}>
-        New Course
-      </Button>
-    </Link>
+    <Button
+      type="primary"
+      icon={<PlusOutlined />}
+      onClick={() => router.push("/teach/courses/new")}
+    >
+      New Course
+    </Button>
   );
 }

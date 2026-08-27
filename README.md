@@ -165,6 +165,27 @@ Run only the axe-core checks with:
 pnpm test:e2e e2e/accessibility
 ```
 
+### Mobile / PWA
+
+The app is configured as a Progressive Web App:
+
+- `public/manifest.json` defines the app name, theme, scope, display mode, and icons.
+- `public/icons/` contains generated 192x192 and 512x512 icons (including maskable variants).
+- `public/sw.js` is a custom service worker that precaches key pages, caches static assets and images, and serves an offline fallback page.
+- `src/app/layout.tsx` links the manifest, sets `theme-color` / `viewport-fit=cover`, and registers the service worker in production builds.
+- `src/hooks/useOffline.ts` and `src/components/layout/offline-indicator.tsx` show a banner when the network goes offline.
+- `src/lib/offline-store.ts` caches course metadata in IndexedDB so learners can keep reading previously visited content offline.
+- Mobile layouts include a fixed bottom navigation bar (`src/components/layout/mobile-bottom-nav.tsx`) and a collapsible drawer menu, while the desktop sidebar is hidden on small screens.
+
+The service worker is intentionally disabled in `development` to avoid interfering with Next.js HMR and client-side navigation. To verify PWA installability with Lighthouse or your browser's DevTools, run a production build:
+
+```bash
+pnpm build
+pnpm start
+```
+
+Mobile e2e coverage lives in `e2e/mobile/` and runs against a 375x667 Chromium viewport via the `mobile-student` Playwright project.
+
 ```bash
 # Unit tests
 pnpm test               # run once

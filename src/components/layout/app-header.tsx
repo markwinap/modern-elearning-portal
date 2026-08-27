@@ -3,6 +3,7 @@
 import {
   BellOutlined,
   LogoutOutlined,
+  MenuOutlined,
   SettingOutlined,
   UserOutlined,
 } from "@ant-design/icons";
@@ -12,15 +13,20 @@ import {
   Button,
   Dropdown,
   Layout,
+  Menu,
   Space,
   Typography,
   theme,
 } from "antd";
 import type { MenuProps } from "antd";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
+import Link from "next/link";
 
 import { authClient } from "~/server/better-auth/client";
 import { ThemeToggle } from "~/components/theme/theme-toggle";
+import { MobileDrawer } from "~/components/ui/mobile-drawer";
+import { getMobileNavItems } from "~/lib/nav-config";
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "~/trpc/react";
 
@@ -28,17 +34,22 @@ interface AppHeaderProps {
   userName: string;
   userImage?: string | null;
   unreadNotifications?: number;
+  userRole: "student" | "teacher" | "admin";
 }
 
 export function AppHeader({
   userName,
   userImage,
   unreadNotifications = 0,
+  userRole,
 }: AppHeaderProps) {
   const trpc = useTRPC();
   const router = useRouter();
-  const { data: session } = authClient.useSession();
+  const pathname = usePathname();
   const { token } = theme.useToken();
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+
+  const mobileNavItems = getMobileNavItems(userRole);
   const { data: unreadCount = unreadNotifications } = useQuery(
     trpc.notification.getUnreadCount.queryOptions(undefined, {
       initialData: unreadNotifications,
@@ -94,7 +105,13 @@ export function AppHeader({
         lineHeight: "56px",
       }}
     >
-      <div />
+      <Button
+        type="text"
+        className="mobile-menu-toggle"
+        icon={<MenuOutlined />}
+        aria-label="Open navigation menu"
+        onClick={() => setMobileDrawerOpen(true)}
+      />
 
       <Space size={8}>
         <ThemeToggle />
@@ -120,10 +137,35 @@ export function AppHeader({
               size={32}
               style={{ backgroundColor: token.colorPrimary }}
             />
-            <Typography.Text>{session?.user?.name ?? userName}</Typography.Text>
+            <Typography.Text>{userName}</Typography.Text>
           </Space>
         </Dropdown>
       </Space>
+
+      <MobileDrawer
+        open={mobileDrawerOpen}
+        onClose={() => setMobileDrawerOpen(false)}
+        title="Menu"
+      >
+        <Menu
+          mode="inline"
+          selectedKeys={[
+            mobileNavItems.find(
+              (item) =>
+                pathname === item.href || pathname.startsWith(`${item.href}/`),
+            )?.key ?? "",
+          ]}
+          items={mobileNavItems.map((item) => ({
+            key: item.key,
+            icon: item.icon,
+            label: (
+              <Link href={item.href} onClick={() => setMobileDrawerOpen(false)}>
+                {item.label}
+              </Link>
+            ),
+          }))}
+        />
+      </MobileDrawer>
     </Layout.Header>
   );
 }

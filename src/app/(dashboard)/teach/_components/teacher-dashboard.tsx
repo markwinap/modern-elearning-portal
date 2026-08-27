@@ -92,36 +92,54 @@ export function TeacherDashboard({ courses, currentUserId, role }: Props) {
 
         return (
           <Space wrap>
-            <Link href={`/teach/courses/${course.id}/edit`}>
-              <Button size="small" icon={<EditOutlined />}>
-                Edit
-              </Button>
-            </Link>
-            <Link href={`/teach/courses/${course.id}/sections`}>
-              <Button size="small" icon={<BookOutlined />}>
-                Sections
-              </Button>
-            </Link>
-            <Link href={`/teach/courses/${course.id}/students`}>
-              <Button size="small" icon={<TeamOutlined />}>
-                Students
-              </Button>
-            </Link>
-            <Link href={`/teach/courses/${course.id}/gradebook`}>
-              <Button size="small" icon={<TrophyOutlined />}>
-                Grades
-              </Button>
-            </Link>
-            <Link href={`/teach/courses/${course.id}/announcements`}>
-              <Button size="small" icon={<NotificationOutlined />}>
-                Announce
-              </Button>
-            </Link>
-            <Link href={`/teach/courses/${course.id}/discussions`}>
-              <Button size="small" icon={<MessageOutlined />}>
-                Discuss
-              </Button>
-            </Link>
+            <Button
+              type="link"
+              size="small"
+              icon={<EditOutlined aria-hidden />}
+              href={`/teach/courses/${course.id}/edit`}
+            >
+              Edit
+            </Button>
+            <Button
+              type="link"
+              size="small"
+              icon={<BookOutlined aria-hidden />}
+              href={`/teach/courses/${course.id}/sections`}
+            >
+              Sections
+            </Button>
+            <Button
+              type="link"
+              size="small"
+              icon={<TeamOutlined aria-hidden />}
+              href={`/teach/courses/${course.id}/students`}
+            >
+              Students
+            </Button>
+            <Button
+              type="link"
+              size="small"
+              icon={<TrophyOutlined aria-hidden />}
+              href={`/teach/courses/${course.id}/gradebook`}
+            >
+              Grades
+            </Button>
+            <Button
+              type="link"
+              size="small"
+              icon={<NotificationOutlined aria-hidden />}
+              href={`/teach/courses/${course.id}/announcements`}
+            >
+              Announce
+            </Button>
+            <Button
+              type="link"
+              size="small"
+              icon={<MessageOutlined aria-hidden />}
+              href={`/teach/courses/${course.id}/discussions`}
+            >
+              Discuss
+            </Button>
           </Space>
         );
       },

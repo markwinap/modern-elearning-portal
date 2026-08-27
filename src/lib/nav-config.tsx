@@ -104,8 +104,103 @@ export const adminNavItems: MenuProps["items"] = [
   },
 ];
 
+export interface MobileNavItem {
+  key: string;
+  href: string;
+  label: string;
+  icon: React.ReactNode;
+}
+
+export const studentMobileNavItems: MobileNavItem[] = [
+  {
+    key: "/dashboard",
+    href: "/dashboard",
+    label: "Dashboard",
+    icon: <DashboardOutlined />,
+  },
+  {
+    key: "/courses",
+    href: "/courses",
+    label: "Browse",
+    icon: <BookOutlined />,
+  },
+  {
+    key: "/grades",
+    href: "/grades",
+    label: "Grades",
+    icon: <TrophyOutlined />,
+  },
+  {
+    key: "/messages",
+    href: "/messages",
+    label: "Messages",
+    icon: <MessageOutlined />,
+  },
+  {
+    key: "/notifications",
+    href: "/notifications",
+    label: "Alerts",
+    icon: <BellOutlined />,
+  },
+];
+
+export const teacherMobileNavItems: MobileNavItem[] = [
+  {
+    key: "/dashboard",
+    href: "/dashboard",
+    label: "Dashboard",
+    icon: <DashboardOutlined />,
+  },
+  { key: "/teach", href: "/teach", label: "Courses", icon: <BookOutlined /> },
+  {
+    key: "/messages",
+    href: "/messages",
+    label: "Messages",
+    icon: <MessageOutlined />,
+  },
+  {
+    key: "/notifications",
+    href: "/notifications",
+    label: "Alerts",
+    icon: <BellOutlined />,
+  },
+];
+
+export const adminMobileNavItems: MobileNavItem[] = [
+  {
+    key: "/admin",
+    href: "/admin",
+    label: "Overview",
+    icon: <DashboardOutlined />,
+  },
+  {
+    key: "/admin/users",
+    href: "/admin/users",
+    label: "Users",
+    icon: <TeamOutlined />,
+  },
+  {
+    key: "/admin/courses",
+    href: "/admin/courses",
+    label: "Courses",
+    icon: <BookOutlined />,
+  },
+  {
+    key: "/notifications",
+    href: "/notifications",
+    label: "Alerts",
+    icon: <BellOutlined />,
+  },
+];
+
 export function getNavItems(role: UserRole): MenuProps["items"] {
   if (role === "admin") return adminNavItems;
   if (role === "teacher") return teacherNavItems;
   return studentNavItems;
+}
+
+export function getMobileNavItems(role: UserRole): MobileNavItem[] {
+  if (role === "admin") return adminMobileNavItems;
+  if (role === "teacher") return teacherMobileNavItems;
+  return studentMobileNavItems;
 }

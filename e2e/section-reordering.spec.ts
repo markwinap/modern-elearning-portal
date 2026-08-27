@@ -5,6 +5,7 @@ import { expect, test } from "@playwright/test";
 test.describe("section reordering", () => {
   test("section builder page renders with drag handles", async ({ page }) => {
     await page.goto("/teach/courses/1/sections");
+    await page.locator("text=Sections").first().waitFor({ state: "visible" });
 
     const hasSectionContent =
       (await page.locator("text=Sections").count()) > 0 ||
