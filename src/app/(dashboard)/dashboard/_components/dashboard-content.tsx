@@ -60,6 +60,7 @@ interface Props {
       };
   courses: CourseSummary[];
   recent: ActivitySummary[];
+  children?: ReactNode;
 }
 
 interface DashboardCard {
@@ -78,7 +79,13 @@ function formatDuration(secs: number) {
   return `${secs}s`;
 }
 
-export function DashboardContent({ userName, stats, courses, recent }: Props) {
+export function DashboardContent({
+  userName,
+  stats,
+  courses,
+  recent,
+  children,
+}: Props) {
   const cards: DashboardCard[] =
     stats.role === "student"
       ? [
@@ -260,6 +267,7 @@ export function DashboardContent({ userName, stats, courses, recent }: Props) {
           </Col>
         </Row>
       )}
+      {children}
     </div>
   );
 }

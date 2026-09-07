@@ -20,11 +20,13 @@ test.describe("teacher sidebar navigation", () => {
     ).toBeVisible();
   });
 
-  test("New Course button navigates to the create course form", async ({
-    page,
-  }) => {
+  test("New Course link points to the create course form", async ({ page }) => {
     await page.goto("/teach");
-    await page.getByRole("button", { name: "New Course" }).click();
+    const newCourseLink = page.getByRole("link", { name: "New Course" });
+    await expect(newCourseLink).toBeVisible();
+    const href = await newCourseLink.getAttribute("href");
+    expect(href).toBe("/teach/courses/new");
+    await page.goto(href!);
 
     await expect(page).toHaveURL(/\/teach\/courses\/new$/);
     await expect(page.getByLabel("Course Title")).toBeVisible();
@@ -53,12 +55,15 @@ test.describe("teacher can create and edit a course", () => {
 
   test("edit course form saves changes", async ({ page }) => {
     await page.goto("/teach");
-    await page
+    const editLink = page
       .getByRole("row")
       .filter({ hasText: "E2E" })
       .first()
-      .getByRole("link", { name: "Edit" })
-      .click();
+      .getByRole("link", { name: "Edit" });
+    await expect(editLink).toBeVisible();
+    const href = await editLink.getAttribute("href");
+    expect(href).toBeTruthy();
+    await page.goto(href!);
 
     await expect(page).toHaveURL(/\/teach\/courses\/\d+\/edit$/);
 

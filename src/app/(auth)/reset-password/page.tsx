@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -10,6 +10,7 @@ import {
   Form,
   Input,
   Space,
+  Spin,
   Typography,
 } from "antd";
 import { LockOutlined } from "@ant-design/icons";
@@ -21,7 +22,7 @@ interface ResetPasswordValues {
   confirmPassword: string;
 }
 
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
   const [success, setSuccess] = useState(false);
@@ -51,6 +52,106 @@ export default function ResetPasswordPage() {
   }
 
   return (
+    <Card style={{ width: 440, boxShadow: "0 2px 16px rgba(0,0,0,0.08)" }}>
+      <Space orientation="vertical" size={24} style={{ width: "100%" }}>
+        <div style={{ textAlign: "center" }}>
+          <Typography.Title level={3} style={{ marginBottom: 4 }}>
+            Set new password
+          </Typography.Title>
+          <Typography.Text type="secondary">
+            Choose a strong new password for your account.
+          </Typography.Text>
+        </div>
+
+        {!token ? (
+          <Alert
+            type="error"
+            showIcon
+            message="Invalid reset link"
+            description="The password reset link is missing or expired. Please request a new one."
+          />
+        ) : success ? (
+          <Alert
+            type="success"
+            showIcon
+            message="Password updated"
+            description={
+              <>
+                Your password has been reset. You can now{" "}
+                <Link href="/login">sign in</Link> with your new password.
+              </>
+            }
+          />
+        ) : (
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={handleSubmit}
+            requiredMark={false}
+          >
+            {error && <Alert type="error" showIcon message={error} />}
+
+            <Form.Item
+              name="newPassword"
+              label="New Password"
+              rules={[
+                { required: true, message: "Password is required" },
+                {
+                  min: 8,
+                  message: "Password must be at least 8 characters",
+                },
+              ]}
+            >
+              <Input.Password
+                prefix={<LockOutlined />}
+                placeholder="Min 8 characters"
+                size="large"
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="confirmPassword"
+              label="Confirm New Password"
+              dependencies={["newPassword"]}
+              rules={[
+                { required: true, message: "Please confirm your password" },
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    if (!value || getFieldValue("newPassword") === value) {
+                      return Promise.resolve();
+                    }
+                    return Promise.reject(new Error("Passwords do not match"));
+                  },
+                }),
+              ]}
+            >
+              <Input.Password
+                prefix={<LockOutlined />}
+                placeholder="Re-enter password"
+                size="large"
+              />
+            </Form.Item>
+
+            <Form.Item style={{ marginBottom: 0 }}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                size="large"
+                loading={loading}
+                block
+              >
+                Reset password
+              </Button>
+            </Form.Item>
+          </Form>
+        )}
+      </Space>
+    </Card>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
     <div
       style={{
         minHeight: "100vh",
@@ -60,103 +161,24 @@ export default function ResetPasswordPage() {
         padding: 24,
       }}
     >
-      <Card style={{ width: 440, boxShadow: "0 2px 16px rgba(0,0,0,0.08)" }}>
-        <Space orientation="vertical" size={24} style={{ width: "100%" }}>
-          <div style={{ textAlign: "center" }}>
-            <Typography.Title level={3} style={{ marginBottom: 4 }}>
-              Set new password
-            </Typography.Title>
-            <Typography.Text type="secondary">
-              Choose a strong new password for your account.
-            </Typography.Text>
-          </div>
-
-          {!token ? (
-            <Alert
-              type="error"
-              showIcon
-              message="Invalid reset link"
-              description="The password reset link is missing or expired. Please request a new one."
-            />
-          ) : success ? (
-            <Alert
-              type="success"
-              showIcon
-              message="Password updated"
-              description={
-                <>
-                  Your password has been reset. You can now{" "}
-                  <Link href="/login">sign in</Link> with your new password.
-                </>
-              }
-            />
-          ) : (
-            <Form
-              form={form}
-              layout="vertical"
-              onFinish={handleSubmit}
-              requiredMark={false}
-            >
-              {error && <Alert type="error" showIcon message={error} />}
-
-              <Form.Item
-                name="newPassword"
-                label="New Password"
-                rules={[
-                  { required: true, message: "Password is required" },
-                  {
-                    min: 8,
-                    message: "Password must be at least 8 characters",
-                  },
-                ]}
+      <Suspense
+        fallback={
+          <Card
+            style={{ width: 440, boxShadow: "0 2px 16px rgba(0,0,0,0.08)" }}
+          >
+            <div style={{ textAlign: "center", padding: 40 }}>
+              <Spin size="large" />
+              <Typography.Paragraph
+                style={{ marginTop: 16, marginBottom: 0, color: "#6b7280" }}
               >
-                <Input.Password
-                  prefix={<LockOutlined />}
-                  placeholder="Min 8 characters"
-                  size="large"
-                />
-              </Form.Item>
-
-              <Form.Item
-                name="confirmPassword"
-                label="Confirm New Password"
-                dependencies={["newPassword"]}
-                rules={[
-                  { required: true, message: "Please confirm your password" },
-                  ({ getFieldValue }) => ({
-                    validator(_, value) {
-                      if (!value || getFieldValue("newPassword") === value) {
-                        return Promise.resolve();
-                      }
-                      return Promise.reject(
-                        new Error("Passwords do not match"),
-                      );
-                    },
-                  }),
-                ]}
-              >
-                <Input.Password
-                  prefix={<LockOutlined />}
-                  placeholder="Re-enter password"
-                  size="large"
-                />
-              </Form.Item>
-
-              <Form.Item style={{ marginBottom: 0 }}>
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  size="large"
-                  loading={loading}
-                  block
-                >
-                  Reset password
-                </Button>
-              </Form.Item>
-            </Form>
-          )}
-        </Space>
-      </Card>
+                Loading password reset…
+              </Typography.Paragraph>
+            </div>
+          </Card>
+        }
+      >
+        <ResetPasswordContent />
+      </Suspense>
     </div>
   );
 }

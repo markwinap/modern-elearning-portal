@@ -38,6 +38,12 @@ A full-stack, type-safe learning management system for students, teachers, and a
 
 - Course structure organized into ordered, visible/hidden sections
 - Eight learning activity types: File, Lesson, Page, Quiz, Text & Media, URL, Wiki, and Workshop
+
+### Personalized Learner Experience
+
+- Personalized student dashboard with "continue learning", upcoming deadlines, announcements, and recommendations
+- Global full-text search across courses, activities, discussions, and wikis with ranked results, filters, and pagination
+- `Ctrl/Cmd+K` keyboard shortcut for instant search from the app header
 - File resources with upload/download support
 - Rich-text Pages and Text & Media content
 - Branching Lessons stored as node graphs

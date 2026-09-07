@@ -29,6 +29,7 @@ import { MobileDrawer } from "~/components/ui/mobile-drawer";
 import { getMobileNavItems } from "~/lib/nav-config";
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "~/trpc/react";
+import { GlobalSearch } from "~/components/search/GlobalSearch";
 
 interface AppHeaderProps {
   userName: string;
@@ -112,6 +113,17 @@ export function AppHeader({
         aria-label="Open navigation menu"
         onClick={() => setMobileDrawerOpen(true)}
       />
+
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          justifyContent: "center",
+          padding: "0 16px",
+        }}
+      >
+        <GlobalSearch />
+      </div>
 
       <Space size={8}>
         <ThemeToggle />

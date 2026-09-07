@@ -3,6 +3,7 @@ import { announcementRouter } from "~/server/api/routers/announcementRouter";
 import { auditRouter } from "~/server/api/routers/auditRouter";
 import { categoryRouter } from "~/server/api/routers/categoryRouter";
 import { courseRouter } from "~/server/api/routers/courseRouter";
+import { dashboardRouter } from "~/server/api/routers/dashboardRouter";
 import { enrollmentRouter } from "~/server/api/routers/enrollmentRouter";
 import { fileRouter } from "~/server/api/routers/fileRouter";
 import { gradebookRouter } from "~/server/api/routers/gradebookRouter";
@@ -12,6 +13,7 @@ import { notificationRouter } from "~/server/api/routers/notificationRouter";
 import { pageRouter } from "~/server/api/routers/pageRouter";
 import { progressRouter } from "~/server/api/routers/progressRouter";
 import { quizRouter } from "~/server/api/routers/quizRouter";
+import { searchRouter } from "~/server/api/routers/searchRouter";
 import { sectionRouter } from "~/server/api/routers/sectionRouter";
 import { settingsRouter } from "~/server/api/routers/settingsRouter";
 import { textMediaRouter } from "~/server/api/routers/textMediaRouter";
@@ -26,6 +28,7 @@ export const appRouter = createTRPCRouter({
   audit: auditRouter,
   category: categoryRouter,
   course: courseRouter,
+  dashboard: dashboardRouter,
   section: sectionRouter,
   settings: settingsRouter,
   activity: activityRouter,
@@ -39,6 +42,7 @@ export const appRouter = createTRPCRouter({
   quiz: quizRouter,
   lesson: lessonRouter,
   page: pageRouter,
+  search: searchRouter,
   textMedia: textMediaRouter,
   url: urlRouter,
   wiki: wikiRouter,

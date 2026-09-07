@@ -1,6 +1,7 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   boolean,
+  customType,
   index,
   pgEnum,
   pgTable,
@@ -120,6 +121,19 @@ export const userRoleEnum = pgEnum("user_role", [
 
 export type UserRole = (typeof userRoleEnum.enumValues)[number];
 
+// PostgreSQL full-text search vector column type
+const tsvector = customType<{ data: string; notNull: false; default: false }>({
+  dataType() {
+    return "tsvector";
+  },
+  toDriver(value: string) {
+    return value;
+  },
+  fromDriver(value: unknown): string {
+    return String(value);
+  },
+});
+
 // ─── App table factory (applies "pg-drizzle_" prefix) ────────────────────────
 export const createTable = pgTableCreator((name) => `pg-drizzle_${name}`);
 
@@ -235,6 +249,11 @@ export const courses = createTable(
     instructorBio: d.text(),
     startsAt: d.timestamp({ withTimezone: true }),
     endsAt: d.timestamp({ withTimezone: true }),
+    searchVector: tsvector("search_vector")
+      .generatedAlwaysAs(
+        sql`to_tsvector('english', coalesce(title, '') || ' ' || coalesce(description, ''))`,
+      )
+      .notNull(),
     createdAt: d
       .timestamp({ withTimezone: true })
       .$defaultFn(() => new Date())
@@ -246,6 +265,7 @@ export const courses = createTable(
     index("course_teacher_idx").on(t.teacherId),
     index("course_status_idx").on(t.status),
     index("course_slug_idx").on(t.slug),
+    index("course_search_vector_idx").using("gin", t.searchVector),
   ],
 );
 
@@ -339,6 +359,9 @@ export const activities = createTable(
       .notNull(),
     completionGrade: d.integer(),
     completionTimeSecs: d.integer(),
+    searchVector: tsvector("search_vector")
+      .generatedAlwaysAs(sql`to_tsvector('english', coalesce(title, ''))`)
+      .notNull(),
     createdAt: d
       .timestamp({ withTimezone: true })
       .$defaultFn(() => new Date())
@@ -348,6 +371,7 @@ export const activities = createTable(
   (t) => [
     index("activity_section_idx").on(t.sectionId),
     index("activity_type_idx").on(t.type),
+    index("activity_search_vector_idx").using("gin", t.searchVector),
   ],
 );
 
@@ -518,6 +542,11 @@ export const wikiPages = createTable(
       .references(() => user.id),
     version: d.integer().default(1).notNull(),
     lockedBy: d.text().references(() => user.id),
+    searchVector: tsvector("search_vector")
+      .generatedAlwaysAs(
+        sql`to_tsvector('english', coalesce(title, '') || ' ' || coalesce(content, ''))`,
+      )
+      .notNull(),
     createdAt: d
       .timestamp({ withTimezone: true })
       .$defaultFn(() => new Date())
@@ -527,6 +556,7 @@ export const wikiPages = createTable(
   (t) => [
     index("wiki_page_activity_idx").on(t.activityId),
     unique("wiki_page_activity_slug").on(t.activityId, t.slug),
+    index("wiki_page_search_vector_idx").using("gin", t.searchVector),
   ],
 );
 
@@ -776,12 +806,18 @@ export const messageThreads = createTable(
       .text()
       .notNull()
       .references(() => user.id),
+    searchVector: tsvector("search_vector")
+      .generatedAlwaysAs(sql`to_tsvector('english', coalesce(subject, ''))`)
+      .notNull(),
     createdAt: d
       .timestamp({ withTimezone: true })
       .$defaultFn(() => new Date())
       .notNull(),
   }),
-  (t) => [index("message_thread_course_idx").on(t.courseId)],
+  (t) => [
+    index("message_thread_course_idx").on(t.courseId),
+    index("message_thread_search_vector_idx").using("gin", t.searchVector),
+  ],
 );
 
 export const messages = createTable(
@@ -797,12 +833,18 @@ export const messages = createTable(
       .notNull()
       .references(() => user.id),
     content: d.text().notNull(),
+    searchVector: tsvector("search_vector")
+      .generatedAlwaysAs(sql`to_tsvector('english', coalesce(content, ''))`)
+      .notNull(),
     sentAt: d
       .timestamp({ withTimezone: true })
       .$defaultFn(() => new Date())
       .notNull(),
   }),
-  (t) => [index("message_thread_sent_idx").on(t.threadId, t.sentAt)],
+  (t) => [
+    index("message_thread_sent_idx").on(t.threadId, t.sentAt),
+    index("message_search_vector_idx").using("gin", t.searchVector),
+  ],
 );
 
 export const notifications = createTable(

@@ -73,6 +73,7 @@ export async function createTestCourse(
   teacherId: string,
   overrides: Partial<{
     title: string;
+    description: string;
     categoryId: number;
     locationType: "online" | "onsite";
   }> = {},
@@ -85,7 +86,7 @@ export async function createTestCourse(
     .values({
       title: overrides.title ?? `Test Course ${courseCounter}`,
       slug: `test-course-${courseCounter}-${Date.now()}`,
-      description: "A course created for testing.",
+      description: overrides.description ?? "A course created for testing.",
       categoryId,
       locationType: overrides.locationType ?? "online",
       teacherId,
