@@ -989,6 +989,170 @@ export const platformSettings = createTable(
   (t) => [index("platform_settings_created_idx").on(t.createdAt)],
 );
 
+// ─── Gamification ───────────────────────────────────────────────────────────────
+export const gamificationEventSourceEnum = pgEnum("gamification_event_source", [
+  "activity_completed",
+  "quiz_passed",
+  "course_completed",
+  "daily_login",
+  "badge_bonus",
+]);
+
+export const gamificationBadgeCriteriaEnum = pgEnum(
+  "gamification_badge_criteria",
+  [
+    "points_threshold",
+    "activity_count",
+    "quiz_count",
+    "course_count",
+    "streak_days",
+  ],
+);
+
+export const leaderboardScopeEnum = pgEnum("leaderboard_scope", [
+  "global",
+  "course",
+]);
+
+export type GamificationEventSource =
+  (typeof gamificationEventSourceEnum.enumValues)[number];
+
+export const gamificationConfig = createTable(
+  "gamification_config",
+  (d) => ({
+    id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
+    activityCompletedPoints: d.integer().notNull().default(10),
+    quizPassedPoints: d.integer().notNull().default(25),
+    courseCompletedPoints: d.integer().notNull().default(100),
+    dailyLoginPoints: d.integer().notNull().default(5),
+    levelThresholds: d
+      .jsonb()
+      .$type<number[]>()
+      .notNull()
+      .default([0, 100, 250, 500, 1000, 2000]),
+    createdAt: d
+      .timestamp({ withTimezone: true })
+      .$defaultFn(() => new Date())
+      .notNull(),
+    updatedAt: d.timestamp({ withTimezone: true }).$onUpdate(() => new Date()),
+  }),
+  (t) => [index("gamification_config_created_idx").on(t.createdAt)],
+);
+
+export const pointsLedger = createTable(
+  "points_ledger",
+  (d) => ({
+    id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
+    userId: d
+      .text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    amount: d.integer().notNull(),
+    sourceType: gamificationEventSourceEnum("source_type").notNull(),
+    sourceId: d.text().notNull(),
+    courseId: d.integer().references(() => courses.id, { onDelete: "cascade" }),
+    reason: d.text(),
+    createdAt: d
+      .timestamp({ withTimezone: true })
+      .$defaultFn(() => new Date())
+      .notNull(),
+  }),
+  (t) => [
+    index("points_ledger_user_created_idx").on(t.userId, t.createdAt),
+    unique("points_ledger_user_source").on(t.userId, t.sourceType, t.sourceId),
+  ],
+);
+
+export const badgeDefinitions = createTable(
+  "badge_definition",
+  (d) => ({
+    id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
+    key: d.varchar({ length: 64 }).notNull().unique(),
+    name: d.varchar({ length: 128 }).notNull(),
+    description: d.text(),
+    icon: d.varchar({ length: 64 }),
+    criteriaType: gamificationBadgeCriteriaEnum("criteria_type").notNull(),
+    criteriaValue: d
+      .jsonb()
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
+  }),
+  (t) => [index("badge_definition_key_idx").on(t.key)],
+);
+
+export const userBadges = createTable(
+  "user_badge",
+  (d) => ({
+    id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
+    userId: d
+      .text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    badgeId: d
+      .integer()
+      .notNull()
+      .references(() => badgeDefinitions.id, { onDelete: "cascade" }),
+    awardedAt: d
+      .timestamp({ withTimezone: true })
+      .$defaultFn(() => new Date())
+      .notNull(),
+  }),
+  (t) => [
+    unique("user_badge_user_badge").on(t.userId, t.badgeId),
+    index("user_badge_user_idx").on(t.userId),
+  ],
+);
+
+export const userLevels = createTable("user_level", (d) => ({
+  userId: d
+    .text()
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  totalPoints: d.integer().notNull().default(0),
+  level: d.integer().notNull().default(1),
+  updatedAt: d.timestamp({ withTimezone: true }).$onUpdate(() => new Date()),
+}));
+
+export const userStreaks = createTable("user_streak", (d) => ({
+  userId: d
+    .text()
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  currentStreak: d.integer().notNull().default(0),
+  longestStreak: d.integer().notNull().default(0),
+  lastActivityDate: d.date({ mode: "string" }),
+}));
+
+export const leaderboardSnapshots = createTable(
+  "leaderboard_snapshot",
+  (d) => ({
+    id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
+    scope: leaderboardScopeEnum("scope").notNull(),
+    courseId: d.integer().references(() => courses.id, { onDelete: "cascade" }),
+    period: d.varchar({ length: 32 }).notNull().default("allTime"),
+    entries: d
+      .jsonb()
+      .$type<
+        Array<{ userId: string; name: string; points: number; rank: number }>
+      >()
+      .notNull()
+      .default([]),
+    calculatedAt: d
+      .timestamp({ withTimezone: true })
+      .$defaultFn(() => new Date())
+      .notNull(),
+  }),
+  (t) => [
+    unique("leaderboard_snapshot_scope_course_period").on(
+      t.scope,
+      t.courseId,
+      t.period,
+    ),
+    index("leaderboard_snapshot_scope_course_idx").on(t.scope, t.courseId),
+  ],
+);
+
 // ─── Relations ────────────────────────────────────────────────────────────────
 // Enables Drizzle's relational query API (`db.query.<table>.findMany({ with: {...} })`)
 // alongside the existing hand-written joins used throughout the routers.
@@ -997,6 +1161,8 @@ export const userRelations = relations(user, ({ many }) => ({
   courses: many(courses),
   enrollments: many(enrollments),
   grades: many(grades),
+  points: many(pointsLedger),
+  badges: many(userBadges),
 }));
 
 export const categoriesRelations = relations(categories, ({ one, many }) => ({
@@ -1301,5 +1467,12 @@ export type NewNotificationPreference =
   typeof notificationPreferences.$inferInsert;
 export type EmailLog = typeof emailLogs.$inferSelect;
 export type NewEmailLog = typeof emailLogs.$inferInsert;
+export type GamificationConfig = typeof gamificationConfig.$inferSelect;
+export type PointsLedger = typeof pointsLedger.$inferSelect;
+export type BadgeDefinition = typeof badgeDefinitions.$inferSelect;
+export type UserBadge = typeof userBadges.$inferSelect;
+export type UserLevel = typeof userLevels.$inferSelect;
+export type UserStreak = typeof userStreaks.$inferSelect;
+export type LeaderboardSnapshot = typeof leaderboardSnapshots.$inferSelect;
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type NewAuditLog = typeof auditLogs.$inferInsert;

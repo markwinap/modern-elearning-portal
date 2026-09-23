@@ -30,6 +30,7 @@ import {
   quizAttemptRateLimitMiddleware,
   teacherProcedure,
 } from "~/server/api/trpc";
+import { processGamificationEvent } from "~/server/lib/gamification";
 import {
   activities,
   courses,
@@ -391,6 +392,30 @@ export const quizRouter = createTRPCRouter({
             }),
           )
         : null;
+
+      // Award gamification points when the learner passes the quiz.
+      if (maxScore > 0 && score / maxScore >= 0.5) {
+        const [activityCourse] = await ctx.db
+          .select({ courseId: courseSections.courseId })
+          .from(activities)
+          .innerJoin(
+            courseSections,
+            eq(activities.sectionId, courseSections.id),
+          )
+          .where(eq(activities.id, attempt.quizActivityId))
+          .limit(1);
+
+        if (activityCourse) {
+          await processGamificationEvent(ctx.db, attempt.userId, {
+            type: "quiz_passed",
+            activityId: attempt.quizActivityId,
+            courseId: activityCourse.courseId,
+            attemptId: attempt.id,
+            score,
+            maxScore,
+          });
+        }
+      }
 
       // Auto-grade: create or update a gradebook entry for this quiz attempt.
       const [activity] = await ctx.db

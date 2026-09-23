@@ -32,6 +32,11 @@ export const studentNavItems: MenuProps["items"] = [
     label: <Link href="/grades">My Grades</Link>,
   },
   {
+    key: "/learn/gamification",
+    icon: <TrophyOutlined />,
+    label: <Link href="/learn/gamification">Achievements</Link>,
+  },
+  {
     key: "/messages",
     icon: <MessageOutlined />,
     label: <Link href="/messages">Messages</Link>,
@@ -93,6 +98,11 @@ export const adminNavItems: MenuProps["items"] = [
     label: <Link href="/admin/settings">Settings</Link>,
   },
   {
+    key: "/admin/gamification",
+    icon: <TrophyOutlined />,
+    label: <Link href="/admin/gamification">Gamification</Link>,
+  },
+  {
     key: "/admin/security",
     icon: <SafetyOutlined />,
     label: <Link href="/admin/security">Security</Link>,
@@ -128,6 +138,12 @@ export const studentMobileNavItems: MobileNavItem[] = [
     key: "/grades",
     href: "/grades",
     label: "Grades",
+    icon: <TrophyOutlined />,
+  },
+  {
+    key: "/learn/gamification",
+    href: "/learn/gamification",
+    label: "Achieve",
     icon: <TrophyOutlined />,
   },
   {
@@ -184,6 +200,12 @@ export const adminMobileNavItems: MobileNavItem[] = [
     href: "/admin/courses",
     label: "Courses",
     icon: <BookOutlined />,
+  },
+  {
+    key: "/admin/gamification",
+    href: "/admin/gamification",
+    label: "Gamify",
+    icon: <TrophyOutlined />,
   },
   {
     key: "/notifications",

@@ -3,6 +3,7 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import { processGamificationEvent } from "~/server/lib/gamification";
 import {
   activities,
   activityProgress,
@@ -83,6 +84,17 @@ export const progressRouter = createTRPCRouter({
           }
         }
 
+        const [existingCourseProgress] = await tx
+          .select({ completedAt: courseProgress.completedAt })
+          .from(courseProgress)
+          .where(
+            and(
+              eq(courseProgress.courseId, activityRow.courseId),
+              eq(courseProgress.userId, ctx.session.user.id),
+            ),
+          )
+          .limit(1);
+
         const [totalActivitiesResult] = await tx
           .select({ count: sql<number>`count(*)::int` })
           .from(activities)
@@ -149,6 +161,24 @@ export const progressRouter = createTRPCRouter({
               completedAt: computedProgressPct >= 100 ? new Date() : null,
             },
           });
+
+        if (input.status === "completed") {
+          await processGamificationEvent(tx, ctx.session.user.id, {
+            type: "activity_completed",
+            activityId: input.activityId,
+            courseId: activityRow.courseId,
+          });
+        }
+
+        if (
+          computedProgressPct >= 100 &&
+          existingCourseProgress?.completedAt == null
+        ) {
+          await processGamificationEvent(tx, ctx.session.user.id, {
+            type: "course_completed",
+            courseId: activityRow.courseId,
+          });
+        }
       });
     }),
 
