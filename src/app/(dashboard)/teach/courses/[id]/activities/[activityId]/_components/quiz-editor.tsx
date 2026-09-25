@@ -28,6 +28,7 @@ import {
   SaveOutlined,
 } from "@ant-design/icons";
 
+import { QuestionBankBrowser } from "~/components/quiz/question-bank-browser";
 import { FormModal } from "~/components/ui/form-modal";
 import { formatDurationMins } from "~/lib/insight-utils";
 import { toastMutationOptions } from "~/lib/mutation-utils";
@@ -450,6 +451,10 @@ export function QuizEditor({
               </Button>
             </Form.Item>
           </Form>
+        </Card>
+
+        <Card title="Add from question bank">
+          <QuestionBankBrowser quizActivityId={activityId} />
         </Card>
 
         {/* Questions */}

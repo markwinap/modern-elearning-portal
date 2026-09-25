@@ -4,6 +4,7 @@ import {
   BellOutlined,
   BookOutlined,
   DashboardOutlined,
+  DatabaseOutlined,
   MessageOutlined,
   SafetyOutlined,
   SettingOutlined,
@@ -58,6 +59,11 @@ export const teacherNavItems: MenuProps["items"] = [
     key: "/teach",
     icon: <BookOutlined />,
     label: <Link href="/teach">All Courses</Link>,
+  },
+  {
+    key: "/teach/question-bank",
+    icon: <DatabaseOutlined />,
+    label: <Link href="/teach/question-bank">Question Bank</Link>,
   },
   {
     key: "/messages",

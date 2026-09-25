@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MenuOutlined } from "@ant-design/icons";
+import { LockOutlined, MenuOutlined } from "@ant-design/icons";
 import { Button, Drawer, Menu, Typography, theme } from "antd";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -14,6 +14,8 @@ interface ActivityItem {
   title: string;
   order: number;
   visible: boolean;
+  locked: boolean;
+  lockReason: string | null;
 }
 
 interface SectionWithActivities {
@@ -21,6 +23,8 @@ interface SectionWithActivities {
   title: string;
   order: number;
   visible: boolean;
+  locked: boolean;
+  lockReason: string | null;
   activities: ActivityItem[];
 }
 
@@ -52,8 +56,15 @@ export function LearnSidebar({
     label: section.title,
     children: section.activities.map((activity) => ({
       key: activity.id.toString(),
-      icon: <ActivityIcon type={activity.type} />,
-      label: activity.title,
+      icon: activity.locked ? (
+        <LockOutlined />
+      ) : (
+        <ActivityIcon type={activity.type} />
+      ),
+      label: activity.locked
+        ? `${activity.title} — ${activity.lockReason ?? "Locked"}`
+        : activity.title,
+      disabled: activity.locked,
     })),
   }));
 

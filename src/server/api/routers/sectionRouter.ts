@@ -13,9 +13,81 @@ import {
   courses,
   courseSections,
   quizQuestions,
+  sectionReleaseRules,
 } from "~/server/db/schema";
 
+const releaseRuleInputSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("date"), releaseAt: z.coerce.date() }),
+  z.object({
+    type: z.literal("enrollment_offset"),
+    offsetDays: z.number().int().min(0),
+  }),
+  z.object({
+    type: z.literal("activity_completion"),
+    prerequisiteActivityId: z.number().int(),
+  }),
+  z.object({
+    type: z.literal("prerequisite_score"),
+    prerequisiteActivityId: z.number().int(),
+    minimumScore: z.number().int().min(0).max(100),
+  }),
+  z.object({ type: z.literal("manual"), manuallyReleased: z.boolean() }),
+]);
+
 export const sectionRouter = createTRPCRouter({
+  getReleaseRules: teacherProcedure
+    .input(z.object({ sectionId: z.number().int() }))
+    .query(async ({ ctx, input }) => {
+      return ctx.db
+        .select()
+        .from(sectionReleaseRules)
+        .where(eq(sectionReleaseRules.sectionId, input.sectionId));
+    }),
+
+  setReleaseRules: teacherProcedure
+    .input(
+      z.object({
+        sectionId: z.number().int(),
+        rules: z.array(releaseRuleInputSchema).max(10),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const [section] = await ctx.db
+        .select({ teacherId: courses.teacherId })
+        .from(courseSections)
+        .innerJoin(courses, eq(courseSections.courseId, courses.id))
+        .where(eq(courseSections.id, input.sectionId))
+        .limit(1);
+      if (!section) throw new TRPCError({ code: "NOT_FOUND" });
+      assertOwnerOrAdmin(ctx, section.teacherId);
+      await ctx.db.transaction(async (tx) => {
+        await tx
+          .delete(sectionReleaseRules)
+          .where(eq(sectionReleaseRules.sectionId, input.sectionId));
+        if (input.rules.length)
+          await tx
+            .insert(sectionReleaseRules)
+            .values(
+              input.rules.map((rule) => ({
+                sectionId: input.sectionId,
+                type: rule.type,
+                releaseAt: rule.type === "date" ? rule.releaseAt : null,
+                offsetDays:
+                  rule.type === "enrollment_offset" ? rule.offsetDays : null,
+                prerequisiteActivityId:
+                  rule.type === "activity_completion" ||
+                  rule.type === "prerequisite_score"
+                    ? rule.prerequisiteActivityId
+                    : null,
+                minimumScore:
+                  rule.type === "prerequisite_score" ? rule.minimumScore : null,
+                manuallyReleased:
+                  rule.type === "manual" ? rule.manuallyReleased : false,
+              })),
+            );
+      });
+    }),
+
   /** List all sections for a course. */
   listByCourse: protectedProcedure
     .input(z.object({ courseId: z.number().int() }))

@@ -28,14 +28,27 @@ export default async function LearnLayout({ children, params }: Props) {
 
   // Fetch all sections and their activities in parallel
   const sections = await api.section.listByCourse({ courseId: course.id });
+  const releaseState: {
+    sections: Record<number, { released: boolean; reason: string | null }>;
+    activities: Record<number, { released: boolean; reason: string | null }>;
+  } =
+    role === "student"
+      ? await api.activity.getCourseReleaseState({ courseId: course.id })
+      : { sections: {}, activities: {} };
   const sectionsWithActivities = await Promise.all(
     sections
       .filter((s) => s.visible)
       .map(async (s) => ({
         ...s,
-        activities: (
-          await api.activity.listBySection({ sectionId: s.id })
-        ).filter((a) => a.visible),
+        locked: releaseState.sections[s.id]?.released === false,
+        lockReason: releaseState.sections[s.id]?.reason ?? null,
+        activities: (await api.activity.listBySection({ sectionId: s.id }))
+          .filter((a) => a.visible)
+          .map((a) => ({
+            ...a,
+            locked: releaseState.activities[a.id]?.released === false,
+            lockReason: releaseState.activities[a.id]?.reason ?? null,
+          })),
       })),
   );
 

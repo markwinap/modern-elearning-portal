@@ -9,8 +9,10 @@ import {
   teacherProcedure,
 } from "~/server/api/trpc";
 import { type db } from "~/server/db";
+import { getCourseReleaseState } from "~/server/lib/drip";
 import {
   activities,
+  activityReleaseRules,
   courses,
   courseSections,
   gradeCategories,
@@ -28,7 +30,90 @@ async function getCourseIdFromActivity(database: DB, activityId: number) {
   return row?.courseId ?? null;
 }
 
+const releaseRuleInputSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("date"), releaseAt: z.coerce.date() }),
+  z.object({
+    type: z.literal("enrollment_offset"),
+    offsetDays: z.number().int().min(0),
+  }),
+  z.object({
+    type: z.literal("activity_completion"),
+    prerequisiteActivityId: z.number().int(),
+  }),
+  z.object({
+    type: z.literal("prerequisite_score"),
+    prerequisiteActivityId: z.number().int(),
+    minimumScore: z.number().int().min(0).max(100),
+  }),
+  z.object({ type: z.literal("manual"), manuallyReleased: z.boolean() }),
+]);
+
 export const activityRouter = createTRPCRouter({
+  getCourseReleaseState: protectedProcedure
+    .input(z.object({ courseId: z.number().int() }))
+    .query(async ({ ctx, input }) => {
+      const state = await getCourseReleaseState(
+        ctx.db,
+        ctx.session.user.id,
+        input.courseId,
+      );
+      return {
+        sections: Object.fromEntries(state.sections),
+        activities: Object.fromEntries(state.activities),
+      };
+    }),
+
+  getReleaseRules: teacherProcedure
+    .input(z.object({ activityId: z.number().int() }))
+    .query(async ({ ctx, input }) =>
+      ctx.db
+        .select()
+        .from(activityReleaseRules)
+        .where(eq(activityReleaseRules.activityId, input.activityId)),
+    ),
+
+  setReleaseRules: teacherProcedure
+    .input(
+      z.object({
+        activityId: z.number().int(),
+        rules: z.array(releaseRuleInputSchema).max(10),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const courseId = await getCourseIdFromActivity(ctx.db, input.activityId);
+      if (!courseId) throw new TRPCError({ code: "NOT_FOUND" });
+      const [course] = await ctx.db
+        .select({ teacherId: courses.teacherId })
+        .from(courses)
+        .where(eq(courses.id, courseId))
+        .limit(1);
+      assertOwnerOrAdmin(ctx, course?.teacherId);
+      await ctx.db.transaction(async (tx) => {
+        await tx
+          .delete(activityReleaseRules)
+          .where(eq(activityReleaseRules.activityId, input.activityId));
+        if (input.rules.length)
+          await tx.insert(activityReleaseRules).values(
+            input.rules.map((rule) => ({
+              activityId: input.activityId,
+              type: rule.type,
+              releaseAt: rule.type === "date" ? rule.releaseAt : null,
+              offsetDays:
+                rule.type === "enrollment_offset" ? rule.offsetDays : null,
+              prerequisiteActivityId:
+                rule.type === "activity_completion" ||
+                rule.type === "prerequisite_score"
+                  ? rule.prerequisiteActivityId
+                  : null,
+              minimumScore:
+                rule.type === "prerequisite_score" ? rule.minimumScore : null,
+              manuallyReleased:
+                rule.type === "manual" ? rule.manuallyReleased : false,
+            })),
+          );
+      });
+    }),
+
   listBySection: protectedProcedure
     .input(z.object({ sectionId: z.number().int() }))
     .query(async ({ ctx, input }) => {
@@ -48,6 +133,21 @@ export const activityRouter = createTRPCRouter({
         .where(eq(activities.id, input.id))
         .limit(1);
       if (!activity) throw new TRPCError({ code: "NOT_FOUND" });
+      if (ctx.session.user.role === "student") {
+        const courseId = await getCourseIdFromActivity(ctx.db, activity.id);
+        if (!courseId) throw new TRPCError({ code: "NOT_FOUND" });
+        const releaseState = await getCourseReleaseState(
+          ctx.db,
+          ctx.session.user.id,
+          courseId,
+        );
+        const state = releaseState.activities.get(activity.id);
+        if (state && !state.released)
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: state.reason ?? "This activity is locked",
+          });
+      }
       return activity;
     }),
 

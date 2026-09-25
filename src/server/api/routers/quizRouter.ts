@@ -1,5 +1,14 @@
 import { TRPCError } from "@trpc/server";
-import { and, asc, count, eq, inArray, isNotNull, isNull } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  eq,
+  inArray,
+  isNotNull,
+  isNull,
+  sql,
+} from "drizzle-orm";
 import { z } from "zod";
 
 import { calculatePercentage, percentageToLetter } from "~/lib/grade-utils";
@@ -31,11 +40,13 @@ import {
   teacherProcedure,
 } from "~/server/api/trpc";
 import { processGamificationEvent } from "~/server/lib/gamification";
+import { getCourseReleaseState } from "~/server/lib/drip";
 import {
   activities,
   courses,
   courseSections,
   grades,
+  questionBankEntries,
   quizAnswers,
   quizAttempts,
   quizQuestions,
@@ -175,6 +186,26 @@ export const quizRouter = createTRPCRouter({
     .use(quizAttemptRateLimitMiddleware)
     .input(z.object({ activityId: z.number().int() }))
     .mutation(async ({ ctx, input }) => {
+      const [activityCourse] = await ctx.db
+        .select({ courseId: courseSections.courseId })
+        .from(activities)
+        .innerJoin(courseSections, eq(activities.sectionId, courseSections.id))
+        .where(eq(activities.id, input.activityId))
+        .limit(1);
+      if (!activityCourse) throw new TRPCError({ code: "NOT_FOUND" });
+      if (ctx.session.user.role === "student") {
+        const release = await getCourseReleaseState(
+          ctx.db,
+          ctx.session.user.id,
+          activityCourse.courseId,
+        );
+        const state = release.activities.get(input.activityId);
+        if (state && !state.released)
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: state.reason ?? "This quiz is locked",
+          });
+      }
       const [quizConfig] = await ctx.db
         .select({
           maxAttempts: quizzes.maxAttempts,
@@ -347,6 +378,20 @@ export const quizRouter = createTRPCRouter({
         await ctx.db
           .insert(quizAnswers)
           .values(gradedAnswers.map(({ correctAnswer: _ca, ...row }) => row));
+        for (const graded of gradedAnswers) {
+          const bankQuestionId = activeQuestions.find(
+            (question) => question.id === graded.questionId,
+          )?.bankQuestionId;
+          if (bankQuestionId) {
+            await ctx.db
+              .update(questionBankEntries)
+              .set({
+                attemptCount: sql`${questionBankEntries.attemptCount} + 1`,
+                correctCount: sql`${questionBankEntries.correctCount} + ${graded.isCorrect ? 1 : 0}`,
+              })
+              .where(eq(questionBankEntries.id, bankQuestionId));
+          }
+        }
       }
 
       await ctx.db

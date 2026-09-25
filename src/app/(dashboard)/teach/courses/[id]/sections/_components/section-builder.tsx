@@ -21,6 +21,7 @@ import {
   Button,
   Card,
   Drawer,
+  Divider,
   Empty,
   Form,
   Input,
@@ -46,6 +47,7 @@ import {
 
 import Link from "next/link";
 
+import { ReleaseRuleBuilder } from "~/components/drip/release-rule-builder";
 import { ActivityBadge } from "~/components/ui/activity-badge";
 import { ActivityIcon } from "~/components/ui/activity-icon";
 import { FormModal } from "~/components/ui/form-modal";
@@ -420,6 +422,12 @@ function SectionSettingsDrawer({
             />
           </Form.Item>
         </Form>
+      )}
+      {section && (
+        <>
+          <Divider>Content release</Divider>
+          <ReleaseRuleBuilder target="section" targetId={section.id} />
+        </>
       )}
     </Drawer>
   );

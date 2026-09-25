@@ -82,6 +82,18 @@ export const quizFeedbackModeEnum = pgEnum("quiz_feedback_mode", [
   "after_due_date",
   "never",
 ]);
+export const questionDifficultyEnum = pgEnum("question_difficulty", [
+  "easy",
+  "medium",
+  "hard",
+]);
+export const releaseRuleTypeEnum = pgEnum("release_rule_type", [
+  "date",
+  "enrollment_offset",
+  "activity_completion",
+  "prerequisite_score",
+  "manual",
+]);
 export const sectionDurationModeEnum = pgEnum("section_duration_mode", [
   "manual",
   "auto",
@@ -433,6 +445,68 @@ export const quizzes = createTable("quiz", (d) => ({
   updatedAt: d.timestamp({ withTimezone: true }).$onUpdate(() => new Date()),
 }));
 
+export const questionBankEntries = createTable(
+  "question_bank_entry",
+  (d) => ({
+    id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
+    ownerId: d
+      .text()
+      .notNull()
+      .references(() => user.id),
+    type: quizQuestionTypeEnum("type").notNull(),
+    prompt: d.text().notNull(),
+    options: d.jsonb().$type<QuizQuestionOptions>(),
+    correctAnswer: d.jsonb().$type<QuizCorrectAnswer>(),
+    allowMultiple: d.boolean().default(false).notNull(),
+    points: d.integer().default(1).notNull(),
+    recommendedTimeMins: d.integer().default(1).notNull(),
+    difficulty: questionDifficultyEnum("difficulty")
+      .default("medium")
+      .notNull(),
+    explanation: d.text(),
+    usageCount: d.integer().default(0).notNull(),
+    attemptCount: d.integer().default(0).notNull(),
+    correctCount: d.integer().default(0).notNull(),
+    createdAt: d
+      .timestamp({ withTimezone: true })
+      .$defaultFn(() => new Date())
+      .notNull(),
+    updatedAt: d.timestamp({ withTimezone: true }).$onUpdate(() => new Date()),
+  }),
+  (t) => [
+    index("question_bank_owner_idx").on(t.ownerId),
+    index("question_bank_difficulty_idx").on(t.difficulty),
+  ],
+);
+
+export const questionTags = createTable(
+  "question_tag",
+  (d) => ({
+    id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
+    ownerId: d
+      .text()
+      .notNull()
+      .references(() => user.id),
+    name: d.varchar({ length: 64 }).notNull(),
+  }),
+  (t) => [unique("question_tag_owner_name").on(t.ownerId, t.name)],
+);
+
+export const questionBankEntryTags = createTable(
+  "question_bank_entry_tag",
+  (d) => ({
+    questionId: d
+      .integer()
+      .notNull()
+      .references(() => questionBankEntries.id, { onDelete: "cascade" }),
+    tagId: d
+      .integer()
+      .notNull()
+      .references(() => questionTags.id, { onDelete: "cascade" }),
+  }),
+  (t) => [unique("question_bank_entry_tag_unique").on(t.questionId, t.tagId)],
+);
+
 export const quizQuestions = createTable(
   "quiz_question",
   (d) => ({
@@ -441,6 +515,9 @@ export const quizQuestions = createTable(
       .integer()
       .notNull()
       .references(() => activities.id, { onDelete: "cascade" }),
+    bankQuestionId: d
+      .integer()
+      .references(() => questionBankEntries.id, { onDelete: "set null" }),
     type: quizQuestionTypeEnum("type").notNull(),
     prompt: d.text().notNull(),
     options: d.jsonb().$type<QuizQuestionOptions>(),
@@ -719,6 +796,54 @@ export const activityProgress = createTable(
     timeSpentSecs: d.integer().default(0).notNull(),
   }),
   (t) => [unique("activity_progress_activity_user").on(t.activityId, t.userId)],
+);
+
+export const sectionReleaseRules = createTable(
+  "section_release_rule",
+  (d) => ({
+    id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
+    sectionId: d
+      .integer()
+      .notNull()
+      .references(() => courseSections.id, { onDelete: "cascade" }),
+    type: releaseRuleTypeEnum("type").notNull(),
+    releaseAt: d.timestamp({ withTimezone: true }),
+    offsetDays: d.integer(),
+    prerequisiteActivityId: d
+      .integer()
+      .references(() => activities.id, { onDelete: "cascade" }),
+    minimumScore: d.integer(),
+    manuallyReleased: d.boolean().default(false).notNull(),
+    createdAt: d
+      .timestamp({ withTimezone: true })
+      .$defaultFn(() => new Date())
+      .notNull(),
+  }),
+  (t) => [index("section_release_rule_section_idx").on(t.sectionId)],
+);
+
+export const activityReleaseRules = createTable(
+  "activity_release_rule",
+  (d) => ({
+    id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
+    activityId: d
+      .integer()
+      .notNull()
+      .references(() => activities.id, { onDelete: "cascade" }),
+    type: releaseRuleTypeEnum("type").notNull(),
+    releaseAt: d.timestamp({ withTimezone: true }),
+    offsetDays: d.integer(),
+    prerequisiteActivityId: d
+      .integer()
+      .references(() => activities.id, { onDelete: "cascade" }),
+    minimumScore: d.integer(),
+    manuallyReleased: d.boolean().default(false).notNull(),
+    createdAt: d
+      .timestamp({ withTimezone: true })
+      .$defaultFn(() => new Date())
+      .notNull(),
+  }),
+  (t) => [index("activity_release_rule_activity_idx").on(t.activityId)],
 );
 
 export const courseProgress = createTable(

@@ -6,6 +6,7 @@ import { Card, Select, Space, Switch, Typography } from "antd";
 import { ArrowLeftOutlined } from "@ant-design/icons";
 import Link from "next/link";
 
+import { ReleaseRuleBuilder } from "~/components/drip/release-rule-builder";
 import { ActivityBadge } from "~/components/ui/activity-badge";
 import { type LessonGraph } from "~/lib/activity-content";
 import type { TeacherQuizQuestion } from "~/lib/quiz";
@@ -135,6 +136,10 @@ export function ActivityEditor({
             }
           />
         </Space>
+      </Card>
+
+      <Card title="Content Release" size="small">
+        <ReleaseRuleBuilder target="activity" targetId={activity.id} />
       </Card>
 
       {activity.type === "page" && (

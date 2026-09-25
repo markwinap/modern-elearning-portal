@@ -49,6 +49,8 @@ A full-stack, type-safe learning management system for students, teachers, and a
 - Rich-text Pages and Text & Media content
 - Branching Lessons stored as node graphs
 - Quizzes with multiple question types, attempts, time limits, shuffling, and feedback modes
+- Conditional content release by date, enrollment offset, prerequisite completion/score, or manual instructor release
+- Reusable instructor question bank with tags, difficulty, CSV/GIFT import/export, randomized draws, and item analysis
 - Wiki pages with versioning and revision history
 - Workshops with submission, peer assessment, rubrics, and weighted teacher/peer grading
 - Activity completion tracking by view, submit, grade, or time spent

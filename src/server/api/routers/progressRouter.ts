@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { processGamificationEvent } from "~/server/lib/gamification";
+import { getCourseReleaseState } from "~/server/lib/drip";
 import {
   activities,
   activityProgress,
@@ -23,6 +24,26 @@ export const progressRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const [target] = await ctx.db
+        .select({ courseId: courseSections.courseId })
+        .from(activities)
+        .innerJoin(courseSections, eq(activities.sectionId, courseSections.id))
+        .where(eq(activities.id, input.activityId))
+        .limit(1);
+      if (!target) throw new TRPCError({ code: "NOT_FOUND" });
+      if (ctx.session.user.role === "student") {
+        const release = await getCourseReleaseState(
+          ctx.db,
+          ctx.session.user.id,
+          target.courseId,
+        );
+        const state = release.activities.get(input.activityId);
+        if (state && !state.released)
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: state.reason ?? "This activity is locked",
+          });
+      }
       await ctx.db.transaction(async (tx) => {
         await tx
           .insert(activityProgress)
