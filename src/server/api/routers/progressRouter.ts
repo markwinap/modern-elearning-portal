@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { processGamificationEvent } from "~/server/lib/gamification";
 import { getCourseReleaseState } from "~/server/lib/drip";
+import { issueCertificateForCourse } from "~/server/lib/certificates";
 import {
   activities,
   activityProgress,
@@ -199,6 +200,11 @@ export const progressRouter = createTRPCRouter({
             type: "course_completed",
             courseId: activityRow.courseId,
           });
+          await issueCertificateForCourse(
+            tx,
+            ctx.session.user.id,
+            activityRow.courseId,
+          );
         }
       });
     }),

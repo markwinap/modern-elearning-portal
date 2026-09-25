@@ -6,6 +6,7 @@ import {
   DashboardOutlined,
   DatabaseOutlined,
   MessageOutlined,
+  SafetyCertificateOutlined,
   SafetyOutlined,
   SettingOutlined,
   TeamOutlined,
@@ -36,6 +37,11 @@ export const studentNavItems: MenuProps["items"] = [
     key: "/learn/gamification",
     icon: <TrophyOutlined />,
     label: <Link href="/learn/gamification">Achievements</Link>,
+  },
+  {
+    key: "/learn/certificates",
+    icon: <SafetyCertificateOutlined />,
+    label: <Link href="/learn/certificates">Certificates</Link>,
   },
   {
     key: "/messages",

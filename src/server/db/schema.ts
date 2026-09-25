@@ -846,6 +846,105 @@ export const activityReleaseRules = createTable(
   (t) => [index("activity_release_rule_activity_idx").on(t.activityId)],
 );
 
+export const certificateTemplates = createTable(
+  "certificate_template",
+  (d) => ({
+    id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
+    courseId: d.integer().references(() => courses.id, { onDelete: "cascade" }),
+    name: d.varchar({ length: 128 }).notNull(),
+    title: d
+      .varchar({ length: 256 })
+      .default("Certificate of Completion")
+      .notNull(),
+    issuer: d
+      .varchar({ length: 256 })
+      .default("Modern E-Learning Portal")
+      .notNull(),
+    signerName: d.varchar({ length: 256 }),
+    accentColor: d.varchar({ length: 16 }).default("#1677ff").notNull(),
+    autoIssue: d.boolean().default(true).notNull(),
+    validityDays: d.integer(),
+    createdAt: d
+      .timestamp({ withTimezone: true })
+      .$defaultFn(() => new Date())
+      .notNull(),
+    updatedAt: d.timestamp({ withTimezone: true }).$onUpdate(() => new Date()),
+  }),
+  (t) => [index("certificate_template_course_idx").on(t.courseId)],
+);
+
+export const certificates = createTable(
+  "certificate",
+  (d) => ({
+    id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
+    serial: d.varchar({ length: 64 }).notNull(),
+    userId: d
+      .text()
+      .notNull()
+      .references(() => user.id),
+    courseId: d
+      .integer()
+      .notNull()
+      .references(() => courses.id, { onDelete: "cascade" }),
+    templateId: d
+      .integer()
+      .references(() => certificateTemplates.id, { onDelete: "set null" }),
+    issuedAt: d
+      .timestamp({ withTimezone: true })
+      .$defaultFn(() => new Date())
+      .notNull(),
+    expiresAt: d.timestamp({ withTimezone: true }),
+    revokedAt: d.timestamp({ withTimezone: true }),
+    svg: d.text().notNull(),
+    createdAt: d
+      .timestamp({ withTimezone: true })
+      .$defaultFn(() => new Date())
+      .notNull(),
+  }),
+  (t) => [
+    unique("certificate_serial_unique").on(t.serial),
+    unique("certificate_course_user").on(t.courseId, t.userId),
+    index("certificate_user_idx").on(t.userId),
+  ],
+);
+
+export const badgeAssertions = createTable(
+  "badge_assertion",
+  (d) => ({
+    id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
+    uid: d.varchar({ length: 64 }).notNull(),
+    userId: d
+      .text()
+      .notNull()
+      .references(() => user.id),
+    courseId: d
+      .integer()
+      .notNull()
+      .references(() => courses.id, { onDelete: "cascade" }),
+    certificateId: d
+      .integer()
+      .references(() => certificates.id, { onDelete: "set null" }),
+    name: d.varchar({ length: 256 }).notNull(),
+    description: d.text(),
+    issuedOn: d
+      .timestamp({ withTimezone: true })
+      .$defaultFn(() => new Date())
+      .notNull(),
+    expiresAt: d.timestamp({ withTimezone: true }),
+    revokedAt: d.timestamp({ withTimezone: true }),
+    evidenceUrl: d.text(),
+    createdAt: d
+      .timestamp({ withTimezone: true })
+      .$defaultFn(() => new Date())
+      .notNull(),
+  }),
+  (t) => [
+    unique("badge_assertion_uid").on(t.uid),
+    unique("badge_assertion_course_user").on(t.courseId, t.userId),
+    index("badge_assertion_user_idx").on(t.userId),
+  ],
+);
+
 export const courseProgress = createTable(
   "course_progress",
   (d) => ({

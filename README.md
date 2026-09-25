@@ -44,6 +44,8 @@ A full-stack, type-safe learning management system for students, teachers, and a
 - Personalized student dashboard with "continue learning", upcoming deadlines, announcements, and recommendations
 - Global full-text search across courses, activities, discussions, and wikis with ranked results, filters, and pagination
 - Gamification engine with points, badges, levels, streaks, and global/course leaderboards
+- Certificates auto-issued on course completion with customizable SVG templates, expiration/renewal, instructor revocation, and public serial verification
+- Open Badges 2.0 digital badge assertions with hosted verification pages and learner portfolio sharing
 - `Ctrl/Cmd+K` keyboard shortcut for instant search from the app header
 - File resources with upload/download support
 - Rich-text Pages and Text & Media content

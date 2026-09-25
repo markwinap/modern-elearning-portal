@@ -2,6 +2,7 @@ import { activityRouter } from "~/server/api/routers/activityRouter";
 import { announcementRouter } from "~/server/api/routers/announcementRouter";
 import { auditRouter } from "~/server/api/routers/auditRouter";
 import { categoryRouter } from "~/server/api/routers/categoryRouter";
+import { certificateRouter } from "~/server/api/routers/certificateRouter";
 import { courseRouter } from "~/server/api/routers/courseRouter";
 import { dashboardRouter } from "~/server/api/routers/dashboardRouter";
 import { enrollmentRouter } from "~/server/api/routers/enrollmentRouter";
@@ -29,6 +30,7 @@ export const appRouter = createTRPCRouter({
   user: userRouter,
   audit: auditRouter,
   category: categoryRouter,
+  certificate: certificateRouter,
   course: courseRouter,
   dashboard: dashboardRouter,
   section: sectionRouter,
