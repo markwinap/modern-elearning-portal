@@ -3,6 +3,8 @@ import { announcementRouter } from "~/server/api/routers/announcementRouter";
 import { auditRouter } from "~/server/api/routers/auditRouter";
 import { categoryRouter } from "~/server/api/routers/categoryRouter";
 import { certificateRouter } from "~/server/api/routers/certificateRouter";
+import { learningPathRouter } from "~/server/api/routers/learningPathRouter";
+import { skillRouter } from "~/server/api/routers/skillRouter";
 import { courseRouter } from "~/server/api/routers/courseRouter";
 import { dashboardRouter } from "~/server/api/routers/dashboardRouter";
 import { enrollmentRouter } from "~/server/api/routers/enrollmentRouter";
@@ -31,6 +33,8 @@ export const appRouter = createTRPCRouter({
   audit: auditRouter,
   category: categoryRouter,
   certificate: certificateRouter,
+  skill: skillRouter,
+  learningPath: learningPathRouter,
   course: courseRouter,
   dashboard: dashboardRouter,
   section: sectionRouter,

@@ -171,6 +171,7 @@ export const gamificationRouter = createTRPCRouter({
       quizPassedPoints: config.quizPassedPoints,
       courseCompletedPoints: config.courseCompletedPoints,
       dailyLoginPoints: config.dailyLoginPoints,
+      skillAttainedPoints: config.skillAttainedPoints,
       levelThresholds: Array.isArray(config.levelThresholds)
         ? config.levelThresholds
         : DEFAULT_GAMIFICATION_RULES.levelThresholds,

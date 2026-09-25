@@ -5,6 +5,7 @@ export const gamificationRulesSchema = z.object({
   quizPassedPoints: z.number().int().min(0),
   courseCompletedPoints: z.number().int().min(0),
   dailyLoginPoints: z.number().int().min(0),
+  skillAttainedPoints: z.number().int().min(0).default(20),
   levelThresholds: z.array(z.number().int().min(0)).min(1),
 });
 
@@ -15,6 +16,7 @@ export const DEFAULT_GAMIFICATION_RULES: GamificationRules = {
   quizPassedPoints: 25,
   courseCompletedPoints: 100,
   dailyLoginPoints: 5,
+  skillAttainedPoints: 20,
   levelThresholds: [0, 100, 250, 500, 1000, 2000],
 };
 

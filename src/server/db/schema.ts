@@ -945,6 +945,186 @@ export const badgeAssertions = createTable(
   ],
 );
 
+export const pathStatusEnum = pgEnum("learning_path_status", [
+  "draft",
+  "published",
+  "archived",
+]);
+
+export const skillCategories = createTable("skill_category", (d) => ({
+  id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
+  name: d.varchar({ length: 128 }).notNull(),
+  description: d.text(),
+  createdAt: d
+    .timestamp({ withTimezone: true })
+    .$defaultFn(() => new Date())
+    .notNull(),
+}));
+
+export const skills = createTable(
+  "skill",
+  (d) => ({
+    id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
+    categoryId: d.integer().references(() => skillCategories.id, {
+      onDelete: "set null",
+    }),
+    name: d.varchar({ length: 128 }).notNull(),
+    description: d.text(),
+    createdAt: d
+      .timestamp({ withTimezone: true })
+      .$defaultFn(() => new Date())
+      .notNull(),
+  }),
+  (t) => [
+    index("skill_category_idx").on(t.categoryId),
+    unique("skill_name_unique").on(t.name),
+  ],
+);
+
+export const courseSkills = createTable(
+  "course_skill",
+  (d) => ({
+    courseId: d
+      .integer()
+      .notNull()
+      .references(() => courses.id, { onDelete: "cascade" }),
+    skillId: d
+      .integer()
+      .notNull()
+      .references(() => skills.id, { onDelete: "cascade" }),
+    weight: d.integer().default(100).notNull(),
+  }),
+  (t) => [unique("course_skill_unique").on(t.courseId, t.skillId)],
+);
+
+export const activitySkills = createTable(
+  "activity_skill",
+  (d) => ({
+    activityId: d
+      .integer()
+      .notNull()
+      .references(() => activities.id, { onDelete: "cascade" }),
+    skillId: d
+      .integer()
+      .notNull()
+      .references(() => skills.id, { onDelete: "cascade" }),
+    weight: d.integer().default(100).notNull(),
+  }),
+  (t) => [unique("activity_skill_unique").on(t.activityId, t.skillId)],
+);
+
+export const userSkills = createTable(
+  "user_skill",
+  (d) => ({
+    id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
+    userId: d
+      .text()
+      .notNull()
+      .references(() => user.id),
+    skillId: d
+      .integer()
+      .notNull()
+      .references(() => skills.id, { onDelete: "cascade" }),
+    score: d.integer().default(0).notNull(),
+    evidenceCourseId: d.integer().references(() => courses.id, {
+      onDelete: "set null",
+    }),
+    attainedAt: d.timestamp({ withTimezone: true }),
+    createdAt: d
+      .timestamp({ withTimezone: true })
+      .$defaultFn(() => new Date())
+      .notNull(),
+    updatedAt: d.timestamp({ withTimezone: true }).$onUpdate(() => new Date()),
+  }),
+  (t) => [
+    unique("user_skill_unique").on(t.userId, t.skillId),
+    index("user_skill_user_idx").on(t.userId),
+  ],
+);
+
+export const learningPaths = createTable(
+  "learning_path",
+  (d) => ({
+    id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
+    title: d.varchar({ length: 256 }).notNull(),
+    description: d.text(),
+    status: pathStatusEnum("status").default("draft").notNull(),
+    targetRole: d.varchar({ length: 128 }),
+    createdBy: d.text().references(() => user.id, { onDelete: "set null" }),
+    createdAt: d
+      .timestamp({ withTimezone: true })
+      .$defaultFn(() => new Date())
+      .notNull(),
+    updatedAt: d.timestamp({ withTimezone: true }).$onUpdate(() => new Date()),
+  }),
+  (t) => [index("learning_path_status_idx").on(t.status)],
+);
+
+export const pathCourses = createTable(
+  "path_course",
+  (d) => ({
+    id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
+    pathId: d
+      .integer()
+      .notNull()
+      .references(() => learningPaths.id, { onDelete: "cascade" }),
+    courseId: d
+      .integer()
+      .notNull()
+      .references(() => courses.id, { onDelete: "cascade" }),
+    order: d.integer().default(0).notNull(),
+    prerequisiteCourseId: d.integer().references(() => courses.id, {
+      onDelete: "set null",
+    }),
+    requiredScore: d.integer(),
+  }),
+  (t) => [
+    unique("path_course_unique").on(t.pathId, t.courseId),
+    index("path_course_path_idx").on(t.pathId),
+  ],
+);
+
+export const pathSkillTargets = createTable(
+  "path_skill_target",
+  (d) => ({
+    pathId: d
+      .integer()
+      .notNull()
+      .references(() => learningPaths.id, { onDelete: "cascade" }),
+    skillId: d
+      .integer()
+      .notNull()
+      .references(() => skills.id, { onDelete: "cascade" }),
+    targetLevel: d.integer().default(100).notNull(),
+  }),
+  (t) => [unique("path_skill_target_unique").on(t.pathId, t.skillId)],
+);
+
+export const pathEnrollments = createTable(
+  "path_enrollment",
+  (d) => ({
+    id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
+    pathId: d
+      .integer()
+      .notNull()
+      .references(() => learningPaths.id, { onDelete: "cascade" }),
+    userId: d
+      .text()
+      .notNull()
+      .references(() => user.id),
+    progressPct: d.integer().default(0).notNull(),
+    startedAt: d
+      .timestamp({ withTimezone: true })
+      .$defaultFn(() => new Date())
+      .notNull(),
+    completedAt: d.timestamp({ withTimezone: true }),
+  }),
+  (t) => [
+    unique("path_enrollment_unique").on(t.pathId, t.userId),
+    index("path_enrollment_user_idx").on(t.userId),
+  ],
+);
+
 export const courseProgress = createTable(
   "course_progress",
   (d) => ({
@@ -1218,6 +1398,7 @@ export const gamificationEventSourceEnum = pgEnum("gamification_event_source", [
   "activity_completed",
   "quiz_passed",
   "course_completed",
+  "skill_attained",
   "daily_login",
   "badge_bonus",
 ]);
@@ -1249,6 +1430,7 @@ export const gamificationConfig = createTable(
     quizPassedPoints: d.integer().notNull().default(25),
     courseCompletedPoints: d.integer().notNull().default(100),
     dailyLoginPoints: d.integer().notNull().default(5),
+    skillAttainedPoints: d.integer().notNull().default(20),
     levelThresholds: d
       .jsonb()
       .$type<number[]>()

@@ -57,6 +57,9 @@ A full-stack, type-safe learning management system for students, teachers, and a
 - Workshops with submission, peer assessment, rubrics, and weighted teacher/peer grading
 - Activity completion tracking by view, submit, grade, or time spent
 - Student learning view that redirects to the first available activity and tracks progress
+- Skills framework with competency mapping to courses/activities and learner skill profiles
+- Multi-course learning paths with ordered course sequences, prerequisites, and progress tracking
+- Skill gap analysis with content recommendations based on mapped courses
 
 ### Communication
 

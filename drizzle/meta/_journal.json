@@ -113,6 +113,13 @@
       "when": 1790306211527,
       "tag": "0015_quiet_vision",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1790360464772,
+      "tag": "0016_polite_power_man",
+      "breakpoints": true
     }
   ]
 }

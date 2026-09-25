@@ -54,6 +54,7 @@ export async function getGamificationRules(
       quizPassedPoints: gamificationConfig.quizPassedPoints,
       courseCompletedPoints: gamificationConfig.courseCompletedPoints,
       dailyLoginPoints: gamificationConfig.dailyLoginPoints,
+      skillAttainedPoints: gamificationConfig.skillAttainedPoints,
       levelThresholds: gamificationConfig.levelThresholds,
     })
     .from(gamificationConfig)
@@ -71,6 +72,9 @@ export async function getGamificationRules(
       DEFAULT_GAMIFICATION_RULES.courseCompletedPoints,
     dailyLoginPoints:
       config?.dailyLoginPoints ?? DEFAULT_GAMIFICATION_RULES.dailyLoginPoints,
+    skillAttainedPoints:
+      config?.skillAttainedPoints ??
+      DEFAULT_GAMIFICATION_RULES.skillAttainedPoints,
     levelThresholds: Array.isArray(config?.levelThresholds)
       ? config.levelThresholds
       : DEFAULT_GAMIFICATION_RULES.levelThresholds,
@@ -378,6 +382,19 @@ export async function processGamificationEvent(
         "Daily login",
       );
       if (awarded) pointsAwarded += rules.dailyLoginPoints;
+      break;
+    }
+    case "skill_attained": {
+      const awarded = await awardPoints(
+        database,
+        userId,
+        rules.skillAttainedPoints ?? 20,
+        "skill_attained",
+        String(event.skillId),
+        null,
+        "Skill attained",
+      );
+      if (awarded) pointsAwarded += rules.skillAttainedPoints ?? 20;
       break;
     }
   }

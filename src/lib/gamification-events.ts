@@ -20,6 +20,11 @@ export const courseCompletedEventSchema = z.object({
   courseId: z.number().int(),
 });
 
+export const skillAttainedEventSchema = z.object({
+  type: z.literal("skill_attained"),
+  skillId: z.number().int(),
+});
+
 export const dailyLoginEventSchema = z.object({
   type: z.literal("daily_login"),
   date: z.string().date(),
@@ -29,6 +34,7 @@ export const gamificationEventSchema = z.discriminatedUnion("type", [
   activityCompletedEventSchema,
   quizPassedEventSchema,
   courseCompletedEventSchema,
+  skillAttainedEventSchema,
   dailyLoginEventSchema,
 ]);
 

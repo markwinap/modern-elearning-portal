@@ -205,6 +205,19 @@ export const progressRouter = createTRPCRouter({
             ctx.session.user.id,
             activityRow.courseId,
           );
+          const { updateUserSkillOnCourseCompletion } =
+            await import("~/server/lib/skills");
+          const attainedSkillIds = await updateUserSkillOnCourseCompletion(
+            tx,
+            ctx.session.user.id,
+            activityRow.courseId,
+          );
+          for (const skillId of attainedSkillIds) {
+            await processGamificationEvent(tx, ctx.session.user.id, {
+              type: "skill_attained",
+              skillId,
+            });
+          }
         }
       });
     }),

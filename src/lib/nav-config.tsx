@@ -44,6 +44,16 @@ export const studentNavItems: MenuProps["items"] = [
     label: <Link href="/learn/certificates">Certificates</Link>,
   },
   {
+    key: "/learn/learning-paths",
+    icon: <BookOutlined />,
+    label: <Link href="/learn/learning-paths">Learning paths</Link>,
+  },
+  {
+    key: "/learn/skills",
+    icon: <TrophyOutlined />,
+    label: <Link href="/learn/skills">Skills</Link>,
+  },
+  {
     key: "/messages",
     icon: <MessageOutlined />,
     label: <Link href="/messages">Messages</Link>,
@@ -70,6 +80,11 @@ export const teacherNavItems: MenuProps["items"] = [
     key: "/teach/question-bank",
     icon: <DatabaseOutlined />,
     label: <Link href="/teach/question-bank">Question Bank</Link>,
+  },
+  {
+    key: "/teach/learning-paths",
+    icon: <BookOutlined />,
+    label: <Link href="/teach/learning-paths">Learning Paths</Link>,
   },
   {
     key: "/messages",
@@ -113,6 +128,11 @@ export const adminNavItems: MenuProps["items"] = [
     key: "/admin/gamification",
     icon: <TrophyOutlined />,
     label: <Link href="/admin/gamification">Gamification</Link>,
+  },
+  {
+    key: "/admin/skills",
+    icon: <SafetyOutlined />,
+    label: <Link href="/admin/skills">Skills</Link>,
   },
   {
     key: "/admin/security",
