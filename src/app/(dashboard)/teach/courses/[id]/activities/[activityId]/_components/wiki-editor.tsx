@@ -218,7 +218,7 @@ export function WikiEditor({ activityId }: Props) {
         title="Revision History"
         open={revisionsOpen}
         onClose={() => setRevisionsOpen(false)}
-        width={640}
+        size={640}
       >
         {revisions.length === 0 ? (
           <Empty description="No revisions yet." />
@@ -227,7 +227,7 @@ export function WikiEditor({ activityId }: Props) {
             dataSource={revisions}
             renderItem={(rev) => (
               <List.Item>
-                <Space direction="vertical" style={{ width: "100%" }}>
+                <Space orientation="vertical" style={{ width: "100%" }}>
                   <Typography.Text type="secondary">
                     Version {rev.version} —{" "}
                     {new Date(rev.createdAt).toLocaleString()}

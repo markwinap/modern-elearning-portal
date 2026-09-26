@@ -25,7 +25,7 @@ export function MobileDrawer({
       onClose={onClose}
       open={open}
       footer={footer}
-      width={280}
+      size={280}
       styles={{
         body: { padding: 0 },
       }}
