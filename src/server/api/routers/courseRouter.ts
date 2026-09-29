@@ -233,6 +233,40 @@ export const courseRouter = createTRPCRouter({
       await ctx.db.update(courses).set(data).where(eq(courses.id, id));
     }),
 
+  deleteDraft: teacherProcedure
+    .input(z.object({ id: z.number().int() }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.transaction(async (tx) => {
+        const [course] = await tx
+          .select({ teacherId: courses.teacherId, status: courses.status })
+          .from(courses)
+          .where(eq(courses.id, input.id))
+          .limit(1);
+
+        if (!course) throw new TRPCError({ code: "NOT_FOUND" });
+        assertOwnerOrAdmin(ctx, course.teacherId);
+
+        if (course.status !== "draft") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Only draft courses can be deleted",
+          });
+        }
+
+        const deleted = await tx
+          .delete(courses)
+          .where(and(eq(courses.id, input.id), eq(courses.status, "draft")))
+          .returning({ id: courses.id });
+
+        if (deleted.length === 0) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "The course is no longer a draft",
+          });
+        }
+      });
+    }),
+
   publish: teacherProcedure
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ ctx, input }) => {

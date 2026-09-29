@@ -36,13 +36,17 @@ export function CourseProgressCard({
           aria-label={title}
         />
       }
-      bodyStyle={{ padding: 16 }}
+      styles={{ body: { padding: 16 } }}
     >
       <Typography.Text strong style={{ display: "block", marginBottom: 8 }}>
         {title}
       </Typography.Text>
-      <Progress percent={progressPct} size="small" aria-label={`${title} ${progressPct}% complete`} />
-      <Link href={href} passHref legacyBehavior>
+      <Progress
+        percent={progressPct}
+        size="small"
+        aria-label={`${title} ${progressPct}% complete`}
+      />
+      <Link href={href}>
         <Button
           type="primary"
           icon={<PlayCircleOutlined />}

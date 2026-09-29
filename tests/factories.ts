@@ -76,6 +76,7 @@ export async function createTestCourse(
     description: string;
     categoryId: number;
     locationType: "online" | "onsite";
+    status: "draft" | "published" | "archived";
   }> = {},
 ) {
   courseCounter++;
@@ -90,7 +91,7 @@ export async function createTestCourse(
       categoryId,
       locationType: overrides.locationType ?? "online",
       teacherId,
-      status: "published",
+      status: overrides.status ?? "published",
     })
     .returning();
   if (!created) throw new Error("Failed to create test course");

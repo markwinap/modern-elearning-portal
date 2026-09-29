@@ -537,7 +537,7 @@ export const quizAttempts = createTable(
     quizActivityId: d
       .integer()
       .notNull()
-      .references(() => activities.id),
+      .references(() => activities.id, { onDelete: "cascade" }),
     userId: d
       .text()
       .notNull()
@@ -567,7 +567,7 @@ export const quizAnswers = createTable(
     questionId: d
       .integer()
       .notNull()
-      .references(() => quizQuestions.id),
+      .references(() => quizQuestions.id, { onDelete: "cascade" }),
     answer: d.jsonb().$type<QuizStudentAnswer>().notNull(),
     isCorrect: d.boolean(),
     pointsAwarded: d.integer().default(0).notNull(),
@@ -698,7 +698,7 @@ export const workshopSubmissions = createTable(
     workshopActivityId: d
       .integer()
       .notNull()
-      .references(() => activities.id),
+      .references(() => activities.id, { onDelete: "cascade" }),
     userId: d
       .text()
       .notNull()
@@ -1204,7 +1204,7 @@ export const messageThreads = createTable(
   "message_thread",
   (d) => ({
     id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
-    courseId: d.integer().references(() => courses.id),
+    courseId: d.integer().references(() => courses.id, { onDelete: "cascade" }),
     subject: d.varchar({ length: 256 }).notNull(),
     createdBy: d
       .text()

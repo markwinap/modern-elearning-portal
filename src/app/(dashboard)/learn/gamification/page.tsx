@@ -27,13 +27,13 @@ export default function GamificationPage() {
     }),
   );
 
-  const recordLogin = useMutation(
+  const { mutate: recordDailyLogin } = useMutation(
     trpc.gamification.recordDailyLogin.mutationOptions(),
   );
 
   useEffect(() => {
-    recordLogin.mutate();
-  }, [recordLogin]);
+    recordDailyLogin();
+  }, [recordDailyLogin]);
 
   if (isLoading) {
     return (

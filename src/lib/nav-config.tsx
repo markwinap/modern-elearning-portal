@@ -82,11 +82,6 @@ export const teacherNavItems: MenuProps["items"] = [
     label: <Link href="/teach/question-bank">Question Bank</Link>,
   },
   {
-    key: "/teach/learning-paths",
-    icon: <BookOutlined />,
-    label: <Link href="/teach/learning-paths">Learning Paths</Link>,
-  },
-  {
     key: "/messages",
     icon: <MessageOutlined />,
     label: <Link href="/messages">Messages</Link>,
@@ -133,6 +128,11 @@ export const adminNavItems: MenuProps["items"] = [
     key: "/admin/skills",
     icon: <SafetyOutlined />,
     label: <Link href="/admin/skills">Skills</Link>,
+  },
+  {
+    key: "/teach/learning-paths",
+    icon: <BookOutlined />,
+    label: <Link href="/teach/learning-paths">Learning Paths</Link>,
   },
   {
     key: "/admin/security",
@@ -238,6 +238,12 @@ export const adminMobileNavItems: MobileNavItem[] = [
     href: "/admin/gamification",
     label: "Gamify",
     icon: <TrophyOutlined />,
+  },
+  {
+    key: "/teach/learning-paths",
+    href: "/teach/learning-paths",
+    label: "Paths",
+    icon: <BookOutlined />,
   },
   {
     key: "/notifications",

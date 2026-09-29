@@ -6,7 +6,7 @@ import {
   ClockCircleOutlined,
   NotificationOutlined,
 } from "@ant-design/icons";
-import { Badge, Button, Card, Col, List, Row, Space, Typography } from "antd";
+import { Badge, Button, Card, Col, Row, Space, Typography } from "antd";
 import Link from "next/link";
 
 import { CourseProgressCard } from "~/components/course/CourseProgressCard";
@@ -34,6 +34,14 @@ function formatDueDate(date: Date) {
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
+  }).format(new Date(date));
+}
+
+function formatShortDate(date: Date) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
   }).format(new Date(date));
 }
 
@@ -108,38 +116,40 @@ export function LearnerHome({
                 description="You have no deadlines in the next two weeks."
               />
             ) : (
-              <List
-                dataSource={upcomingDeadlines}
-                renderItem={(item) => (
-                  <List.Item>
-                    <List.Item.Meta
-                      title={
-                        <Link
-                          href={
-                            item.courseSlug
-                              ? `/courses/${item.courseSlug}`
-                              : "#"
-                          }
-                        >
-                          {item.title}
-                        </Link>
-                      }
-                      description={
-                        <Space size={0} direction="vertical">
-                          <Typography.Text type="secondary">
-                            {item.courseTitle}
-                          </Typography.Text>
-                          <Typography.Text type="secondary">
-                            <ClockCircleOutlined style={{ marginRight: 4 }} />
-                            {formatDueDate(item.dueAt)}
-                            {item.meta ? ` · ${item.meta}` : null}
-                          </Typography.Text>
-                        </Space>
-                      }
-                    />
-                  </List.Item>
-                )}
-              />
+              <div>
+                {upcomingDeadlines.map((item, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      padding: "12px 0",
+                      borderBottom:
+                        idx < upcomingDeadlines.length - 1
+                          ? "1px solid #f0f0f0"
+                          : undefined,
+                    }}
+                  >
+                    <div>
+                      <Link
+                        href={
+                          item.courseSlug ? `/courses/${item.courseSlug}` : "#"
+                        }
+                      >
+                        {item.title}
+                      </Link>
+                    </div>
+                    <Space size={0} orientation="vertical">
+                      <Typography.Text type="secondary">
+                        {item.courseTitle}
+                      </Typography.Text>
+                      <Typography.Text type="secondary">
+                        <ClockCircleOutlined style={{ marginRight: 4 }} />
+                        {formatDueDate(item.dueAt)}
+                        {item.meta ? ` · ${item.meta}` : null}
+                      </Typography.Text>
+                    </Space>
+                  </div>
+                ))}
+              </div>
             )}
           </Card>
         </Col>
@@ -160,36 +170,40 @@ export function LearnerHome({
                 description="Check back later for updates from your courses."
               />
             ) : (
-              <List
-                dataSource={announcements}
-                renderItem={(item) => (
-                  <List.Item>
-                    <List.Item.Meta
-                      title={
-                        <Link
-                          href={
-                            item.courseSlug
-                              ? `/courses/${item.courseSlug}/discussions`
-                              : "#"
-                          }
-                        >
-                          {item.title}
-                        </Link>
-                      }
-                      description={
-                        <Space size={0} direction="vertical">
-                          <Typography.Text type="secondary">
-                            {item.courseTitle}
-                          </Typography.Text>
-                          <Typography.Text type="secondary">
-                            {new Date(item.createdAt).toLocaleDateString()}
-                          </Typography.Text>
-                        </Space>
-                      }
-                    />
-                  </List.Item>
-                )}
-              />
+              <div>
+                {announcements.map((item, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      padding: "12px 0",
+                      borderBottom:
+                        idx < announcements.length - 1
+                          ? "1px solid #f0f0f0"
+                          : undefined,
+                    }}
+                  >
+                    <div>
+                      <Link
+                        href={
+                          item.courseSlug
+                            ? `/courses/${item.courseSlug}/discussions`
+                            : "#"
+                        }
+                      >
+                        {item.title}
+                      </Link>
+                    </div>
+                    <Space size={0} orientation="vertical">
+                      <Typography.Text type="secondary">
+                        {item.courseTitle}
+                      </Typography.Text>
+                      <Typography.Text type="secondary">
+                        {formatShortDate(item.createdAt)}
+                      </Typography.Text>
+                    </Space>
+                  </div>
+                ))}
+              </div>
             )}
           </Card>
         </Col>
@@ -225,7 +239,7 @@ export function LearnerHome({
                       aria-label={course.title}
                     />
                   }
-                  bodyStyle={{ padding: 16 }}
+                  styles={{ body: { padding: 16 } }}
                 >
                   <Typography.Text strong style={{ display: "block" }}>
                     {course.title}

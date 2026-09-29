@@ -120,6 +120,13 @@
       "when": 1790360464772,
       "tag": "0016_polite_power_man",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790657566786,
+      "tag": "0017_gray_smiling_tiger",
+      "breakpoints": true
     }
   ]
 }

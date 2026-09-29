@@ -1,12 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Space, Switch, Typography, theme } from "antd";
+import {
+  App,
+  Button,
+  Popconfirm,
+  Space,
+  Switch,
+  Typography,
+  theme,
+} from "antd";
 import type { ColumnsType } from "antd/es/table";
+import { useMutation } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 
 import { EntityTable } from "~/components/ui/entity-table";
 import {
   BookOutlined,
+  DeleteOutlined,
   EditOutlined,
   EyeOutlined,
   MessageOutlined,
@@ -18,6 +29,7 @@ import Link from "next/link";
 
 import { EmptyState } from "~/components/ui/empty-state";
 import { StatusBadge } from "~/components/ui/status-badge";
+import { useTRPC } from "~/trpc/react";
 
 interface Course {
   id: number;
@@ -38,7 +50,19 @@ interface Props {
 
 export function TeacherDashboard({ courses, currentUserId, role }: Props) {
   const { token } = theme.useToken();
+  const { message } = App.useApp();
+  const router = useRouter();
+  const trpc = useTRPC();
   const [showMineOnly, setShowMineOnly] = useState(false);
+  const deleteDraft = useMutation(
+    trpc.course.deleteDraft.mutationOptions({
+      onSuccess: () => {
+        void message.success("Draft course deleted.");
+        router.refresh();
+      },
+      onError: (error) => void message.error(error.message),
+    }),
+  );
 
   const visibleCourses = showMineOnly
     ? courses.filter((c) => c.teacherId === currentUserId)
@@ -140,6 +164,29 @@ export function TeacherDashboard({ courses, currentUserId, role }: Props) {
             >
               Discuss
             </Button>
+            {course.status === "draft" ? (
+              <Popconfirm
+                title="Delete draft course?"
+                description="This permanently deletes the course and all of its content."
+                okText="Delete"
+                okButtonProps={{ danger: true }}
+                cancelText="Cancel"
+                onConfirm={() => deleteDraft.mutate({ id: course.id })}
+              >
+                <Button
+                  danger
+                  type="link"
+                  size="small"
+                  icon={<DeleteOutlined aria-hidden />}
+                  loading={
+                    deleteDraft.isPending &&
+                    deleteDraft.variables?.id === course.id
+                  }
+                >
+                  Delete
+                </Button>
+              </Popconfirm>
+            ) : null}
           </Space>
         );
       },

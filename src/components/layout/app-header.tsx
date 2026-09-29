@@ -12,6 +12,7 @@ import {
   Badge,
   Button,
   Dropdown,
+  Grid,
   Layout,
   Menu,
   Space,
@@ -48,6 +49,7 @@ export function AppHeader({
   const router = useRouter();
   const pathname = usePathname();
   const { token } = theme.useToken();
+  const screens = Grid.useBreakpoint();
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
   const mobileNavItems = getMobileNavItems(userRole);
@@ -118,7 +120,7 @@ export function AppHeader({
         style={{
           flex: 1,
           display: "flex",
-          justifyContent: "center",
+          justifyContent: "flex-end",
           padding: "0 16px",
         }}
       >
@@ -149,7 +151,7 @@ export function AppHeader({
               size={32}
               style={{ backgroundColor: token.colorPrimary }}
             />
-            <Typography.Text>{userName}</Typography.Text>
+            {screens.md && <Typography.Text>{userName}</Typography.Text>}
           </Space>
         </Dropdown>
       </Space>

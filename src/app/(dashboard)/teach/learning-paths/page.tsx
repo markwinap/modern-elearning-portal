@@ -1,12 +1,18 @@
-import { api } from "~/trpc/server";
+import { redirect } from "next/navigation";
 
 import { PathBuilder } from "~/components/paths/path-builder";
+import { getSession } from "~/server/better-auth/server";
+import { api } from "~/trpc/server";
 
 export const metadata = { title: "Learning paths" };
 
 export default async function LearningPathsPage() {
+  const session = await getSession();
+  if (!session?.user) redirect("/login");
+  if (session.user.role !== "admin") redirect("/dashboard");
+
   const [courses, skills] = await Promise.all([
-    api.course.list({ page: 1, limit: 100 }),
+    api.course.getTeacherCourses({ onlyMine: false }),
     api.skill.list(),
   ]);
   return (
