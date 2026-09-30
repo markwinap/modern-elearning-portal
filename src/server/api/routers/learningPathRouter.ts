@@ -46,6 +46,20 @@ export const learningPathRouter = createTRPCRouter({
       .orderBy(asc(learningPaths.title));
   }),
 
+  listAll: adminProcedure.query(async ({ ctx }) => {
+    return ctx.db
+      .select({
+        id: learningPaths.id,
+        title: learningPaths.title,
+        description: learningPaths.description,
+        status: learningPaths.status,
+        targetRole: learningPaths.targetRole,
+        createdAt: learningPaths.createdAt,
+      })
+      .from(learningPaths)
+      .orderBy(desc(learningPaths.createdAt));
+  }),
+
   getById: publicProcedure
     .input(z.object({ id: z.number().int() }))
     .query(async ({ ctx, input }) => {

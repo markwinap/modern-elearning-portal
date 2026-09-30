@@ -198,4 +198,34 @@ describe("skills and learning paths", () => {
     const status = await caller.gamification.getMyStatus();
     expect(status.points).toBeGreaterThanOrEqual(20);
   }, 20_000);
+
+  it("lets admins list all learning paths including drafts", async () => {
+    const admin = await createTestUser({ role: "admin" });
+    resourceIds.users.push(admin.id);
+
+    const [draftPath] = await db
+      .insert(learningPaths)
+      .values({ title: "Draft path", status: "draft" })
+      .returning();
+    if (!draftPath) throw new Error("Failed to create path");
+
+    const adminCaller = createCaller({
+      db,
+      session: createTestSession({
+        id: admin.id,
+        name: admin.name,
+        email: admin.email,
+        role: "admin",
+      }),
+      headers: new Headers(),
+    });
+
+    const allPaths = await adminCaller.learningPath.listAll();
+    expect(allPaths.some((p) => p.id === draftPath.id)).toBe(true);
+
+    const publicPaths = await adminCaller.learningPath.list();
+    expect(publicPaths.some((p) => p.id === draftPath.id)).toBe(false);
+
+    await db.delete(learningPaths).where(eq(learningPaths.id, draftPath.id));
+  }, 20_000);
 });

@@ -49,7 +49,9 @@ export function PathBuilder({ courses, skills }: Props) {
   const [open, setOpen] = useState(false);
   const [form] = Form.useForm<FormValues>();
 
-  const { data: paths = [] } = useQuery(trpc.learningPath.list.queryOptions());
+  const { data: paths = [] } = useQuery(
+    trpc.learningPath.listAll.queryOptions(),
+  );
   const create = useMutation(
     trpc.learningPath.create.mutationOptions({
       onSuccess: () => {
