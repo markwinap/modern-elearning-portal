@@ -6,6 +6,7 @@ import { defineConfig, devices } from "@playwright/test";
 // authenticated tests so they don't need to sign in themselves.
 const teacherAuthFile = "e2e/.auth/teacher.json";
 const studentAuthFile = "e2e/.auth/student.json";
+const adminAuthFile = "e2e/.auth/admin.json";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -33,6 +34,12 @@ export default defineConfig({
       name: "chromium-student",
       testMatch: "student/**",
       use: { ...devices["Desktop Chrome"], storageState: studentAuthFile },
+      dependencies: ["setup"],
+    },
+    {
+      name: "chromium-admin",
+      testMatch: "admin/**",
+      use: { ...devices["Desktop Chrome"], storageState: adminAuthFile },
       dependencies: ["setup"],
     },
     {

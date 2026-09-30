@@ -65,3 +65,12 @@ setup("authenticate as student", async ({ page }) => {
     storagePath: path.join(import.meta.dirname, ".auth/student.json"),
   });
 });
+
+setup("authenticate as admin", async ({ page }) => {
+  await signInAndSave(page, {
+    email: process.env.E2E_ADMIN_EMAIL,
+    password: process.env.E2E_ADMIN_PASSWORD,
+    envVarNames: "E2E_ADMIN_EMAIL and E2E_ADMIN_PASSWORD",
+    storagePath: path.join(import.meta.dirname, ".auth/admin.json"),
+  });
+});

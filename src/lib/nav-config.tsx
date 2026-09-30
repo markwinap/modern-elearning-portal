@@ -130,9 +130,9 @@ export const adminNavItems: MenuProps["items"] = [
     label: <Link href="/admin/skills">Skills</Link>,
   },
   {
-    key: "/teach/learning-paths",
+    key: "/admin/learning-paths",
     icon: <BookOutlined />,
-    label: <Link href="/teach/learning-paths">Learning Paths</Link>,
+    label: <Link href="/admin/learning-paths">Learning Paths</Link>,
   },
   {
     key: "/admin/security",
@@ -240,8 +240,8 @@ export const adminMobileNavItems: MobileNavItem[] = [
     icon: <TrophyOutlined />,
   },
   {
-    key: "/teach/learning-paths",
-    href: "/teach/learning-paths",
+    key: "/admin/learning-paths",
+    href: "/admin/learning-paths",
     label: "Paths",
     icon: <BookOutlined />,
   },
