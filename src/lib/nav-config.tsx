@@ -17,134 +17,140 @@ import Link from "next/link";
 
 export type UserRole = "student" | "teacher" | "admin";
 
-export const studentNavItems: MenuProps["items"] = [
-  {
-    key: "/dashboard",
-    icon: <DashboardOutlined />,
-    label: <Link href="/dashboard">Dashboard</Link>,
-  },
-  {
-    key: "/courses",
-    icon: <BookOutlined />,
-    label: <Link href="/courses">Browse Courses</Link>,
-  },
-  {
-    key: "/grades",
-    icon: <TrophyOutlined />,
-    label: <Link href="/grades">My Grades</Link>,
-  },
-  {
-    key: "/learn/gamification",
-    icon: <TrophyOutlined />,
-    label: <Link href="/learn/gamification">Achievements</Link>,
-  },
-  {
-    key: "/learn/certificates",
-    icon: <SafetyCertificateOutlined />,
-    label: <Link href="/learn/certificates">Certificates</Link>,
-  },
-  {
-    key: "/learn/learning-paths",
-    icon: <BookOutlined />,
-    label: <Link href="/learn/learning-paths">Learning paths</Link>,
-  },
-  {
-    key: "/learn/skills",
-    icon: <TrophyOutlined />,
-    label: <Link href="/learn/skills">Skills</Link>,
-  },
-  {
-    key: "/messages",
-    icon: <MessageOutlined />,
-    label: <Link href="/messages">Messages</Link>,
-  },
-  {
-    key: "/notifications",
-    icon: <BellOutlined />,
-    label: <Link href="/notifications">Notifications</Link>,
-  },
-];
+export function getStudentNavItems(): MenuProps["items"] {
+  return [
+    {
+      key: "/dashboard",
+      icon: <DashboardOutlined />,
+      label: <Link href="/dashboard">Dashboard</Link>,
+    },
+    {
+      key: "/courses",
+      icon: <BookOutlined />,
+      label: <Link href="/courses">Browse Courses</Link>,
+    },
+    {
+      key: "/grades",
+      icon: <TrophyOutlined />,
+      label: <Link href="/grades">My Grades</Link>,
+    },
+    {
+      key: "/learn/gamification",
+      icon: <TrophyOutlined />,
+      label: <Link href="/learn/gamification">Achievements</Link>,
+    },
+    {
+      key: "/learn/certificates",
+      icon: <SafetyCertificateOutlined />,
+      label: <Link href="/learn/certificates">Certificates</Link>,
+    },
+    {
+      key: "/learn/learning-paths",
+      icon: <BookOutlined />,
+      label: <Link href="/learn/learning-paths">Learning paths</Link>,
+    },
+    {
+      key: "/learn/skills",
+      icon: <TrophyOutlined />,
+      label: <Link href="/learn/skills">Skills</Link>,
+    },
+    {
+      key: "/messages",
+      icon: <MessageOutlined />,
+      label: <Link href="/messages">Messages</Link>,
+    },
+    {
+      key: "/notifications",
+      icon: <BellOutlined />,
+      label: <Link href="/notifications">Notifications</Link>,
+    },
+  ];
+}
 
-export const teacherNavItems: MenuProps["items"] = [
-  {
-    key: "/dashboard",
-    icon: <DashboardOutlined />,
-    label: <Link href="/dashboard">Dashboard</Link>,
-  },
-  {
-    key: "/teach",
-    icon: <BookOutlined />,
-    label: <Link href="/teach">All Courses</Link>,
-  },
-  {
-    key: "/teach/question-bank",
-    icon: <DatabaseOutlined />,
-    label: <Link href="/teach/question-bank">Question Bank</Link>,
-  },
-  {
-    key: "/messages",
-    icon: <MessageOutlined />,
-    label: <Link href="/messages">Messages</Link>,
-  },
-  {
-    key: "/notifications",
-    icon: <BellOutlined />,
-    label: <Link href="/notifications">Notifications</Link>,
-  },
-];
+export function getTeacherNavItems(): MenuProps["items"] {
+  return [
+    {
+      key: "/dashboard",
+      icon: <DashboardOutlined />,
+      label: <Link href="/dashboard">Dashboard</Link>,
+    },
+    {
+      key: "/teach",
+      icon: <BookOutlined />,
+      label: <Link href="/teach">All Courses</Link>,
+    },
+    {
+      key: "/teach/question-bank",
+      icon: <DatabaseOutlined />,
+      label: <Link href="/teach/question-bank">Question Bank</Link>,
+    },
+    {
+      key: "/messages",
+      icon: <MessageOutlined />,
+      label: <Link href="/messages">Messages</Link>,
+    },
+    {
+      key: "/notifications",
+      icon: <BellOutlined />,
+      label: <Link href="/notifications">Notifications</Link>,
+    },
+  ];
+}
 
-export const adminNavItems: MenuProps["items"] = [
-  {
-    key: "/admin",
-    icon: <DashboardOutlined />,
-    label: <Link href="/admin">Overview</Link>,
-  },
-  {
-    key: "/admin/users",
-    icon: <TeamOutlined />,
-    label: <Link href="/admin/users">Users</Link>,
-  },
-  {
-    key: "/admin/categories",
-    icon: <BookOutlined />,
-    label: <Link href="/admin/categories">Categories</Link>,
-  },
-  {
-    key: "/admin/courses",
-    icon: <BookOutlined />,
-    label: <Link href="/admin/courses">All Courses</Link>,
-  },
-  {
-    key: "/admin/settings",
-    icon: <SettingOutlined />,
-    label: <Link href="/admin/settings">Settings</Link>,
-  },
-  {
-    key: "/admin/gamification",
-    icon: <TrophyOutlined />,
-    label: <Link href="/admin/gamification">Gamification</Link>,
-  },
-  {
-    key: "/admin/skills",
-    icon: <SafetyOutlined />,
-    label: <Link href="/admin/skills">Skills</Link>,
-  },
-  {
-    key: "/admin/learning-paths",
-    icon: <BookOutlined />,
-    label: <Link href="/admin/learning-paths">Learning Paths</Link>,
-  },
-  {
-    key: "/admin/security",
-    icon: <SafetyOutlined />,
-    label: <Link href="/admin/security">Security</Link>,
-  },
-  {
-    key: "/notifications",
-    icon: <BellOutlined />,
-    label: <Link href="/notifications">Notifications</Link>,
-  },
-];
+export function getAdminNavItems(): MenuProps["items"] {
+  return [
+    {
+      key: "/admin",
+      icon: <DashboardOutlined />,
+      label: <Link href="/admin">Overview</Link>,
+    },
+    {
+      key: "/admin/users",
+      icon: <TeamOutlined />,
+      label: <Link href="/admin/users">Users</Link>,
+    },
+    {
+      key: "/admin/categories",
+      icon: <BookOutlined />,
+      label: <Link href="/admin/categories">Categories</Link>,
+    },
+    {
+      key: "/admin/courses",
+      icon: <BookOutlined />,
+      label: <Link href="/admin/courses">All Courses</Link>,
+    },
+    {
+      key: "/admin/settings",
+      icon: <SettingOutlined />,
+      label: <Link href="/admin/settings">Settings</Link>,
+    },
+    {
+      key: "/admin/gamification",
+      icon: <TrophyOutlined />,
+      label: <Link href="/admin/gamification">Gamification</Link>,
+    },
+    {
+      key: "/admin/skills",
+      icon: <SafetyOutlined />,
+      label: <Link href="/admin/skills">Skills</Link>,
+    },
+    {
+      key: "/admin/learning-paths",
+      icon: <BookOutlined />,
+      label: <Link href="/admin/learning-paths">Learning Paths</Link>,
+    },
+    {
+      key: "/admin/security",
+      icon: <SafetyOutlined />,
+      label: <Link href="/admin/security">Security</Link>,
+    },
+    {
+      key: "/notifications",
+      icon: <BellOutlined />,
+      label: <Link href="/notifications">Notifications</Link>,
+    },
+  ];
+}
 
 export interface MobileNavItem {
   key: string;
@@ -153,114 +159,120 @@ export interface MobileNavItem {
   icon: React.ReactNode;
 }
 
-export const studentMobileNavItems: MobileNavItem[] = [
-  {
-    key: "/dashboard",
-    href: "/dashboard",
-    label: "Dashboard",
-    icon: <DashboardOutlined />,
-  },
-  {
-    key: "/courses",
-    href: "/courses",
-    label: "Browse",
-    icon: <BookOutlined />,
-  },
-  {
-    key: "/grades",
-    href: "/grades",
-    label: "Grades",
-    icon: <TrophyOutlined />,
-  },
-  {
-    key: "/learn/gamification",
-    href: "/learn/gamification",
-    label: "Achieve",
-    icon: <TrophyOutlined />,
-  },
-  {
-    key: "/messages",
-    href: "/messages",
-    label: "Messages",
-    icon: <MessageOutlined />,
-  },
-  {
-    key: "/notifications",
-    href: "/notifications",
-    label: "Alerts",
-    icon: <BellOutlined />,
-  },
-];
+export function getStudentMobileNavItems(): MobileNavItem[] {
+  return [
+    {
+      key: "/dashboard",
+      href: "/dashboard",
+      label: "Dashboard",
+      icon: <DashboardOutlined />,
+    },
+    {
+      key: "/courses",
+      href: "/courses",
+      label: "Browse",
+      icon: <BookOutlined />,
+    },
+    {
+      key: "/grades",
+      href: "/grades",
+      label: "Grades",
+      icon: <TrophyOutlined />,
+    },
+    {
+      key: "/learn/gamification",
+      href: "/learn/gamification",
+      label: "Achieve",
+      icon: <TrophyOutlined />,
+    },
+    {
+      key: "/messages",
+      href: "/messages",
+      label: "Messages",
+      icon: <MessageOutlined />,
+    },
+    {
+      key: "/notifications",
+      href: "/notifications",
+      label: "Alerts",
+      icon: <BellOutlined />,
+    },
+  ];
+}
 
-export const teacherMobileNavItems: MobileNavItem[] = [
-  {
-    key: "/dashboard",
-    href: "/dashboard",
-    label: "Dashboard",
-    icon: <DashboardOutlined />,
-  },
-  { key: "/teach", href: "/teach", label: "Courses", icon: <BookOutlined /> },
-  {
-    key: "/messages",
-    href: "/messages",
-    label: "Messages",
-    icon: <MessageOutlined />,
-  },
-  {
-    key: "/notifications",
-    href: "/notifications",
-    label: "Alerts",
-    icon: <BellOutlined />,
-  },
-];
+export function getTeacherMobileNavItems(): MobileNavItem[] {
+  return [
+    {
+      key: "/dashboard",
+      href: "/dashboard",
+      label: "Dashboard",
+      icon: <DashboardOutlined />,
+    },
+    { key: "/teach", href: "/teach", label: "Courses", icon: <BookOutlined /> },
+    {
+      key: "/messages",
+      href: "/messages",
+      label: "Messages",
+      icon: <MessageOutlined />,
+    },
+    {
+      key: "/notifications",
+      href: "/notifications",
+      label: "Alerts",
+      icon: <BellOutlined />,
+    },
+  ];
+}
 
-export const adminMobileNavItems: MobileNavItem[] = [
-  {
-    key: "/admin",
-    href: "/admin",
-    label: "Overview",
-    icon: <DashboardOutlined />,
-  },
-  {
-    key: "/admin/users",
-    href: "/admin/users",
-    label: "Users",
-    icon: <TeamOutlined />,
-  },
-  {
-    key: "/admin/courses",
-    href: "/admin/courses",
-    label: "Courses",
-    icon: <BookOutlined />,
-  },
-  {
-    key: "/admin/gamification",
-    href: "/admin/gamification",
-    label: "Gamify",
-    icon: <TrophyOutlined />,
-  },
-  {
-    key: "/admin/learning-paths",
-    href: "/admin/learning-paths",
-    label: "Paths",
-    icon: <BookOutlined />,
-  },
-  {
-    key: "/notifications",
-    href: "/notifications",
-    label: "Alerts",
-    icon: <BellOutlined />,
-  },
-];
+export function getAdminMobileNavItems(): MobileNavItem[] {
+  return [
+    {
+      key: "/admin",
+      href: "/admin",
+      label: "Overview",
+      icon: <DashboardOutlined />,
+    },
+    {
+      key: "/admin/users",
+      href: "/admin/users",
+      label: "Users",
+      icon: <TeamOutlined />,
+    },
+    {
+      key: "/admin/courses",
+      href: "/admin/courses",
+      label: "Courses",
+      icon: <BookOutlined />,
+    },
+    {
+      key: "/admin/gamification",
+      href: "/admin/gamification",
+      label: "Gamify",
+      icon: <TrophyOutlined />,
+    },
+    {
+      key: "/admin/learning-paths",
+      href: "/admin/learning-paths",
+      label: "Paths",
+      icon: <BookOutlined />,
+    },
+    {
+      key: "/notifications",
+      href: "/notifications",
+      label: "Alerts",
+      icon: <BellOutlined />,
+    },
+  ];
+}
 
 export function getNavItems(role: UserRole): MenuProps["items"] {
-  if (role === "admin") return adminNavItems;
-  if (role === "teacher") return teacherNavItems;
-  return studentNavItems;
+  if (role === "admin") return getAdminNavItems();
+  if (role === "teacher") return getTeacherNavItems();
+  return getStudentNavItems();
 }
 
 export function getMobileNavItems(role: UserRole): MobileNavItem[] {
-  if (role === "admin") return adminMobileNavItems;
-  if (role === "teacher") return teacherMobileNavItems;
-  return studentMobileNavItems;
+  if (role === "admin") return getAdminMobileNavItems();
+  if (role === "teacher") return getTeacherMobileNavItems();
+  return getStudentMobileNavItems();
 }

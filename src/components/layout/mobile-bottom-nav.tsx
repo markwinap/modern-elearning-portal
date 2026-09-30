@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { theme } from "antd";
+import { useEffect, useState } from "react";
 
 import { getMobileNavItems, type UserRole } from "~/lib/nav-config";
 
@@ -13,7 +14,13 @@ interface MobileBottomNavProps {
 export function MobileBottomNav({ userRole }: MobileBottomNavProps) {
   const pathname = usePathname();
   const { token } = theme.useToken();
-  const items = getMobileNavItems(userRole);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const items = mounted ? getMobileNavItems(userRole) : [];
 
   return (
     <nav
@@ -35,7 +42,8 @@ export function MobileBottomNav({ userRole }: MobileBottomNavProps) {
       }}
     >
       {items.map((item) => {
-        const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+        const active =
+          pathname === item.href || pathname.startsWith(`${item.href}/`);
         return (
           <Link
             key={item.key}

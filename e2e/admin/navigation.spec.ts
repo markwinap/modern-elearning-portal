@@ -18,9 +18,7 @@ test.describe("admin sidebar navigation", () => {
       "Security",
       "Notifications",
     ]) {
-      await expect(
-        page.getByRole("menuitem", { name: label }),
-      ).toBeVisible();
+      await expect(page.getByRole("menuitem", { name: label })).toBeVisible();
     }
   });
 
