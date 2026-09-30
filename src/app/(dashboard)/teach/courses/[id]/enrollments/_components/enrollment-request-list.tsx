@@ -79,8 +79,7 @@ export function EnrollmentRequestList({ courseId }: Props) {
           },
           {
             title: "Requested",
-            render: (_, record) =>
-              new Date(record.enrolledAt).toLocaleString(),
+            render: (_, record) => new Date(record.enrolledAt).toLocaleString(),
           },
           {
             title: "Status",
@@ -93,7 +92,9 @@ export function EnrollmentRequestList({ courseId }: Props) {
                 <Button
                   type="primary"
                   icon={<CheckOutlined />}
-                  onClick={() => approve.mutate({ enrollmentId: record.enrollmentId })}
+                  onClick={() =>
+                    approve.mutate({ enrollmentId: record.enrollmentId })
+                  }
                   loading={approve.isPending}
                 >
                   Approve

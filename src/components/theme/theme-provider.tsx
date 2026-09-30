@@ -63,6 +63,7 @@ export function ThemeProvider({ children, fontFamily }: ThemeProviderProps) {
             fontFamily,
           },
           algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
+          hashed: false,
         }}
       >
         <App>{children}</App>

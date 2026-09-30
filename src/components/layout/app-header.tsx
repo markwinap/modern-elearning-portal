@@ -57,7 +57,7 @@ export function AppHeader({
     setMounted(true);
   }, []);
 
-  const mobileNavItems = mounted ? getMobileNavItems(userRole) : [];
+  const mobileNavItems = getMobileNavItems(userRole);
   const { data: unreadCount = unreadNotifications } = useQuery(
     trpc.notification.getUnreadCount.queryOptions(undefined, {
       initialData: unreadNotifications,

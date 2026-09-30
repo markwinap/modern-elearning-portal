@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Layout, Menu, Typography, theme } from "antd";
 import { usePathname } from "next/navigation";
 
@@ -16,17 +16,11 @@ export function AppSider({ userRole }: AppSiderProps) {
   const { isDark } = useTheme();
   const { token } = theme.useToken();
   const [collapsed, setCollapsed] = useState(false);
-  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const allKeys = mounted
-    ? (getNavItems(userRole)
-        ?.map((item) => item?.key as string)
-        .filter(Boolean) ?? [])
-    : [];
+  const allKeys =
+    getNavItems(userRole)
+      ?.map((item) => item?.key as string)
+      .filter(Boolean) ?? [];
 
   const selectedKey =
     allKeys
@@ -83,15 +77,13 @@ export function AppSider({ userRole }: AppSiderProps) {
           </Typography.Text>
         )}
       </div>
-      {mounted && (
-        <Menu
-          theme={isDark ? "dark" : "light"}
-          mode="inline"
-          selectedKeys={[selectedKey]}
-          items={getNavItems(userRole)}
-          style={{ border: "none", paddingTop: 8 }}
-        />
-      )}
+      <Menu
+        theme={isDark ? "dark" : "light"}
+        mode="inline"
+        selectedKeys={[selectedKey]}
+        items={getNavItems(userRole)}
+        style={{ border: "none", paddingTop: 8 }}
+      />
     </Layout.Sider>
   );
 }
