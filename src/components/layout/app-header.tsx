@@ -21,7 +21,7 @@ import {
 } from "antd";
 import type { MenuProps } from "antd";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
 import { authClient } from "~/server/better-auth/client";
@@ -50,7 +50,12 @@ export function AppHeader({
   const pathname = usePathname();
   const { token } = theme.useToken();
   const screens = Grid.useBreakpoint();
+  const [mounted, setMounted] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const mobileNavItems = getMobileNavItems(userRole);
   const { data: unreadCount = unreadNotifications } = useQuery(
@@ -151,7 +156,9 @@ export function AppHeader({
               size={32}
               style={{ backgroundColor: token.colorPrimary }}
             />
-            {screens.md && <Typography.Text>{userName}</Typography.Text>}
+            {mounted && screens.md && (
+              <Typography.Text>{userName}</Typography.Text>
+            )}
           </Space>
         </Dropdown>
       </Space>
