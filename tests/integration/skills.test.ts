@@ -1,7 +1,7 @@
 // @vitest-environment node
 
 import { afterAll, describe, expect, it } from "vitest";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 
 import { appRouter } from "~/server/api/root";
 import { createCallerFactory } from "~/server/api/trpc";
@@ -39,8 +39,8 @@ describe("skills and learning paths", () => {
   };
 
   afterAll(async () => {
-    await db.delete(skills);
-    await db.delete(learningPaths);
+    await db.delete(skills).where(sql`true`);
+    await db.delete(learningPaths).where(sql`true`);
     await deleteTestCourses(resourceIds.courses);
     await deleteTestUsers(resourceIds.users);
   });
@@ -150,9 +150,9 @@ describe("skills and learning paths", () => {
       );
     expect(enrollment).toBeDefined();
 
-    await db.delete(pathEnrollments);
-    await db.delete(pathCourses);
-    await db.delete(learningPaths);
+    await db.delete(pathEnrollments).where(sql`true`);
+    await db.delete(pathCourses).where(sql`true`);
+    await db.delete(learningPaths).where(sql`true`);
   }, 20_000);
 
   it("awards points on skill attainment via gamification event", async () => {
