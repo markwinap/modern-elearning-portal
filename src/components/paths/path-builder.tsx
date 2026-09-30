@@ -148,7 +148,7 @@ export function PathBuilder({ courses, skills }: Props) {
       title: "Title",
       key: "title",
       render: (_: unknown, path: PathListItem) => (
-        <Space direction="vertical" size={0}>
+        <Space orientation="vertical" size={0}>
           <Typography.Text strong>{path.title}</Typography.Text>
           {path.description && (
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>

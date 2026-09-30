@@ -67,7 +67,7 @@ export function EnrollmentRequestList({ courseId }: Props) {
           {
             title: "Student",
             render: (_, record) => (
-              <Space direction="vertical" size={0}>
+              <Space orientation="vertical" size={0}>
                 <Typography.Text strong>
                   {record.userName ?? "—"}
                 </Typography.Text>

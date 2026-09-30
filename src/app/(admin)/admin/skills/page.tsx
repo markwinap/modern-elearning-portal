@@ -105,7 +105,7 @@ export default function SkillsAdminPage() {
       title: "Name",
       key: "name",
       render: (_: unknown, skill: Skill) => (
-        <Space direction="vertical" size={0}>
+        <Space orientation="vertical" size={0}>
           <Typography.Text strong>{skill.name}</Typography.Text>
           {skill.description && (
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
