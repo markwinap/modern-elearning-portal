@@ -1,20 +1,34 @@
 "use client";
 
+import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   App,
   Button,
   Form,
   Input,
-  List,
-  Modal,
+  Popconfirm,
   Select,
   Space,
+  Tag,
   Typography,
 } from "antd";
-import { useState } from "react";
+import type { ColumnsType } from "antd/es/table";
+import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 
+import { EntityTable } from "~/components/ui/entity-table";
+import { FormModal } from "~/components/ui/form-modal";
+import { ToolbarRow } from "~/components/ui/toolbar-row";
+import { toastMutationOptions } from "~/lib/mutation-utils";
+import { useCrudModal } from "~/lib/use-crud-modal";
 import { useTRPC } from "~/trpc/react";
+
+interface Skill {
+  id: number;
+  name: string;
+  description: string | null;
+  categoryId: number | null;
+}
 
 interface FormValues {
   name: string;
@@ -22,117 +36,183 @@ interface FormValues {
   categoryId?: number | null;
 }
 
-interface CategoryFormValues {
-  name: string;
-  description?: string;
-  parentId?: number | null;
-}
-
 export default function SkillsAdminPage() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
-  const { message } = App.useApp();
-  const [skillOpen, setSkillOpen] = useState(false);
-  const [categoryOpen, setCategoryOpen] = useState(false);
+  const { message: messageApi } = App.useApp();
+  const modal = useCrudModal<Skill>();
+  const [form] = Form.useForm<FormValues>();
 
-  const { data: { skills, categories } = { skills: [], categories: [] } } =
-    useQuery(trpc.skill.listWithCategories.queryOptions());
+  const { data: { skills = [], categories = [] } = {}, isLoading } = useQuery(
+    trpc.skill.listWithCategories.queryOptions(),
+  );
+
+  useEffect(() => {
+    if (!modal.isOpen) return;
+    if (modal.editing) {
+      form.setFieldsValue({
+        name: modal.editing.name,
+        description: modal.editing.description ?? undefined,
+        categoryId: modal.editing.categoryId ?? null,
+      });
+    } else {
+      form.resetFields();
+    }
+  }, [modal.isOpen, modal.editing, form]);
+
+  const invalidateSkills = () =>
+    queryClient.invalidateQueries({
+      queryKey: trpc.skill.listWithCategories.queryKey(),
+    });
 
   const createSkill = useMutation(
     trpc.skill.create.mutationOptions({
-      onSuccess: () => {
-        void queryClient.invalidateQueries();
-        void message.success("Skill created");
-        setSkillOpen(false);
-      },
-      onError: (error) => void message.error(error.message),
+      ...toastMutationOptions({
+        messageApi,
+        successMessage: "Skill created",
+        invalidate: invalidateSkills,
+        onSuccess: () => {
+          modal.close();
+          form.resetFields();
+        },
+      }),
     }),
   );
 
-  const createCategory = useMutation(
-    trpc.skill.createCategory.mutationOptions({
-      onSuccess: () => {
-        void queryClient.invalidateQueries();
-        void message.success("Category created");
-        setCategoryOpen(false);
-      },
-      onError: (error) => void message.error(error.message),
+  const updateSkill = useMutation(
+    trpc.skill.update.mutationOptions({
+      ...toastMutationOptions({
+        messageApi,
+        successMessage: "Skill updated",
+        invalidate: invalidateSkills,
+        onSuccess: () => modal.close(),
+      }),
     }),
   );
+
+  const deleteSkill = useMutation(
+    trpc.skill.delete.mutationOptions({
+      ...toastMutationOptions({
+        messageApi,
+        successMessage: "Skill deleted",
+        invalidate: invalidateSkills,
+      }),
+    }),
+  );
+
+  const columns: ColumnsType<Skill> = [
+    {
+      title: "Name",
+      key: "name",
+      render: (_: unknown, skill: Skill) => (
+        <Space direction="vertical" size={0}>
+          <Typography.Text strong>{skill.name}</Typography.Text>
+          {skill.description && (
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              {skill.description}
+            </Typography.Text>
+          )}
+        </Space>
+      ),
+    },
+    {
+      title: "Category",
+      key: "category",
+      render: (_: unknown, skill: Skill) => {
+        const category = categories.find((c) => c.id === skill.categoryId);
+        return category ? (
+          <Tag>{category.name}</Tag>
+        ) : (
+          <Typography.Text type="secondary">—</Typography.Text>
+        );
+      },
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      width: 120,
+      render: (_: unknown, skill: Skill) => (
+        <Space>
+          <Button
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => modal.openEdit(skill)}
+          />
+          <Popconfirm
+            title="Delete this skill?"
+            onConfirm={() => deleteSkill.mutate({ id: skill.id })}
+            okText="Delete"
+            okButtonProps={{ danger: true }}
+          >
+            <Button
+              size="small"
+              danger
+              icon={<DeleteOutlined />}
+              loading={deleteSkill.isPending}
+            />
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
 
   return (
-    <main>
+    <main style={{ padding: 24 }}>
       <h1>Skills taxonomy</h1>
-      <Space>
-        <Button type="primary" onClick={() => setSkillOpen(true)}>
-          Add skill
-        </Button>
-        <Button onClick={() => setCategoryOpen(true)}>Add category</Button>
-      </Space>
-      <List
-        dataSource={skills}
-        renderItem={(skill) => (
-          <List.Item>
-            <Typography.Text strong>{skill.name}</Typography.Text>
-            {skill.description && (
-              <Typography.Text type="secondary"> — {skill.description}</Typography.Text>
-            )}
-            <span>
-              Category: {" "}
-              {categories.find((c) => c.id === skill.categoryId)?.name ??
-                "None"}
-            </span>
-          </List.Item>
-        )}
+      <ToolbarRow
+        right={
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => modal.openCreate()}
+          >
+            Add skill
+          </Button>
+        }
       />
-      <Modal
-        title="Add skill"
-        open={skillOpen}
-        onCancel={() => setSkillOpen(false)}
-        footer={null}
+
+      <EntityTable
+        dataSource={skills}
+        columns={columns}
+        loading={isLoading}
+        pagination={{ pageSize: 20, hideOnSinglePage: true }}
+        locale={{ emptyText: "No skills yet." }}
+      />
+
+      <FormModal
+        form={form}
+        title={modal.editing ? `Edit "${modal.editing.name}"` : "Add skill"}
+        open={modal.isOpen}
+        onCancel={() => modal.close()}
+        confirmLoading={
+          modal.editing ? updateSkill.isPending : createSkill.isPending
+        }
+        onFinish={(v: FormValues) => {
+          const values = {
+            name: v.name,
+            description: v.description,
+            categoryId: v.categoryId ?? null,
+          };
+          if (modal.editing) {
+            updateSkill.mutate({ id: modal.editing.id, ...values });
+          } else {
+            createSkill.mutate(values);
+          }
+        }}
       >
-        <Form onFinish={(v: FormValues) => createSkill.mutate(v)}>
-          <Form.Item name="name" label="Name" rules={[{ required: true }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="description" label="Description">
-            <Input.TextArea />
-          </Form.Item>
-          <Form.Item name="categoryId" label="Category">
-            <Select
-              allowClear
-              options={categories.map((c) => ({ label: c.name, value: c.id }))}
-            />
-          </Form.Item>
-          <Button type="primary" htmlType="submit" loading={createSkill.isPending}>
-            Create
-          </Button>
-        </Form>
-      </Modal>
-      <Modal
-        title="Add category"
-        open={categoryOpen}
-        onCancel={() => setCategoryOpen(false)}
-        footer={null}
-      >
-        <Form onFinish={(v: CategoryFormValues) => createCategory.mutate(v)}>
-          <Form.Item name="name" label="Name" rules={[{ required: true }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="description" label="Description">
-            <Input.TextArea />
-          </Form.Item>
-          <Form.Item name="parentId" label="Parent category">
-            <Select
-              allowClear
-              options={categories.map((c) => ({ label: c.name, value: c.id }))}
-            />
-          </Form.Item>
-          <Button type="primary" htmlType="submit" loading={createCategory.isPending}>
-            Create
-          </Button>
-        </Form>
-      </Modal>
+        <Form.Item name="name" label="Name" rules={[{ required: true }]}>
+          <Input />
+        </Form.Item>
+        <Form.Item name="description" label="Description">
+          <Input.TextArea />
+        </Form.Item>
+        <Form.Item name="categoryId" label="Category">
+          <Select
+            allowClear
+            options={categories.map((c) => ({ label: c.name, value: c.id }))}
+          />
+        </Form.Item>
+      </FormModal>
     </main>
   );
 }
